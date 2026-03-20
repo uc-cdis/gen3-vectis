@@ -1,4 +1,9 @@
 {
+  "headerMetadata": {
+    "title": "Vectis Discovery",
+    "content": "Vectis discovery page",
+    "key": "vectis-discovery-page"
+  },
   "metadataConfig": [
     {
       "tableConfig": {

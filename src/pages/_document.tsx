@@ -6,7 +6,7 @@ export default function Document() {
   return (
     <Html lang="en" {...mantineHtmlProps}>
       <Head>
-        <link rel="icon" href="/icons/favicon.ico" />
+        <link rel="icon" href="/icons/vectis-logo-mono-black.svg" type="image/svg+xml" />
         <ColorSchemeScript defaultColorScheme="auto" />
       </Head>
       <body>

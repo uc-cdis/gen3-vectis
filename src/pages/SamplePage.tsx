@@ -12,9 +12,9 @@ const SamplePage = ({ headerProps, footerProps }: NavPageLayoutProps) => {
     <NavPageLayout
       {...{ headerProps, footerProps }}
       headerMetadata={{
-        title: 'Gen3 Sample Page',
+        title: 'Vectis Sample Page',
         content: 'Sample Data',
-        key: 'gen3-sample-page',
+        key: 'vectis-sample-page',
       }}
     >
       <div className="w-full m-10">
