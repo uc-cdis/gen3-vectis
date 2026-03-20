@@ -9,7 +9,7 @@ jobs:
     with:
       python-poetry: 'false'
     secrets: inherit # pragma: allowlist-secret
-  ci:
+  ci-ui:
     name: Build Image and Push to Quay (Vectis UI)
     uses: uc-cdis/.github/.github/workflows/image_build_push_native.yaml@master
     with:
@@ -21,7 +21,7 @@ jobs:
       ECR_AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
-
+  ci-sidecar:
     name: Build Image and Push to Quay (Vectis Sidecar)
     uses: uc-cdis/.github/.github/workflows/image_build_push_native.yaml@master
     with:
