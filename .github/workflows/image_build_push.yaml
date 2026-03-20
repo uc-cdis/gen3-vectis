@@ -27,7 +27,7 @@ jobs:
     with:
       USE_QUAY_ONLY: true
       DOCKERFILE_LOCATION: "Dockerfile.workspace-sidecar"
-      OVERRIDE_TAG_NAME: ${{ needs.compute_tag.outputs.OVERRIDE_TAG_NAME }}
+      OVERRIDE_TAG_NAME: "gen3-vectis-workspace-sidecar"
     secrets:
       ECR_AWS_ACCESS_KEY_ID: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
       ECR_AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
