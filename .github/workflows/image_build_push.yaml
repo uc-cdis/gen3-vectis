@@ -10,7 +10,7 @@ jobs:
       python-poetry: 'false'
     secrets: inherit # pragma: allowlist-secret
   ci:
-    name: Build Image and Push to Quay
+    name: Build Image and Push to Quay (Vectis UI)
     uses: uc-cdis/.github/.github/workflows/image_build_push_native.yaml@master
     with:
       USE_QUAY_ONLY: true
@@ -21,3 +21,16 @@ jobs:
       ECR_AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
+    name: Build Image and Push to Quay (Vectis Sidecar)
+    uses: uc-cdis/.github/.github/workflows/image_build_push_native.yaml@master
+    with:
+      USE_QUAY_ONLY: true
+      DOCKERFILE_LOCATION: "Dockerfile.workspace-sidecar"
+      OVERRIDE_TAG_NAME: ${{ needs.compute_tag.outputs.OVERRIDE_TAG_NAME }}
+    secrets:
+      ECR_AWS_ACCESS_KEY_ID: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
+      ECR_AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
