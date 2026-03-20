@@ -13,6 +13,7 @@ module.exports = {
     './src/components/**/*.{js,ts,jsx,tsx}',
     './src/features/**/*.{js,ts,jsx,tsx}',
     './node_modules/@gen3/frontend/dist/index/esm/*.js',
+    './node_modules/@gen3/jupyter-workspaces/dist/**/*.js',
   ],
   theme: {
     extend: {

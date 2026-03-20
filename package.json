@@ -52,6 +52,7 @@
     "victory": "^37.3.6"
   },
   "devDependencies": {
+    "@gen3/jupyter-workspaces": "file:.vendor/gen3-jupyter-workspaces-0.1.1.tgz",
     "@axe-core/react": "^4.10.2",
     "@gen3/toolsff": "0.12.27",
     "@next/eslint-plugin-next": "^15.5.9",

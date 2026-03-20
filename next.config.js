@@ -2,6 +2,7 @@
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const dns = require('dns');
+const { withJupyterWorkspaces } = require('@gen3/jupyter-workspaces/server');
 
 dns.setDefaultResultOrder('ipv4first');
 
@@ -100,4 +101,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withMDX(nextConfig);
+module.exports = withMDX(withJupyterWorkspaces(nextConfig));
