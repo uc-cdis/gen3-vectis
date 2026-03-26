@@ -29,7 +29,7 @@
           },
           {
             "link": {
-              "href": "/Workspace",
+              "href": "/workspaces/jupyter",
               "linkType": "portal",
               "text": "Launch Vectis Workspaces"
             }

@@ -223,3 +223,8 @@ div[class*="bg-secondary-lightest"][class*="text-center"][class*="sm:p-16"] > di
     grid-template-columns: 1fr;
   }
 }
+
+/* Suppress footer when workspace is in fullscreen/maximized mode */
+html.gen3-workspace-maximized footer {
+  display: none !important;
+}

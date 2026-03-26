@@ -1,4 +1,5 @@
 {
+	"requirePayModel": false,
 	"headerMetadata": {
 		"title": "Vectis Workspace",
 		"content": "Vectis workspace page",

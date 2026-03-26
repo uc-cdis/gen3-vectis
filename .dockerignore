@@ -1,1 +1,9 @@
 node_modules
+# Exception: the workspace-assets handler reads these via fs at runtime
+!node_modules/@gen3/jupyter-workspaces/assets
+.next/cache
+*.local
+.env.local
+.env.development*
+.DS_Store
+.git

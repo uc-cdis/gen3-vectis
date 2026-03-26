@@ -10,13 +10,23 @@ WORKDIR /gen3
 
 # Copy dependency files first for better caching
 COPY package.json package-lock.json ./
+# Workspace package tarball — referenced as file:.vendor/... in package.json
+COPY .vendor ./.vendor
 
-# Install ALL dependencies once (including dev deps for build)
-RUN npm config set fetch-retries 5 && \
+# Install ALL dependencies once (including dev deps for build).
+# BuildKit cache mount keeps the npm cache across builds — avoids re-downloading
+# unchanged packages even when package-lock.json changes.
+RUN --mount=type=cache,target=/root/.npm \
+    npm config set fetch-retries 5 && \
     npm config set fetch-retry-mintimeout 20000 && \
     npm config set fetch-retry-maxtimeout 120000 && \
-    npm ci && \
-    npm cache clean --force
+    npm ci
+
+# NEXT_PUBLIC_* vars are baked at build time by Next.js
+ARG NEXT_PUBLIC_GEN3_API_TARGET=http://localhost:30080
+ARG NEXT_PUBLIC_MICRO_CONTAINER_TAG=micro-notebook-dev
+ENV NEXT_PUBLIC_GEN3_API_TARGET=$NEXT_PUBLIC_GEN3_API_TARGET
+ENV NEXT_PUBLIC_MICRO_CONTAINER_TAG=$NEXT_PUBLIC_MICRO_CONTAINER_TAG
 
 # Copy necessary config files
 COPY next.config.js tsconfig.json tailwind.config.js postcss.config.js ./
@@ -28,9 +38,10 @@ COPY ./public ./public
 COPY ./config ./config
 COPY ./start.sh ./
 
-# Build and prune
-RUN npm run build && \
-    npm prune --omit=dev;
+# Build: Next.js production compile + prune dev deps.
+# BuildKit cache mount for Next.js compilation cache persists across rebuilds.
+RUN --mount=type=cache,target=/gen3/.next/cache \
+    npm run build && npm prune --omit=dev
 
 # Production stage
 FROM node:24.14.0-trixie-slim AS runner

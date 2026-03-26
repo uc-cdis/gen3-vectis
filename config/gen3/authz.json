@@ -6,6 +6,9 @@
     "/Workspace": {
       "loginRequired": true
     },
+    "/workspaces/jupyter": {
+      "loginRequired": true
+    },
     "/Profile": {
       "loginRequired": true
     },
