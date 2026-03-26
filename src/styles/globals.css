@@ -31,8 +31,8 @@ main.flex.grow.relative > .flex.justify-items-center.w-full {
   min-height: 0;
   width: 100%;
   background:
-    radial-gradient(1260px 620px at 78% 25%, rgba(180, 189, 201, 0.28), rgba(180, 189, 201, 0) 72%),
-    linear-gradient(105deg, #edf1f6 0%, #e7edf5 44%, #e0e8f1 100%);
+    radial-gradient(1260px 620px at 78% 25%, rgba(191, 182, 174, 0.28), rgba(191, 182, 174, 0) 72%),
+    linear-gradient(105deg, #f7f5f4 0%, #f3f0ee 44%, #eeeae7 100%);
 }
 
 main.flex.grow.relative > .flex.justify-items-center.w-full > [class*="sm:mt-8"][class*="bg-base-max"] {
@@ -50,7 +50,7 @@ main.flex.grow.relative > .flex.justify-items-center.w-full > [class*="sm:mt-8"]
   line-height: 1.2 !important;
   letter-spacing: -0.012em;
   margin-bottom: 0.35rem !important;
-  color: #1f2857;
+  color: #800000;
 }
 
 /* Anchor the landing title to the hero content container so it doesn't float orphaned. */
@@ -111,8 +111,8 @@ main.flex.grow.relative > .flex.justify-items-center.w-full > [class*="sm:mt-8"]
   pointer-events: none;
   z-index: 2;
   background:
-    linear-gradient(to right, #e7edf5 0%, rgba(231, 237, 245, 0) 9%, rgba(231, 237, 245, 0) 97%, rgba(231, 237, 245, 0.42) 100%),
-    linear-gradient(to bottom, #e7edf5 0%, rgba(231, 237, 245, 0) 8%, rgba(231, 237, 245, 0) 92%, #e7edf5 100%);
+    linear-gradient(to right, #f3f0ee 0%, rgba(243, 240, 238, 0) 9%, rgba(243, 240, 238, 0) 97%, rgba(243, 240, 238, 0.42) 100%),
+    linear-gradient(to bottom, #f3f0ee 0%, rgba(243, 240, 238, 0) 8%, rgba(243, 240, 238, 0) 92%, #f3f0ee 100%);
 }
 
 [class*="sm:mt-8"][class*="bg-base-max"] .flex.mx-20 > .basis-1\/2:last-child > .h-full.relative img {
