@@ -9,7 +9,7 @@ const upstreamHandler = createWorkspaceAssetsHandler({
   gatewayBaseUrl: '/lw-workspace/proxy/',
 });
 const VECTIS_WORKSPACE_APP_NAME = 'Vectis Workspaces';
-const VECTIS_FAVICON_URL = '/icons/vectis-logo-mono-black.svg';
+const VECTIS_FAVICON_URL = '/icons/Vectis_Logo_Colored_LightTheme.svg';
 
 function injectVectisBranding(html: string, req: NextApiRequest) {
   const isRemoteTierRequest =

@@ -8,9 +8,9 @@
       "icon": "data-disabled:opacity-50"
     },
     "logo": {
-      "src": "/icons/vectis-logo-mono-black.svg",
-      "width": 120,
-      "height": 40,
+      "src": "/icons/Vectis_Logo_Colored_LightTheme.svg",
+      "width": 112,
+      "height": 36,
       "href": "/"
     },
     "items": [
