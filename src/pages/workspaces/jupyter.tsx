@@ -11,6 +11,8 @@ import {
   type WorkspaceAuthContext,
 } from '@gen3/jupyter-workspaces';
 
+const jegEnabled = process.env.NEXT_PUBLIC_JEG_ENABLED === 'true';
+
 const JupyterWorkspacePage = ({
   headerProps,
   footerProps,
@@ -125,6 +127,8 @@ const JupyterWorkspacePage = ({
           microContainerConfig={{
             identifierTag: process.env.NEXT_PUBLIC_MICRO_CONTAINER_TAG || 'micro-notebook-dev',
           }}
+          jegEnabled={jegEnabled}
+          jegGatewayBaseUrl="/lw-workspace/proxy/jeg-panel"
           onToggleHostChrome={setWorkspaceMaximized}
         />
       ) : isAuthLoading ? (
@@ -151,6 +155,8 @@ const JupyterWorkspacePage = ({
           microContainerConfig={{
             identifierTag: process.env.NEXT_PUBLIC_MICRO_CONTAINER_TAG || 'micro-notebook-dev',
           }}
+          jegEnabled={jegEnabled}
+          jegGatewayBaseUrl="/lw-workspace/proxy/jeg-panel"
           onToggleHostChrome={setWorkspaceMaximized}
         />
       )}

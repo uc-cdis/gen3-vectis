@@ -22,6 +22,7 @@ const upstreamHandler = createKernelLifecycleProxyHandler({
   gen3Endpoint: process.env.GEN3_ENDPOINT ?? defaultGen3Endpoint,
   fenceUrl: process.env.FENCE_URL ?? defaultFenceUrl,
   kernelSpecPolicy: policy,
+  jegEnabled: process.env.ENABLE_JEG === 'true',
   getToken: (req) => getAccessToken(req.headers['cookie'] ?? '') ?? null,
 });
 

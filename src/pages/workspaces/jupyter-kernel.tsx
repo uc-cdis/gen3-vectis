@@ -11,6 +11,10 @@ import {
   type WorkspaceAuthContext,
 } from '@gen3/jupyter-workspaces';
 
+// NEXT_PUBLIC_JEG_ENABLED is baked at build time. Set it alongside ENABLE_JEG (server-side)
+// in your deployment environment when Jupyter Enterprise Gateway is configured.
+const jegEnabled = process.env.NEXT_PUBLIC_JEG_ENABLED === 'true';
+
 const JupyterKernelWorkspacePage = ({
   headerProps,
   footerProps,
@@ -90,6 +94,8 @@ const JupyterKernelWorkspacePage = ({
           microContainerConfig={{
             identifierTag: process.env.NEXT_PUBLIC_MICRO_CONTAINER_TAG || 'micro-notebook-dev',
           }}
+          jegEnabled={jegEnabled}
+          jegGatewayBaseUrl="/lw-workspace/proxy/jeg-panel"
           onToggleHostChrome={setWorkspaceMaximized}
         />
       ) : isAuthLoading ? (
@@ -117,6 +123,8 @@ const JupyterKernelWorkspacePage = ({
           microContainerConfig={{
             identifierTag: process.env.NEXT_PUBLIC_MICRO_CONTAINER_TAG || 'micro-notebook-dev',
           }}
+          jegEnabled={jegEnabled}
+          jegGatewayBaseUrl="/lw-workspace/proxy/jeg-panel"
           onToggleHostChrome={setWorkspaceMaximized}
         />
       )}

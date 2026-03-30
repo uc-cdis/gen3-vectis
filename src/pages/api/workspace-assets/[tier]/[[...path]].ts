@@ -86,6 +86,11 @@ function injectVectisBranding(html: string, req: NextApiRequest) {
               // Use an absolute URL so JupyterLite does not resolve WS endpoints
               // relative to /workspace-api/workspace-assets/remote/.
               remoteBaseUrl: absoluteRemoteBaseUrl,
+              // Route all kernel ops through jeg-proxy so JupyterLite sees merged
+              // Python3 (container) + JEG GPU kernelspecs. The handler routes
+              // Python3 kernel launches/channels to the container; GPU kernel
+              // launches are gated (403) with a message to use the Kernel Panel.
+              remoteKernelsBaseUrl: `${resolvedProto}://${resolvedHost}/lw-workspace/proxy/jeg-proxy`,
               fullThemesUrl: '/workspace-api/workspace-assets/remote/build/themes',
             }
           : {}),

@@ -25,8 +25,11 @@ RUN --mount=type=cache,target=/root/.npm \
 # NEXT_PUBLIC_* vars are baked at build time by Next.js
 ARG NEXT_PUBLIC_GEN3_API_TARGET=http://localhost:30080
 ARG NEXT_PUBLIC_MICRO_CONTAINER_TAG=micro-notebook-dev
+# NEXT_PUBLIC_JEG_ENABLED — set to 'true' at build time when JEG GPU kernels are configured.
+ARG NEXT_PUBLIC_JEG_ENABLED=false
 ENV NEXT_PUBLIC_GEN3_API_TARGET=$NEXT_PUBLIC_GEN3_API_TARGET
 ENV NEXT_PUBLIC_MICRO_CONTAINER_TAG=$NEXT_PUBLIC_MICRO_CONTAINER_TAG
+ENV NEXT_PUBLIC_JEG_ENABLED=$NEXT_PUBLIC_JEG_ENABLED
 
 # Copy necessary config files
 COPY next.config.js tsconfig.json tailwind.config.js postcss.config.js ./
