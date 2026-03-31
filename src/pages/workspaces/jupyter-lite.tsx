@@ -70,7 +70,7 @@ const JupyterLiteWorkspacePage = ({
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-    fetch('/api/workspace/gateway/api/status', {
+    fetch('/workspace-api/workspace/kernel/api/status', {
       method: 'GET',
       signal: controller.signal,
     })
@@ -118,8 +118,10 @@ const JupyterLiteWorkspacePage = ({
             allowLocalDevBypass: true,
           }}
           localDevBypassEnabled={true}
-          freeAssetBaseUrl="/api/workspace-assets/free"
-          remoteAssetBaseUrl="/api/workspace-assets/remote"
+          gatewayBaseUrl="/workspace-api/workspace/kernel"
+          hatcheryBaseUrl="/workspace-api/workspace/hatchery"
+          freeAssetBaseUrl="/workspace-api/workspace-assets/free"
+          remoteAssetBaseUrl="/workspace-api/workspace-assets/remote"
           onToggleHostChrome={setWorkspaceMaximized}
         />
       ) : isAuthLoading ? (
@@ -139,8 +141,10 @@ const JupyterLiteWorkspacePage = ({
           authContext={authContext}
           accessPolicy={{ requireUsername: true, requireJwt: false }}
           localDevBypassEnabled={false}
-          freeAssetBaseUrl="/api/workspace-assets/free"
-          remoteAssetBaseUrl="/api/workspace-assets/remote"
+          gatewayBaseUrl="/workspace-api/workspace/kernel"
+          hatcheryBaseUrl="/workspace-api/workspace/hatchery"
+          freeAssetBaseUrl="/workspace-api/workspace-assets/free"
+          remoteAssetBaseUrl="/workspace-api/workspace-assets/remote"
           onToggleHostChrome={setWorkspaceMaximized}
         />
       )}

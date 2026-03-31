@@ -11,6 +11,8 @@ import {
   type WorkspaceAuthContext,
 } from '@gen3/jupyter-workspaces';
 
+const jegEnabled = process.env.NEXT_PUBLIC_JEG_ENABLED === 'true';
+
 const JupyterWorkspacePage = ({
   headerProps,
   footerProps,
@@ -70,7 +72,7 @@ const JupyterWorkspacePage = ({
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-    fetch('/api/workspace/gateway/api/status', {
+    fetch('/workspace-api/workspace/kernel/api/status', {
       method: 'GET',
       signal: controller.signal,
     })
@@ -117,8 +119,16 @@ const JupyterWorkspacePage = ({
             allowLocalDevBypass: true,
           }}
           localDevBypassEnabled={true}
-          freeAssetBaseUrl="/api/workspace-assets/free"
-          remoteAssetBaseUrl="/api/workspace-assets/remote"
+          gatewayBaseUrl="/lw-workspace/proxy"
+          workspaceProxyBaseUrl="/lw-workspace/proxy"
+          hatcheryBaseUrl="/workspace-api/workspace/hatchery"
+          freeAssetBaseUrl="/workspace-api/workspace-assets/free"
+          remoteAssetBaseUrl="/workspace-api/workspace-assets/remote"
+          microContainerConfig={{
+            identifierTag: process.env.NEXT_PUBLIC_MICRO_CONTAINER_TAG || 'micro-notebook-dev',
+          }}
+          jegEnabled={jegEnabled}
+          jegGatewayBaseUrl="/lw-workspace/proxy/jeg-panel"
           onToggleHostChrome={setWorkspaceMaximized}
         />
       ) : isAuthLoading ? (
@@ -137,8 +147,16 @@ const JupyterWorkspacePage = ({
           authContext={authContext}
           accessPolicy={{ requireUsername: true, requireJwt: false }}
           localDevBypassEnabled={false}
-          freeAssetBaseUrl="/api/workspace-assets/free"
-          remoteAssetBaseUrl="/api/workspace-assets/remote"
+          gatewayBaseUrl="/lw-workspace/proxy"
+          workspaceProxyBaseUrl="/lw-workspace/proxy"
+          hatcheryBaseUrl="/workspace-api/workspace/hatchery"
+          freeAssetBaseUrl="/workspace-api/workspace-assets/free"
+          remoteAssetBaseUrl="/workspace-api/workspace-assets/remote"
+          microContainerConfig={{
+            identifierTag: process.env.NEXT_PUBLIC_MICRO_CONTAINER_TAG || 'micro-notebook-dev',
+          }}
+          jegEnabled={jegEnabled}
+          jegGatewayBaseUrl="/lw-workspace/proxy/jeg-panel"
           onToggleHostChrome={setWorkspaceMaximized}
         />
       )}

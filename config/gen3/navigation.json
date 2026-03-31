@@ -3,14 +3,14 @@
     "hideUnauthorizedLinks": false,
     "classNames": {
       "root": "pl-1 mr-6 bg-base-max text-primary opacity-100 hover:opacity-100 data-disabled:opacity-35 data-disabled:hover:text-primary data-disabled:hover:opacity-35",
-      "item": "py-2 px-4 hover:bg-base-lightest hover:text-base-contrast",
+      "item": "py-2 px-4 hover:bg-secondary-darker hover:text-secondary-contrast-darker",
       "navigationPanel": "bg-base-max text-primary",
       "icon": "data-disabled:opacity-50"
     },
     "logo": {
-      "src": "/icons/vectis-logo-mono-black.svg",
-      "width": 120,
-      "height": 40,
+      "src": "/icons/Vectis_Logo_Colored_LightTheme.svg",
+      "width": 112,
+      "height": 36,
       "href": "/"
     },
     "items": [
@@ -46,7 +46,7 @@
       },
       {
         "icon": "gen3:workspace",
-        "href": "/Workspace",
+        "href": "/workspaces/jupyter-kernel",
         "name": "Workspace",
         "tooltip": "Gen3 workspaces are secure data analysis environments in the cloud that can access data from one or more data resources."
       },
@@ -65,6 +65,18 @@
     ]
   },
   "topBar": {
+    "classNames": {
+      "root": "flex justify-end items-center align-middle w-100 bg-primary text-primary-contrast",
+      "divider": "border-primary-light my-2",
+      "login": "font-content text-primary-contrast hover:text-primary-contrast hover:border-primary-light"
+    },
+    "itemClassnames": {
+      "root": "flex items-center align-middle px-2 my-2",
+      "button": "flex flex-nowrap items-center align-middle border-b-2 border-transparent hover:border-primary-light",
+      "leftIcon": "text-primary-contrast pr-1",
+      "label": "font-content text-primary-contrast block",
+      "rightIcon": "text-primary-contrast pl-1"
+    },
     "items": [
       {
         "rightIcon": "gen3:upload",
