@@ -1,18 +1,18 @@
 {
   "topContent": [
     {
-      "text": "Gen3 Data Commons",
+      "text": "Vectis Platform",
       "className": "text-center text-3xl font-bold"
     },
     {
-      "text": "DISCOVER, ANALYZE, AND SHARE DATA",
+      "text": "SECURE DATA, TRUSTED INTELLIGENCE, WORLD-CLASS SAAS",
       "className": "text-center text-xl font-medium"
     }
   ],
   "bottomContent": [
     {
       "type": "markdown",
-      "text": "If you have any questions about access or the registration process, please contact [gen3@datacommons.io](mailto:gen3@datacommons.io)",
+      "text": "Need access or onboarding support? Contact [support@vectis.io](mailto:support@vectis.io)",
       "className": "text-center text-sm"
     }
   ],

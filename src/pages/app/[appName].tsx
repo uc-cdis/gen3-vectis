@@ -32,9 +32,9 @@ const AppsPage = ({ headerProps, footerProps, config }: AppConfig) => {
     <NavPageLayout
       {...{ headerProps, footerProps }}
       headerMetadata={{
-        title: 'Gen3 App Page',
+        title: 'Vectis App',
         content: 'App Data',
-        key: 'gen3-app-page',
+        key: 'vectis-app-page',
         ...(config?.headerMetadata ? config.headerMetadata : {}),
       }}
     >

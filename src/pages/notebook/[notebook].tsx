@@ -16,9 +16,9 @@ const AppsPage = ({ headerProps, footerProps }: NavPageLayoutProps) => {
     <NavPageLayout
       {...{ headerProps, footerProps }}
       headerMetadata={{
-        title: 'Gen3 Notebook Page',
+        title: 'Vectis Notebook',
         content: 'Jupyter Notebook',
-        key: 'gen3-notebook-page',
+        key: 'vectis-notebook-page',
       }}
     >
       <div className="flex justify-items-center w-full">

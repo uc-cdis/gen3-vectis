@@ -1,4 +1,9 @@
 {
 "showGraph": false,
-"showDownloads": false
+"showDownloads": false,
+"headerMetadata": {
+	"title": "Vectis Dictionary",
+	"content": "Vectis dictionary page",
+	"key": "vectis-dictionary-page"
+}
 }

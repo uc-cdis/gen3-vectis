@@ -20,9 +20,9 @@ const StaticNotebookApp = ({
     <NavPageLayout
       {...{ headerProps, footerProps }}
       headerMetadata={{
-        title: 'Gen3 Static Notebook Page',
+        title: 'Vectis Static Notebook',
         content: 'Static Notebook',
-        key: 'gen3-static-notebook-page',
+        key: 'vectis-static-notebook-page',
       }}
     >
       <StaticNotebookIFrame notebook={notebook} />

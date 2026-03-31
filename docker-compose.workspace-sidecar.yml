@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  workspace-sidecar:
+    image: nginx:latest
+    container_name: gen3-vectis-workspace-sidecar
+    restart: unless-stopped
+    ports:
+      - "8890:8890"
+    volumes:
+      - ./ops/workspace-sidecar/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    # Upstreams target host.docker.internal for app (3000) and notebook (8889)

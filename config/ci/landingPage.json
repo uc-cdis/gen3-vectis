@@ -1,78 +1,53 @@
 {
+  "headerMetadata": {
+    "title": "Vectis Home",
+    "content": "Vectis home page",
+    "key": "vectis-home-page"
+  },
   "body": [
     {
       "title": {
-        "text": "Gen3 Data Platform",
-        "level": 2
+        "text": "Vectis Platform Overview",
+        "level": 3
       }
     },
     {
       "splitarea": {
         "left": [
           {
-            "text": "The <strong>Gen3 Data Platform</strong> is a single web interface which allows visitors to <strong>discover, access and analyze data</strong>. Making data easily findable enables secondary, cross-study analyses, promotes dissemination of research and accelerates new discoveries."
+            "text": "<strong>Vectis</strong> is a security-first SaaS platform for teams that need to <strong>discover, govern, and operationalize data</strong> with confidence, from curated dictionaries to governed workspaces."
           },
           {
             "link": {
               "href": "/Discovery",
               "linkType": "portal",
-              "text": "Explore Gen3 Data"
+              "text": "Explore Vectis Data"
             }
           },
           {
-            "text": "The Gen3 platform consists of open-source software services that support the emergence of healthy data ecosystems by enabling the interoperation and creation of cloud-based data resources, including data commons and analysis workspaces. Gen3 aims to accelerate and democratize the process of scientific discovery by making it easy to manage, analyze, harmonize, and share large and complex datasets in the cloud."
+            "text": "Built for regulated and mission-critical environments, Vectis combines role-aware access control, governed metadata, and modern cloud workspaces into one cohesive experience."
           },
           {
             "link": {
-              "href": "https://gen3.datacommons.io",
-              "text": "Learn More"
+              "href": "/Workspace",
+              "linkType": "portal",
+              "text": "Launch Vectis Workspaces"
             }
           }
         ],
         "right": [
           {
             "image": {
-              "src": "https://gen3.org/figs/kv.svg",
-              "alt": "Gen3 Data Platform"
+              "src": "/icons/vectisgraph.jpeg?v=20260323",
+              "alt": "Vectis secure data platform"
             }
           }
         ]
       }
     },
     {
-      "break": "standard"
-    },
-    {
-      "cardsArea": {
-        "title": "",
-        "cards": [
-          {
-            "icon": "MdOutlineSearch",
-            "bodyText": "Search studies and related datasets for download or analysis in a workspace.",
-            "btnText": "Discover",
-            "href": "/Discovery",
-            "linkType": "portal"
-          },
-          {
-            "icon": "MdOutlineSearch",
-            "bodyText": "Use our selected tool to filter out the data you need.",
-            "btnText": "Explorer",
-            "href": "/Explorer",
-            "linkType": "portal"
-          },
-          {
-            "icon": "MdOutlineSearch",
-            "bodyText": "Analyze your selected cases using Jupyter Notebooks in our secure cloud environment.",
-            "btnText": "Analyze Data",
-            "href": "/Workspace",
-            "linkType": "portal"
-          }
-        ]
-      }
-    },
-    {
       "quoteArea": {
-        "quote": "Our vision is a world in which researchers have ready access to the data needed and the tools required to make data-driven discoveries that increase our scientific knowledge and improve the quality of life."
+        "quote": "Vectis delivers enterprise-grade trust: security by design, world-class user experience, and governed analytics at SaaS speed."
       }
     }
   ]
