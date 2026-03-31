@@ -8,6 +8,10 @@ import {
 import { fetchArboristResources } from './lib/auth/fetchAuthz';
 import { RouteConfig } from '@gen3/frontend/server';
 
+// Use Node.js runtime so middleware can import server-only modules
+// (jose, @gen3/frontend/server, etc.) that require Node APIs unavailable in Edge.
+export const runtime = 'nodejs';
+
 const WILDCARD_ROUTE_KEY = '*';
 
 function getRouteRuleForPath(pathname: string, routeConfig: RouteConfig) {

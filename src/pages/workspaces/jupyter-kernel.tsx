@@ -11,12 +11,15 @@ import {
   type WorkspaceAuthContext,
 } from '@gen3/jupyter-workspaces';
 
+// NEXT_PUBLIC_JEG_ENABLED is baked at build time. Set it alongside ENABLE_JEG (server-side)
+// in your deployment environment when Jupyter Enterprise Gateway is configured.
+const jegEnabled = process.env.NEXT_PUBLIC_JEG_ENABLED === 'true';
+
 const JupyterKernelWorkspacePage = ({
   headerProps,
   footerProps,
 }: NavPageLayoutProps) => {
   const isDevelopment = process.env.NODE_ENV !== 'production';
-  const isRemoteTierPage = true;
   const {
     data: userData,
     isFetching,
@@ -24,7 +27,6 @@ const JupyterKernelWorkspacePage = ({
     loginStatus,
   } = useUserAuth(false);
   const [workspaceMaximized, setWorkspaceMaximized] = useState(false);
-  const [gatewayUnavailable, setGatewayUnavailable] = useState(false);
   const username =
     userData?.username ||
     userData?.preferred_username ||
@@ -37,7 +39,6 @@ const JupyterKernelWorkspacePage = ({
       if (isDevelopment) {
         return {
           username: username || 'dev-local-user',
-          jwt: 'dev-local-token',
           rbac: userData?.authz ? Object.keys(userData.authz) : [],
           abac: { devBypass: true },
         };
@@ -64,32 +65,6 @@ const JupyterKernelWorkspacePage = ({
     };
   }, [workspaceMaximized]);
 
-  useEffect(() => {
-    if (!isRemoteTierPage) return;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-    fetch('/api/workspace/gateway/api/status', {
-      method: 'GET',
-      signal: controller.signal,
-    })
-      .then((response) => {
-        setGatewayUnavailable(!response.ok);
-      })
-      .catch(() => {
-        setGatewayUnavailable(true);
-      })
-      .finally(() => {
-        clearTimeout(timeoutId);
-      });
-
-    return () => {
-      clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, [isRemoteTierPage]);
-
   return (
     <NavPageLayout
       {...{ headerProps, footerProps }}
@@ -100,14 +75,7 @@ const JupyterKernelWorkspacePage = ({
       }}
       mainProps={{ fixed: true }}
     >
-      {isRemoteTierPage && gatewayUnavailable ? (
-        <div className="flex h-full min-h-[40vh] w-full items-center justify-center px-6 py-10">
-          <div className="max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Remote kernel gateway is temporarily unavailable. Please retry in a moment or use
-            the Jupyter Lite workspace while the backend is starting.
-          </div>
-        </div>
-      ) : isDevelopment ? (
+      {isDevelopment ? (
         <HostedWorkspaceExperience
           initialTier="remote"
           leftPanel={null}
@@ -118,8 +86,16 @@ const JupyterKernelWorkspacePage = ({
             allowLocalDevBypass: true,
           }}
           localDevBypassEnabled={true}
-          freeAssetBaseUrl="/api/workspace-assets/free"
-          remoteAssetBaseUrl="/api/workspace-assets/remote"
+          gatewayBaseUrl="/lw-workspace/proxy"
+          workspaceProxyBaseUrl="/workspace-api/workspace/kernel"
+          hatcheryBaseUrl="/workspace-api/workspace/hatchery"
+          freeAssetBaseUrl="/workspace-api/workspace-assets/free"
+          remoteAssetBaseUrl="/workspace-api/workspace-assets/remote"
+          microContainerConfig={{
+            identifierTag: process.env.NEXT_PUBLIC_MICRO_CONTAINER_TAG || 'micro-notebook-dev',
+          }}
+          jegEnabled={jegEnabled}
+          jegGatewayBaseUrl="/lw-workspace/proxy/jeg-panel"
           onToggleHostChrome={setWorkspaceMaximized}
         />
       ) : isAuthLoading ? (
@@ -139,8 +115,16 @@ const JupyterKernelWorkspacePage = ({
           authContext={authContext}
           accessPolicy={{ requireUsername: true, requireJwt: false }}
           localDevBypassEnabled={false}
-          freeAssetBaseUrl="/api/workspace-assets/free"
-          remoteAssetBaseUrl="/api/workspace-assets/remote"
+          gatewayBaseUrl="/lw-workspace/proxy"
+          workspaceProxyBaseUrl="/workspace-api/workspace/kernel"
+          hatcheryBaseUrl="/workspace-api/workspace/hatchery"
+          freeAssetBaseUrl="/workspace-api/workspace-assets/free"
+          remoteAssetBaseUrl="/workspace-api/workspace-assets/remote"
+          microContainerConfig={{
+            identifierTag: process.env.NEXT_PUBLIC_MICRO_CONTAINER_TAG || 'micro-notebook-dev',
+          }}
+          jegEnabled={jegEnabled}
+          jegGatewayBaseUrl="/lw-workspace/proxy/jeg-panel"
           onToggleHostChrome={setWorkspaceMaximized}
         />
       )}

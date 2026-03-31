@@ -1,6 +1,8 @@
 'use strict';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
+const path = require('path');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const dns = require('dns');
 const { withJupyterWorkspaces } = require('@gen3/jupyter-workspaces/server');
 
@@ -23,6 +25,14 @@ const isDev = process.env.NODE_ENV === 'development';
 // Next configuration with support for rewrting API to existing common services
 const nextConfig = {
   output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname),
+  // Skip type-checking during Docker build — types are checked in CI separately.
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   serverRuntimeConfig: {
     HOSTNAME: '0.0.0.0',
   },
@@ -40,10 +50,16 @@ const nextConfig = {
     return config;
   },
   async rewrites() {
+    const workspaceApiRewrite = {
+      source: '/workspace-api/:path*',
+      destination: '/api/:path*',
+    };
+
     if (isDev) {
       const GEN3_TARGET =
         process.env.NEXT_PUBLIC_GEN3_API_TARGET || 'https://localhost';
       return [
+        workspaceApiRewrite,
         { source: '/_status', destination: `${GEN3_TARGET}/_status` },
         { source: '/user/:path*', destination: `${GEN3_TARGET}/user/:path*` },
         {
@@ -82,9 +98,9 @@ const nextConfig = {
           destination: `${GEN3_TARGET}/requestor/:path*`,
         },
       ];
-    } else {
-      return [];
     }
+
+    return [workspaceApiRewrite];
   },
   async headers() {
     return [

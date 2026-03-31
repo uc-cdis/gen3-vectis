@@ -1,7 +1,14 @@
-import {
-  WorkspacePage,
-  WorkspacePageGetServerSideProps as getServerSideProps,
-} from '@gen3/frontend';
-export default WorkspacePage;
+import type { GetServerSideProps, NextPage } from 'next';
 
-export { getServerSideProps };
+const WorkspaceRedirectPage: NextPage = () => null;
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    redirect: {
+      destination: '/workspaces/jupyter',
+      permanent: false,
+    },
+  };
+};
+
+export default WorkspaceRedirectPage;
