@@ -8,12 +8,16 @@ import {
 import { useUserAuth } from '@gen3/core';
 import {
   HostedWorkspaceExperience,
+  DataToolsPanel,
   type WorkspaceAuthContext,
 } from '@gen3/jupyter-workspaces';
 
 // NEXT_PUBLIC_JEG_ENABLED is baked at build time. Set it alongside ENABLE_JEG (server-side)
 // in your deployment environment when Jupyter Enterprise Gateway is configured.
 const jegEnabled = process.env.NEXT_PUBLIC_JEG_ENABLED === 'true';
+const dictionarySchemaUrl =
+  process.env.NEXT_PUBLIC_DICTIONARY_SCHEMA_URL ||
+  '/api/v0/submission/_dictionary/_all';
 
 const JupyterKernelWorkspacePage = ({
   headerProps,
@@ -78,7 +82,7 @@ const JupyterKernelWorkspacePage = ({
       {isDevelopment ? (
         <HostedWorkspaceExperience
           initialTier="remote"
-          leftPanel={null}
+          leftPanel={<DataToolsPanel schemaUrl={dictionarySchemaUrl} />}
           authContext={authContext}
           accessPolicy={{
             requireUsername: false,
@@ -111,7 +115,7 @@ const JupyterKernelWorkspacePage = ({
       ) : (
         <HostedWorkspaceExperience
           initialTier="remote"
-          leftPanel={null}
+          leftPanel={<DataToolsPanel schemaUrl={dictionarySchemaUrl} />}
           authContext={authContext}
           accessPolicy={{ requireUsername: true, requireJwt: false }}
           localDevBypassEnabled={false}

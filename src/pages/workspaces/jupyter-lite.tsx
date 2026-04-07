@@ -8,8 +8,13 @@ import {
 import { useUserAuth } from '@gen3/core';
 import {
   HostedWorkspaceExperience,
+  DataToolsPanel,
   type WorkspaceAuthContext,
 } from '@gen3/jupyter-workspaces';
+
+const dictionarySchemaUrl =
+  process.env.NEXT_PUBLIC_DICTIONARY_SCHEMA_URL ||
+  '/api/v0/submission/_dictionary/_all';
 
 const JupyterLiteWorkspacePage = ({
   headerProps,
@@ -110,7 +115,7 @@ const JupyterLiteWorkspacePage = ({
       ) : isDevelopment ? (
         <HostedWorkspaceExperience
           initialTier="free"
-          leftPanel={null}
+          leftPanel={<DataToolsPanel schemaUrl={dictionarySchemaUrl} />}
           authContext={authContext}
           accessPolicy={{
             requireUsername: false,
@@ -137,7 +142,7 @@ const JupyterLiteWorkspacePage = ({
       ) : (
         <HostedWorkspaceExperience
           initialTier="free"
-          leftPanel={null}
+          leftPanel={<DataToolsPanel schemaUrl={dictionarySchemaUrl} />}
           authContext={authContext}
           accessPolicy={{ requireUsername: true, requireJwt: false }}
           localDevBypassEnabled={false}

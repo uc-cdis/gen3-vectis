@@ -1,5 +1,7 @@
 import App, { AppProps, AppContext, AppInitialProps } from 'next/app';
 import React, { useState, useEffect, useRef, Suspense } from 'react';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
 import { MantineProvider, mergeThemeOverrides } from '@mantine/core';
 
 import {
@@ -56,6 +58,29 @@ interface Gen3AppProps {
   fonts: Fonts;
 }
 
+const getTabTitle = (asPath: string): string => {
+  const path = asPath.split('?')[0]?.split('#')[0] || '/';
+
+  if (path === '/' || path === '/index') return 'Vectis Home';
+  if (path === '/Discovery') return 'Vectis Discovery';
+  if (path === '/DataDictionary') return 'Vectis Dictionary';
+  if (path === '/Explorer') return 'Vectis Exploration';
+  if (path === '/Query') return 'Vectis Query';
+  if (path === '/Analysis') return 'Vectis Apps';
+  if (path === '/Workspace') return 'Vectis Workspace';
+  if (path === '/workspaces/jupyter') return 'Jupyter Workspace | Vectis';
+  if (path === '/workspaces/jupyter-kernel') return 'Jupyter Kernel Workspace | Vectis';
+  if (path === '/workspaces/jupyter-lite') return 'Jupyter Lite Workspace | Vectis';
+  if (path === '/Submission') return 'Vectis Browse Data';
+  if (path === '/DataLibrary') return 'Vectis Data Library';
+  if (path === '/Profile') return 'Vectis Profile';
+  if (path.startsWith('/app/')) return 'Vectis App';
+  if (path.startsWith('/notebook/')) return 'Vectis Notebook';
+  if (path.startsWith('/staticNotebook/')) return 'Vectis Static Notebook';
+
+  return 'Vectis Home';
+};
+
 const Gen3App = ({
   Component,
   pageProps,
@@ -67,6 +92,7 @@ const Gen3App = ({
   protectedRoutes,
   publicConfig,
 }: AppProps & Gen3AppProps) => {
+  const router = useRouter();
   const isFirstRender = useRef(true);
   const [mantineTheme, setMantineTheme] =
     useState<Partial<ReturnType<typeof mergeThemeOverrides>>>();
@@ -91,6 +117,10 @@ const Gen3App = ({
     }
   }, []);
 
+  useEffect(() => {
+    document.title = getTabTitle(router.asPath);
+  }, [router.asPath]);
+
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -103,6 +133,9 @@ const Gen3App = ({
 
   return (
     <React.Fragment>
+      <Head>
+        <title>{getTabTitle(router.asPath)}</title>
+      </Head>
       {isClient ? (
         <Suspense fallback={<Loading />}>
           {publicConfig?.dataDogAppId != null &&
