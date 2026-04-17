@@ -91,10 +91,10 @@ const JupyterKernelWorkspacePage = ({
           }}
           localDevBypassEnabled={true}
           gatewayBaseUrl="/lw-workspace/proxy"
-          workspaceProxyBaseUrl="/workspace-api/workspace/kernel"
-          hatcheryBaseUrl="/workspace-api/workspace/hatchery"
-          freeAssetBaseUrl="/workspace-api/workspace-assets/free"
-          remoteAssetBaseUrl="/workspace-api/workspace-assets/remote"
+          workspaceProxyBaseUrl="/api/workspace/kernel"
+          hatcheryBaseUrl="/api/workspace/hatchery"
+          freeAssetBaseUrl="/api/workspace-assets/free"
+          remoteAssetBaseUrl="/api/workspace-assets/remote"
           microContainerConfig={{
             identifierTag: process.env.NEXT_PUBLIC_MICRO_CONTAINER_TAG || 'micro-notebook-dev',
           }}
@@ -120,10 +120,10 @@ const JupyterKernelWorkspacePage = ({
           accessPolicy={{ requireUsername: true, requireJwt: false }}
           localDevBypassEnabled={false}
           gatewayBaseUrl="/lw-workspace/proxy"
-          workspaceProxyBaseUrl="/workspace-api/workspace/kernel"
-          hatcheryBaseUrl="/workspace-api/workspace/hatchery"
-          freeAssetBaseUrl="/workspace-api/workspace-assets/free"
-          remoteAssetBaseUrl="/workspace-api/workspace-assets/remote"
+          workspaceProxyBaseUrl="/api/workspace/kernel"
+          hatcheryBaseUrl="/api/workspace/hatchery"
+          freeAssetBaseUrl="/api/workspace-assets/free"
+          remoteAssetBaseUrl="/api/workspace-assets/remote"
           microContainerConfig={{
             identifierTag: process.env.NEXT_PUBLIC_MICRO_CONTAINER_TAG || 'micro-notebook-dev',
           }}

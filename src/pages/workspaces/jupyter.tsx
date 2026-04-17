@@ -76,7 +76,7 @@ const JupyterWorkspacePage = ({
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-    fetch('/workspace-api/workspace/kernel/api/status', {
+    fetch('/api/workspace/kernel/api/status', {
       method: 'GET',
       signal: controller.signal,
     })
@@ -125,9 +125,9 @@ const JupyterWorkspacePage = ({
           localDevBypassEnabled={true}
           gatewayBaseUrl="/lw-workspace/proxy"
           workspaceProxyBaseUrl="/lw-workspace/proxy"
-          hatcheryBaseUrl="/workspace-api/workspace/hatchery"
-          freeAssetBaseUrl="/workspace-api/workspace-assets/free"
-          remoteAssetBaseUrl="/workspace-api/workspace-assets/remote"
+          hatcheryBaseUrl="/api/workspace/hatchery"
+          freeAssetBaseUrl="/api/workspace-assets/free"
+          remoteAssetBaseUrl="/api/workspace-assets/remote"
           microContainerConfig={{
             identifierTag: process.env.NEXT_PUBLIC_MICRO_CONTAINER_TAG || 'micro-notebook-dev',
           }}
@@ -153,9 +153,9 @@ const JupyterWorkspacePage = ({
           localDevBypassEnabled={false}
           gatewayBaseUrl="/lw-workspace/proxy"
           workspaceProxyBaseUrl="/lw-workspace/proxy"
-          hatcheryBaseUrl="/workspace-api/workspace/hatchery"
-          freeAssetBaseUrl="/workspace-api/workspace-assets/free"
-          remoteAssetBaseUrl="/workspace-api/workspace-assets/remote"
+          hatcheryBaseUrl="/api/workspace/hatchery"
+          freeAssetBaseUrl="/api/workspace-assets/free"
+          remoteAssetBaseUrl="/api/workspace-assets/remote"
           microContainerConfig={{
             identifierTag: process.env.NEXT_PUBLIC_MICRO_CONTAINER_TAG || 'micro-notebook-dev',
           }}
