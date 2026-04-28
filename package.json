@@ -30,6 +30,7 @@
     "@fontsource/source-sans-pro": "^5.2.5",
     "@gen3/core": "0.12.36",
     "@gen3/frontend": "0.12.36",
+    "@gen3/jupyter-workspaces": "file:../gen3-workspace-apps/gen3-jupyter-workspaces-0.1.1.tgz",
     "@mantine/core": "^8.3.15",
     "@mantine/dates": "^8.3.15",
     "@mantine/form": "^8.3.15",
