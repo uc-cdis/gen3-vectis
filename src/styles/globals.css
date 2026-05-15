@@ -26,6 +26,20 @@ img[src*="Vectis_Logo_Colored_LightTheme.svg"] {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   Workspace / fixed-layout — viewport-locked height for iframe pages.
+   @gen3/frontend 0.12.41 changed NavPageLayout's root wrapper from
+   `h-screen` to `h-full min-h-screen`.  Without a definite height on
+   the ancestor chain, `flex-1` on <main> collapses to 0 and the
+   JupyterLite / remote-kernel iframe shrinks to nothing.
+   We restore the constrained height only when the `fixed` main layout
+   is present (workspace pages), leaving all other pages unaffected.
+   ══════════════════════════════════════════════════════════════ */
+
+div.flex.flex-col.justify-between.h-full.min-h-screen:has(> main.flex-1.flex.overflow-hidden) {
+  height: 100dvh;
+}
+
+/* ══════════════════════════════════════════════════════════════
    Landing page — viewport-locked single-screen layout.
    The NavPageLayout root has "flex flex-col justify-between
    h-screen", so main.flex.grow.relative already has a definite
