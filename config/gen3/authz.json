@@ -12,6 +12,14 @@
     "/Profile": {
       "loginRequired": true
     },
+    "/SecurityTimeline": {
+      "loginRequired": true,
+      "authz": ["/programs/vectis/projects/siem"]
+    },
+    "/SecurityDashboard": {
+      "loginRequired": true,
+      "authz": ["/programs/vectis/projects/siem"]
+    },
     "*": {
       "loginRequired": false
     }
