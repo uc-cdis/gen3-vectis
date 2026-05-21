@@ -67,9 +67,14 @@ const DEFAULT_VARIABLES = { filter: {}, offset: 0, first: 50 };
 // `${base}/snapshots/${tenant}/audit_event/${queryHash}.json`. Only the
 // default empty-filter / first-page query will match a published snapshot;
 // everything else falls through to live `/guppy/graphql`.
-const SNAPSHOT_BASE_URL = (
-  process.env.NEXT_PUBLIC_GUPPY_SNAPSHOT_BASE_URL ?? ''
-).replace(/\/$/, '');
+//
+// Treat a value of "/" (or any non-null value that strips to empty) as
+// "enabled, same origin" so operators can set the var to `/` for the
+// common case of serving snapshots through revproxy on the same host.
+const SNAPSHOT_BASE_RAW = process.env.NEXT_PUBLIC_GUPPY_SNAPSHOT_BASE_URL;
+const SNAPSHOT_ENABLED =
+  SNAPSHOT_BASE_RAW != null && SNAPSHOT_BASE_RAW !== '';
+const SNAPSHOT_BASE_URL = (SNAPSHOT_BASE_RAW ?? '').replace(/\/$/, '');
 const SNAPSHOT_TENANT =
   process.env.NEXT_PUBLIC_GUPPY_SNAPSHOT_TENANT ?? 'vectis';
 
@@ -116,7 +121,7 @@ const tryFetchSnapshot = async (
   variables: unknown,
   signal?: AbortSignal,
 ): Promise<GuppyGraphQLResponse | null> => {
-  if (!SNAPSHOT_BASE_URL) {
+  if (!SNAPSHOT_ENABLED) {
     return null;
   }
   try {
