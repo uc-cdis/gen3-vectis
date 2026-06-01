@@ -24,16 +24,34 @@ import {
 } from '@mantine/core';
 import { IconArrowLeft } from '@tabler/icons-react';
 import dynamic from 'next/dynamic';
+import { SIEM_DEFAULT_WORKSPACE_CONFIG } from '@/components/siem/siemWorkspaceDefaults';
 
 const SiemWorkspace = dynamic(() => import('@/components/siem/SiemWorkspace'), {
   ssr: false,
 });
 
 const LOCAL_VIEWS_STORAGE_KEY = 'gen3-vectis-siem-local-views';
+const RAW_VIEW_ID = 'raw-data';
+
+const RAW_VIEW: SiemWorkspaceViewRecord = {
+  id: RAW_VIEW_ID,
+  title: 'Command Center',
+  name: 'Command Center',
+  description: 'Original editable Perspective workspace with all data, panels, and pivots available.',
+  kind: 'raw',
+  scope: 'shared',
+  workspace: SIEM_DEFAULT_WORKSPACE_CONFIG as Record<string, unknown>,
+  filters: {},
+  owner: null,
+  isDefault: true,
+  createdAt: new Date(0).toISOString(),
+  updatedAt: new Date(0).toISOString(),
+};
 
 type SiemWorkspaceViewRecord = {
   id: string;
-  name: string;
+  title: string;
+  name?: string; // legacy field, may be absent on newer records
   description: string | null;
   kind: string;
   scope: string;
@@ -76,6 +94,12 @@ const SecurityTimelinePage = ({ headerProps, footerProps, rows, dataError }: Tim
   const [saveName, setSaveName] = useState('');
   const [saveDescription, setSaveDescription] = useState('');
   const [saving, setSaving] = useState(false);
+  const [resetToken, setResetToken] = useState(0);
+
+  function handleResetWorkspace() {
+    setSelectedViewId(RAW_VIEW_ID);
+    setResetToken((value) => value + 1);
+  }
 
   function readLocalViews(): SiemWorkspaceViewRecord[] {
     if (typeof window === 'undefined') {
@@ -108,7 +132,7 @@ const SecurityTimelinePage = ({ headerProps, footerProps, rows, dataError }: Tim
 
     async function loadViews() {
       try {
-        const response = await fetch('/api/siem/views', { method: 'GET' });
+        const response = await fetch('/siem/views', { method: 'GET' });
         const payload = (await response.json()) as SiemWorkspaceViewListResponse;
         if (!mounted) {
           return;
@@ -119,11 +143,15 @@ const SecurityTimelinePage = ({ headerProps, footerProps, rows, dataError }: Tim
         }
 
         const localViews = readLocalViews();
-        const combinedViews = [...(payload.views || []), ...localViews.filter((view) => !(payload.views || []).some((remoteView) => remoteView.id === view.id))];
+        const combinedViews = [
+          RAW_VIEW,
+          ...(payload.views || []),
+          ...localViews.filter((view) => !(payload.views || []).some((remoteView) => remoteView.id === view.id)),
+        ];
         setViews(combinedViews);
         setCanWrite(Boolean(payload.canWrite));
         setCurrentUser(payload.currentUser || null);
-        setSelectedViewId((current) => current || combinedViews[0]?.id || null);
+        setSelectedViewId((current) => current || RAW_VIEW_ID);
         setViewsError(null);
       } catch (error: unknown) {
         if (!mounted) {
@@ -142,13 +170,13 @@ const SecurityTimelinePage = ({ headerProps, footerProps, rows, dataError }: Tim
   }, []);
 
   const selectedView = useMemo(
-    () => views.find((view) => view.id === selectedViewId) ?? views[0] ?? null,
+    () => views.find((view) => view.id === selectedViewId) ?? views.find((view) => view.id === RAW_VIEW_ID) ?? views[0] ?? null,
     [selectedViewId, views],
   );
 
   useEffect(() => {
     if (selectedView) {
-      setSaveName(selectedView.name);
+      setSaveName(selectedView.title || selectedView.name || '');
       setSaveDescription(selectedView.description || '');
     }
   }, [selectedView]);
@@ -164,6 +192,7 @@ const SecurityTimelinePage = ({ headerProps, footerProps, rows, dataError }: Tim
         const localView: SiemWorkspaceViewRecord = {
           ...selectedView,
           id: `local-${Date.now()}`,
+          title: saveName.trim(),
           name: saveName.trim(),
           description: saveDescription.trim() || null,
           scope: 'local',
@@ -180,7 +209,7 @@ const SecurityTimelinePage = ({ headerProps, footerProps, rows, dataError }: Tim
         return;
       }
 
-      const response = await fetch('/api/siem/views', {
+      const response = await fetch('/siem/views', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -223,7 +252,7 @@ const SecurityTimelinePage = ({ headerProps, footerProps, rows, dataError }: Tim
         return;
       }
 
-      const response = await fetch(`/api/siem/views?view_id=${encodeURIComponent(selectedView.id)}`, {
+      const response = await fetch(`/siem/views/${encodeURIComponent(selectedView.id)}`, {
         method: 'DELETE',
       });
       const payload = await response.json();
@@ -250,18 +279,41 @@ const SecurityTimelinePage = ({ headerProps, footerProps, rows, dataError }: Tim
     >
       <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', overflow: 'hidden' }}>
         <div style={{ flexShrink: 0, padding: '12px 24px 8px' }}>
-          <Paper withBorder radius="md" px="md" py="sm">
-            <Stack gap="xs">
-              <Group justify="space-between" align="center" wrap="wrap">
+          <Paper withBorder radius="md" px="sm" py={8}>
+            <Stack gap={4}>
+              <Group justify="space-between" align="flex-start" wrap="wrap" gap="xs">
                 <div>
-                  <Title order={4} fw={600} style={{ fontFamily: 'Poppins, sans-serif', letterSpacing: '-0.01em' }}>
+                  <Title order={3} fw={650} style={{ fontFamily: 'Poppins, sans-serif', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
                     Unified Security Timeline
                   </Title>
                   <Text c="dimmed" size="xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
                     Cross-pivot across WAF, Audit, and Threat events.
                   </Text>
                 </div>
-                <Group gap="xs">
+                <Group gap={6} wrap="wrap" align="center" justify="flex-end" style={{ maxWidth: '100%' }}>
+                  <Select
+                    value={selectedViewId}
+                    onChange={setSelectedViewId}
+                    data={views.map((view) => ({
+                      value: view.id,
+                      label: view.title ?? view.name,
+                      description: view.description || undefined,
+                    }))}
+                    searchable
+                    nothingFoundMessage="No saved views"
+                    size="xs"
+                    comboboxProps={{ width: 280, position: 'bottom-end' }}
+                    style={{ width: 'min(280px, 65vw)' }}
+                  />
+                  <Button size="compact-xs" variant="light" onClick={() => setSaveModalOpen(true)} disabled={!selectedView}>
+                    Save
+                  </Button>
+                  <Button size="compact-xs" variant="default" onClick={handleResetWorkspace} disabled={!views.length}>
+                    Reset
+                  </Button>
+                  <Button size="compact-xs" variant="light" color="red" onClick={() => void handleDeleteView()} disabled={!selectedView || selectedView.isDefault}>
+                    Delete
+                  </Button>
                   <Badge variant="light" color={canWrite ? 'green' : 'gray'}>
                     {canWrite ? 'Writer' : 'Read only'}
                   </Badge>
@@ -276,37 +328,6 @@ const SecurityTimelinePage = ({ headerProps, footerProps, rows, dataError }: Tim
                 </Group>
               </Group>
 
-              <Divider />
-
-              <Group align="end" justify="space-between" wrap="wrap">
-                <Group grow align="end" style={{ flex: 1, minWidth: 320 }}>
-                  <Select
-                    label="Saved view"
-                    value={selectedViewId}
-                    onChange={setSelectedViewId}
-                    data={views.map((view) => ({
-                      value: view.id,
-                      label: view.name,
-                      description: view.description || undefined,
-                    }))}
-                    searchable
-                    nothingFoundMessage="No saved views"
-                    style={{ minWidth: 320 }}
-                  />
-                </Group>
-                <Group gap="xs">
-                  <Button variant="default" onClick={() => setSaveModalOpen(true)} disabled={!selectedView}>
-                    Save as
-                  </Button>
-                  <Button variant="default" onClick={() => setSelectedViewId(views[0]?.id || null)} disabled={!views.length}>
-                    Reset
-                  </Button>
-                  <Button variant="outline" color="red" onClick={() => void handleDeleteView()} disabled={!selectedView || selectedView.isDefault}>
-                    Delete
-                  </Button>
-                </Group>
-              </Group>
-
               {selectedView ? (
                 <Text size="xs" c="dimmed">
                   {selectedView.description || 'Saved SIEM view'}
@@ -317,21 +338,25 @@ const SecurityTimelinePage = ({ headerProps, footerProps, rows, dataError }: Tim
               ) : null}
 
               {viewsError ? (
-                <Alert color="yellow" title="Saved views failed to load">
-                  {viewsError}
-                </Alert>
+                <Group>
+                  <Alert color="yellow" title="Saved views failed to load" py={4} px="sm" style={{ maxWidth: 460 }}>
+                    {viewsError}
+                  </Alert>
+                </Group>
               ) : null}
             </Stack>
           </Paper>
           {dataError ? (
-            <Alert color="red" title="Timeline data load failed" mt="xs">
-              {dataError}
-            </Alert>
+            <Group mt="xs">
+              <Alert color="red" title="Timeline data load failed" py={4} px="sm" style={{ maxWidth: 460 }}>
+                {dataError}
+              </Alert>
+            </Group>
           ) : null}
         </div>
 
         <div style={{ flex: 1, minHeight: 0 }}>
-          <SiemWorkspace rows={rows} workspaceConfig={selectedView?.workspace} />
+          <SiemWorkspace rows={rows} workspaceConfig={selectedView?.workspace} resetToken={resetToken} />
         </div>
       </div>
 
@@ -359,6 +384,16 @@ const SecurityTimelinePage = ({ headerProps, footerProps, rows, dataError }: Tim
 export const getServerSideProps: GetServerSideProps<TimelineProps> = async (context) => {
   const baseProps = await getNavPageLayoutPropsFromConfig();
 
+  const queryFilters: Record<string, string> = {};
+  const allowedFilterFields = ['source', 'rule_id', 'user_country_name', 'event_source', 'target', 'account', 'action'];
+  for (const field of allowedFilterFields) {
+    const raw = context.query[field];
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    if (typeof value === 'string' && value.trim()) {
+      queryFilters[field] = value.trim();
+    }
+  }
+
   const siemBaseUrl = process.env.SIEM_SERVICE_URL
     ? process.env.SIEM_SERVICE_URL
     : process.env.SIEM_SERVICE_DNS
@@ -375,7 +410,7 @@ export const getServerSideProps: GetServerSideProps<TimelineProps> = async (cont
         ...(typeof cookieHeader === 'string' ? { cookie: cookieHeader } : {}),
         ...(typeof authHeader === 'string' ? { authorization: authHeader } : {}),
       },
-      body: JSON.stringify({ page: { limit: 1000, offset: 0 }, filters: {} }),
+      body: JSON.stringify({ page: { limit: 2000, offset: 0 }, filters: queryFilters }),
     });
 
     if (!response.ok) {

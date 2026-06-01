@@ -7,6 +7,8 @@ export const config = {
   "/DataLibrary",
   "/Workspace",
   "/workspaces/jupyter",
-  "/Profile"
+  "/Profile",
+  "/SecurityTimeline",
+  "/SecurityDashboard"
 ],
 };

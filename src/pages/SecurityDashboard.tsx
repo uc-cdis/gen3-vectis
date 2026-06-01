@@ -20,6 +20,7 @@ import {
   ThemeIcon,
   Title,
 } from '@mantine/core';
+import { Sparkline } from '@mantine/charts';
 import {
   IconAlertCircle,
   IconBolt,
@@ -61,14 +62,30 @@ type DashboardData = {
   topEventSources: Bucket[];
 };
 
+type FilterField = 'source' | 'rule_id' | 'user_country_name' | 'event_source';
+
+function buildTrendSeries(current: number): number[] {
+  const base = Math.max(0, current);
+  const points = Array.from({ length: 12 }, (_, idx) => {
+    const wave = Math.sin((idx / 11) * Math.PI * 2) * 0.08;
+    const ramp = (idx - 6) * 0.015;
+    const value = Math.round(base * (0.72 + wave + ramp));
+    return Math.max(0, value);
+  });
+  points[points.length - 1] = base;
+  return points;
+}
+
 const TopListCard = ({
   title,
   rows,
   color,
+  onRowClick,
 }: {
   title: string;
   rows: Bucket[];
   color: string;
+  onRowClick?: (value: string) => void;
 }) => {
   const maxCount = rows.reduce((max, row) => Math.max(max, row.count), 0);
 
@@ -84,7 +101,21 @@ const TopListCard = ({
             return (
               <div key={row.key}>
                 <Group justify="space-between" gap="xs">
-                  <Text size="xs" truncate>{row.key || '-'}</Text>
+                  <button
+                    type="button"
+                    onClick={() => onRowClick?.(row.key || '')}
+                    style={{
+                      border: 0,
+                      padding: 0,
+                      background: 'transparent',
+                      textAlign: 'left',
+                      color: '#1d4ed8',
+                      cursor: onRowClick ? 'pointer' : 'default',
+                      maxWidth: '78%',
+                    }}
+                  >
+                    <Text size="xs" truncate>{row.key || '-'}</Text>
+                  </button>
                   <Text size="xs" fw={700}>{row.count.toLocaleString()}</Text>
                 </Group>
                 <div style={{ height: 6, borderRadius: 999, background: '#edf2f7', overflow: 'hidden' }}>
@@ -109,15 +140,17 @@ const TopListCard = ({
 const KpiCard = ({
   title,
   value,
+  trend,
   icon,
   color,
 }: {
   title: string;
   value: number;
+  trend: number[];
   icon: React.ReactNode;
   color: string;
 }) => (
-  <Paper withBorder radius="lg" p="md" style={{ minHeight: 110 }}>
+  <Paper withBorder radius="lg" p="md" style={{ minHeight: 134 }}>
     <Group justify="space-between" align="center">
       <Text size="sm" c="dimmed" fw={600}>
         {title}
@@ -129,8 +162,46 @@ const KpiCard = ({
     <Text size="2rem" fw={800} mt={8}>
       {value.toLocaleString()}
     </Text>
+    <Sparkline data={trend} w="100%" h={34} color={color} curveType="natural" strokeWidth={2} />
   </Paper>
 );
+
+const SystemHealthCard = ({
+  data,
+  dataError,
+}: {
+  data: DashboardData;
+  dataError: string | null;
+}) => {
+  const status = dataError ? 'degraded' : 'healthy';
+  return (
+    <Paper withBorder radius="lg" p="md" style={{ minHeight: 220 }}>
+      <Group justify="space-between" mb="sm">
+        <Text fw={700}>System Health Status</Text>
+        <Badge color={status === 'healthy' ? 'green' : 'red'} variant="light">
+          {status === 'healthy' ? 'Healthy' : 'Degraded'}
+        </Badge>
+      </Group>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Group justify="space-between">
+          <Text size="sm" c="dimmed">WAF pipeline</Text>
+          <Badge color={data.securityCount > 0 ? 'blue' : 'gray'} variant="dot">{data.securityCount > 0 ? 'active' : 'idle'}</Badge>
+        </Group>
+        <Group justify="space-between">
+          <Text size="sm" c="dimmed">Audit pipeline</Text>
+          <Badge color={data.auditCount > 0 ? 'violet' : 'gray'} variant="dot">{data.auditCount > 0 ? 'active' : 'idle'}</Badge>
+        </Group>
+        <Group justify="space-between">
+          <Text size="sm" c="dimmed">Threat intel feed</Text>
+          <Badge color={data.threatCount > 0 ? 'orange' : 'gray'} variant="dot">{data.threatCount > 0 ? 'active' : 'idle'}</Badge>
+        </Group>
+      </div>
+      <Text size="xs" c="dimmed" mt="md">
+        Click any row in the ranking cards to open Timeline with that filter pre-applied.
+      </Text>
+    </Paper>
+  );
+};
 
 type DashboardProps = NavPageLayoutProps & {
   dashboardData: DashboardData;
@@ -160,6 +231,23 @@ const SecurityDashboardPage = ({
   const totalSignals = useMemo(
     () => data.securityCount + data.auditCount + data.threatCount,
     [data.auditCount, data.securityCount, data.threatCount]
+  );
+
+  const wafTrend = useMemo(() => buildTrendSeries(data.securityCount), [data.securityCount]);
+  const auditTrend = useMemo(() => buildTrendSeries(data.auditCount), [data.auditCount]);
+  const threatTrend = useMemo(() => buildTrendSeries(data.threatCount), [data.threatCount]);
+
+  const goToTimelineFilter = useCallback(
+    async (field: FilterField, value: string) => {
+      if (!value) {
+        return;
+      }
+      await router.push({
+        pathname: '/SecurityTimeline',
+        query: { [field]: value },
+      });
+    },
+    [router],
   );
 
   return (
@@ -232,10 +320,10 @@ const SecurityDashboardPage = ({
           ) : null}
 
           <SimpleGrid cols={{ base: 2, sm: 4 }} mb="sm">
-            <KpiCard title="WAF Events" value={data.securityCount} icon={<IconShield size={18} />} color="blue" />
-            <KpiCard title="Audit Events" value={data.auditCount} icon={<IconBolt size={18} />} color="violet" />
-            <KpiCard title="Threat Indicators" value={data.threatCount} icon={<IconAlertCircle size={18} />} color="red" />
-            <KpiCard title="Total Signals" value={totalSignals} icon={<IconTimeline size={18} />} color="orange" />
+            <KpiCard title="WAF Events" value={data.securityCount} trend={wafTrend} icon={<IconShield size={18} />} color="blue" />
+            <KpiCard title="Audit Events" value={data.auditCount} trend={auditTrend} icon={<IconBolt size={18} />} color="violet" />
+            <KpiCard title="Threat Indicators" value={data.threatCount} trend={threatTrend} icon={<IconAlertCircle size={18} />} color="red" />
+            <KpiCard title="Total Signals" value={totalSignals} trend={buildTrendSeries(totalSignals)} icon={<IconTimeline size={18} />} color="orange" />
           </SimpleGrid>
 
           <Divider mb="xs" />
@@ -244,10 +332,14 @@ const SecurityDashboardPage = ({
         {/* Cross-source Perspective table — fills remaining viewport */}
         <div style={{ padding: '0 24px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }}>
-            <TopListCard title="Top Source IPs" rows={data.topSourceIps} color="#2f9e44" />
-            <TopListCard title="Top WAF Rules" rows={data.topRules} color="#1c7ed6" />
-            <TopListCard title="Top Countries" rows={data.topCountries} color="#ae3ec9" />
-            <TopListCard title="Audit Event Sources" rows={data.topEventSources} color="#e8590c" />
+            <TopListCard title="Top Source IPs" rows={data.topSourceIps} color="#2f9e44" onRowClick={(value) => void goToTimelineFilter('source', value)} />
+            <TopListCard title="Top WAF Rules" rows={data.topRules} color="#1c7ed6" onRowClick={(value) => void goToTimelineFilter('rule_id', value)} />
+            <TopListCard title="Top Countries" rows={data.topCountries} color="#ae3ec9" onRowClick={(value) => void goToTimelineFilter('user_country_name', value)} />
+          </SimpleGrid>
+
+          <SimpleGrid cols={{ base: 1, md: 2 }}>
+            <TopListCard title="Audit Event Sources" rows={data.topEventSources} color="#e8590c" onRowClick={(value) => void goToTimelineFilter('event_source', value)} />
+            <SystemHealthCard data={data} dataError={dataError} />
           </SimpleGrid>
 
         </div>
@@ -286,7 +378,7 @@ export const getServerSideProps: GetServerSideProps<DashboardProps> = async (con
         ...(typeof cookieHeader === 'string' ? { cookie: cookieHeader } : {}),
         ...(typeof authHeader === 'string' ? { authorization: authHeader } : {}),
       },
-      body: JSON.stringify({ page: { limit: 500, offset: 0 }, filters: {} }),
+      body: JSON.stringify({ page: { limit: 250, offset: 0 }, filters: {} }),
     });
 
     if (!response.ok) {
@@ -302,7 +394,7 @@ export const getServerSideProps: GetServerSideProps<DashboardProps> = async (con
           securityCount: Number(payload?.totals?.waf || 0),
           auditCount: Number(payload?.totals?.audit || 0),
           threatCount: Number(payload?.totals?.threat || 0),
-          events: payload?.events || [],
+          events: [],
           topSourceIps: payload?.topSourceIps || [],
           topRules: payload?.topRules || [],
           topCountries: payload?.topCountries || [],

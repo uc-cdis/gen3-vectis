@@ -12,7 +12,7 @@
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-const SEARCH_BASE = (process.env.GEN3_SEARCH_SERVICE ?? 'http://search-auth-proxy.qa-vectis.svc.cluster.local:8000').replace(/\/$/, '');
+const SEARCH_BASE = (process.env.GEN3_SEARCH_SERVICE ?? 'https://0zpj2qa0l5.execute-api.us-east-1.amazonaws.com').replace(/\/$/, '');
 const ARBORIST_URL = (process.env.GEN3_ARBORIST_SERVICE ?? 'http://arborist-service.gen3.svc.cluster.local').replace(/\/$/, '');
 const SIEM_RESOURCE = '/programs/vectis/projects/siem';
 const SIEM_PII_RESOURCE = '/programs/vectis/projects/siem_pii';
@@ -77,7 +77,10 @@ async function resolveAuthHeaders(req: NextApiRequest): Promise<Record<string, s
     const resources: string[] = Array.isArray(payload['resources']) ? payload['resources'] as string[] : [];
     const allowed = resources.filter((r) => typeof r === 'string' && r.startsWith(SIEM_RESOURCE));
     if (allowed.length === 0) return {};
-    const headers: Record<string, string> = { 'X-Auth-Resource-Paths': allowed.join(',') };
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      'X-Auth-Resource-Paths': allowed.join(','),
+    };
     if (allowed.includes(SIEM_PII_RESOURCE)) headers['X-Auth-Unmask'] = 'true';
     return headers;
   } catch {
