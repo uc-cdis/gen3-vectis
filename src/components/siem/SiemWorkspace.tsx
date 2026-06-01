@@ -73,9 +73,24 @@ export default function SiemWorkspace({ rows, workspaceConfig, resetToken = 0 }:
           }
         }
 
-        // Enrich observed events. Threat-intel feed rows are dropped from the
-        // events table — they're a watchlist, not incidents — and instead used
-        // to mark `iocMatch` on real WAF/audit/VPC traffic.
+        // Collect threat-indicator rows for the dedicated threats table.
+        // The API returns the actual DB columns: name, description, pattern,
+        // pattern_type, valid_from — cast to access them.
+        const threatRows = rows
+          .filter((row) => String(row.eventType || '').toLowerCase() === 'threat')
+          .map((row) => {
+            const r = row as Record<string, unknown>;
+            return {
+              valid_from: String(r.valid_from ?? r.timestamp ?? ''),
+              name: String(r.name ?? '-'),
+              pattern_type: String(r.pattern_type ?? '-'),
+              pattern: String(r.pattern ?? '-'),
+              description: String(r.description ?? '-'),
+            };
+          });
+
+        // Enrich observed events. Threat-intel feed rows are also kept in a
+        // separate threats table for direct browsing.
         const incomingLogs = rows
           .filter((row) => String(row.eventType || '').toLowerCase() !== 'threat')
           .map((row) => {
@@ -182,6 +197,20 @@ export default function SiemWorkspace({ rows, workspaceConfig, resetToken = 0 }:
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await table.update(sanitizedData as any);
         workspace.tables.set('events', table);
+
+        // Register the threats table so the Threat Indicators viewer can bind to it.
+        const threatsSchema = {
+          valid_from: 'string',
+          name: 'string',
+          pattern_type: 'string',
+          pattern: 'string',
+          description: 'string',
+        } as const;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const threatsTable = await worker.table(threatsSchema as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await threatsTable.update(threatRows as any);
+        workspace.tables.set('threats', threatsTable);
 
         await workspace.restore(workspaceConfig ?? SIEM_DEFAULT_WORKSPACE_CONFIG);
         await workspace.flush();

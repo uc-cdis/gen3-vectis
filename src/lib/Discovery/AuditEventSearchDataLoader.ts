@@ -85,6 +85,20 @@ const REQUEST_UNMASK =
   (process.env.NEXT_PUBLIC_DISCOVERY_REQUEST_UNMASK ?? '').toLowerCase() ===
   'true';
 
+const getCookieValue = (name: string): string | null => {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  const cookies = document.cookie ? document.cookie.split(';') : [];
+  for (const cookie of cookies) {
+    const [rawKey, ...rawValue] = cookie.trim().split('=');
+    if (rawKey === name) {
+      return decodeURIComponent(rawValue.join('='));
+    }
+  }
+  return null;
+};
+
 const sortedStringify = (value: unknown): string => {
   if (value === null || typeof value !== 'object') {
     return JSON.stringify(value);
@@ -228,9 +242,12 @@ export const useAuditEventSearchData: DiscoveryTableDataHook = ({
           : null;
 
         if (!payload) {
+          const csrfToken = getCookieValue('csrftoken');
           const headers: Record<string, string> = {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': 'true',
+            // Revproxy validates cookie auth POSTs by requiring
+            // X-CSRF-Token == csrftoken cookie.
+            'X-CSRF-Token': csrfToken ?? 'true',
           };
           if (REQUEST_UNMASK) {
             headers['X-Auth-Unmask'] = 'true';
@@ -238,6 +255,7 @@ export const useAuditEventSearchData: DiscoveryTableDataHook = ({
           const response = await fetch('/guppy/graphql', {
             method: 'POST',
             headers,
+            credentials: 'same-origin',
             body: JSON.stringify({
               query: AUDIT_EVENT_QUERY,
               variables,
