@@ -3,15 +3,11 @@
 
 @import '@mantine/core/styles.css';
 @import '@mantine/notifications/styles.css';
-@import 'mantine-react-table/styles.css';
-
+@import 'mantine-react-table-open/styles.css';
 @import "tailwindcss/utilities";
 
-@import 'graphiql/graphiql.css';
-@import '@graphiql/react/dist/style.css';
-@import '@finos/perspective-viewer/dist/css/pro.css';
-@import '@finos/perspective-workspace/dist/css/pro.css';
-@import './siem-perspective-theme.css';
+@import 'graphiql/style.css';
+@import '@graphiql/react/style.css';
 
 @layer base {
   html {
