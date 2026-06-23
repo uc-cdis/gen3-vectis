@@ -15,13 +15,11 @@ jobs:
       
       - uses: actions/setup-node@v4
         with:
-          node-version: '24.14.0'
-          cache: 'npm'
-      
-      # Skip npm ci due to local file dependency on gen3-workspace-apps
-      # Install with --legacy-peer-deps to handle missing @gen3/jupyter-workspaces
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps 2>/dev/null || true
-      
+          node-version: 24.15.0
+      - name: Get Version
+        run: npm -v
+      - name: Install modules
+
+        run: npm ci
       - name: Run ESLint
         run: npm run lint --if-present

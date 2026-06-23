@@ -1,17 +1,17 @@
+// @ts-check
+
 'use strict';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const path = require('path');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const dns = require('dns');
 const { withJupyterWorkspaces } = require('@gen3/jupyter-workspaces/server');
 
 dns.setDefaultResultOrder('ipv4first');
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 require('./src/lib/plugins/index.js');
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const withMDX = require('@next/mdx')({
   extension: /\.(md|mdx)$/,
   options: {
@@ -22,20 +22,10 @@ const withMDX = require('@next/mdx')({
 
 const isDev = process.env.NODE_ENV === 'development';
 
-// Next configuration with support for rewrting API to existing common services
+// Next configuration with support for writing API to existing common services
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  outputFileTracingRoot: path.join(__dirname),
-  // Skip type-checking during Docker build — types are checked in CI separately.
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  serverRuntimeConfig: {
-    HOSTNAME: '0.0.0.0',
-  },
   env: {
     version: process.env.npm_package_version,
   },
