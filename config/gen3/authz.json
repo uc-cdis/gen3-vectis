@@ -63,6 +63,9 @@
     "/Analysis": {
       "loginRequired": true
     },
+    "/DataDictionary": {
+      "loginRequired": true
+    },
     "*": {
       "loginRequired": false
     }
