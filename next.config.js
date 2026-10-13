@@ -40,6 +40,9 @@ console.log('version:', packageJson.version);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // The development pages load the sample dictionary with a guarded require that a production build drops; keep the
+  // sample file itself out of the standalone output (and so out of the image) as well.
+  outputFileTracingExcludes: { '/dev/*': ['./src/lib/dictionary/sample.ts'] },
   env: {
     version: process.env.npm_package_version,
     NEXT_PUBLIC_GEN3_VERSION: packageJson.version,

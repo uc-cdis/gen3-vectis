@@ -17,6 +17,7 @@ export const config = {
   "/Jobs",
   "/Jobs/submit",
   "/Query",
-  "/Analysis"
+  "/Analysis",
+  "/DataDictionary"
 ],
 };
