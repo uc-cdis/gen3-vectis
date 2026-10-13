@@ -15,6 +15,42 @@
     "/Profile": {
       "loginRequired": true
     },
+    "/Security": {
+      "loginRequired": true,
+      "authz": [
+        "/programs/vectis/projects/siem"
+      ]
+    },
+    "/Alerts": {
+      "loginRequired": true,
+      "authz": [
+        "/programs/vectis/projects/siem"
+      ]
+    },
+    "/Cases": {
+      "loginRequired": true,
+      "authz": [
+        "/programs/vectis/projects/siem"
+      ]
+    },
+    "/Investigate": {
+      "loginRequired": true,
+      "authz": [
+        "/programs/vectis/projects/siem"
+      ]
+    },
+    "/Detection": {
+      "loginRequired": true,
+      "authz": [
+        "/programs/vectis/projects/siem"
+      ]
+    },
+    "/Query": {
+      "loginRequired": true
+    },
+    "/Analysis": {
+      "loginRequired": true
+    },
     "*": {
       "loginRequired": false
     }

@@ -1,6 +1,8 @@
 import type { AppProps, AppContext, AppInitialProps } from 'next/app';
 import App from 'next/app';
 import React, { useState, useEffect, useRef, Suspense } from 'react';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
 import { MantineProvider, mergeThemeOverrides } from '@mantine/core';
 
 import type {
@@ -60,6 +62,32 @@ interface Gen3AppProps {
   fonts: Fonts;
 }
 
+// Page titles. Every routable page needs an entry here; the dead-link test (SOC-PLAN 15.4) enforces it.
+const TAB_TITLES: Record<string, string> = {
+  '/': 'Vectis Home',
+  '/index': 'Vectis Home',
+  '/Discovery': 'Vectis Discovery',
+  '/DataDictionary': 'Vectis Dictionary',
+  '/Explorer': 'Vectis Exploration',
+  '/Query': 'Vectis Query',
+  '/Analysis': 'Vectis Apps',
+  '/Workspace': 'Vectis Workspace',
+  '/Workspaces': 'Vectis Workspaces',
+  '/Submission': 'Vectis Browse Data',
+  '/DataLibrary': 'Vectis Data Library',
+  '/Profile': 'Vectis Profile',
+  '/Security': 'Vectis Security',
+};
+
+const getTabTitle = (asPath: string): string => {
+  const path = asPath.split('?')[0]?.split('#')[0] || '/';
+  if (TAB_TITLES[path]) return TAB_TITLES[path];
+  if (path.startsWith('/app/')) return 'Vectis App';
+  if (path.startsWith('/notebook/')) return 'Vectis Notebook';
+  if (path.startsWith('/staticNotebook/')) return 'Vectis Static Notebook';
+  return 'Vectis Home';
+};
+
 const Gen3App = ({
   Component,
   pageProps,
@@ -71,6 +99,7 @@ const Gen3App = ({
   protectedRoutes,
   publicConfig,
 }: AppProps & Gen3AppProps) => {
+  const router = useRouter();
   const isFirstRender = useRef(true);
   const [mantineTheme, setMantineTheme] =
     useState<Partial<ReturnType<typeof mergeThemeOverrides>>>();
@@ -99,6 +128,9 @@ const Gen3App = ({
 
   return (
     <React.Fragment>
+      <Head>
+        <title>{getTabTitle(router.asPath)}</title>
+      </Head>
       <Suspense fallback={<Loading />}>
         {publicConfig?.dataDogAppId != null &&
           publicConfig?.dataDogClientToken != null && (

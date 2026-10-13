@@ -1,0 +1,95 @@
+/*
+ * Gen3-Vectis Perspective theme (Perspective 5, `@perspective-dev/*`).
+ *
+ * Perspective 5 is themed entirely with `--psp-*` custom properties, which inherit through the viewer's shadow DOM.
+ * Perspective's own themes.css sets them on `perspective-viewer` and on `perspective-viewer[theme=...]`; the selector
+ * below carries both a class and the attribute (specificity 0-2-1) so ours always wins, whatever order the files load in.
+ *
+ * This is a CSS Module (Next.js only allows global CSS from _app). Apply it with `className={styles.gen3Theme}`; the
+ * element selector `perspective-viewer` is allowed because the rule also contains that local class.
+ * The deprecated perspective-workspace block was dropped: it cannot be written as a CSS-Module selector.
+ *
+ * Every value uses `var(--mantine-color-*, <hardcoded gen3 fallback>)` so it resolves before Mantine's runtime theme
+ * is applied and stays correct after it is.
+ *
+ * Palette source: config/gen3/themeColors.json
+ *   primary  = #800000 (maroon)       accent     = #3EB1C8 (teal)
+ *   accentCool = #007396 (dark teal)  accentWarm = #DE7C00 (orange)
+ *   base-max = #fdfcfb  base-lightest = #f7f5f4  base-vivid = #e0dbd6  base-darker = #4d4d4d  base-min = #181818
+ *
+ * There is no dark theme (the framework does not support one).
+ */
+
+perspective-viewer.gen3Theme,
+perspective-viewer.gen3Theme[theme] {
+  --psp-theme-name: 'Gen3';
+  color-scheme: light;
+  font-family: var(--mantine-font-family, 'Poppins', sans-serif);
+
+  /* Base surface */
+  --psp--color: var(--mantine-color-base-min, #181818);
+  --psp--background-color: var(--mantine-color-base-0, #fdfcfb);
+  --psp-sidebar--background: var(--mantine-color-base-lightest, #f7f5f4);
+  --psp-placeholder--background: rgba(224, 219, 214, 0.5);
+  --psp-dropdown--box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.12);
+
+  /* Interactive states: gen3 teal, not Perspective blue */
+  --psp-active--color: var(--mantine-color-accentCool-5, #007396);
+  --psp-active--background: rgba(62, 177, 200, 0.15);
+
+  /* Inactive elements */
+  --psp-inactive--color: var(--mantine-color-secondary-dark, #737373);
+  --psp-inactive--border-color: var(--mantine-color-base-vivid, #e0dbd6);
+
+  /* Status */
+  --psp-error--color: #a4343a;
+  --psp-expression--error--color: #a4343a;
+  --psp-warning--color: var(--mantine-color-base-0, #fdfcfb);
+  --psp-warning--background: var(--mantine-color-accentWarm-5, #de7c00);
+
+  /* Expression editor */
+  --psp-expression--operator--color: var(--mantine-color-base-darker, #4d4d4d);
+  --psp-expression--function--color: var(--mantine-color-accent-dark, #2f8a9c);
+
+  /* Datagrid */
+  --psp-datagrid--border-color: var(--mantine-color-base-vivid, #e0dbd6);
+  --psp-datagrid--hover--border-color: var(--mantine-color-accent-5, #3eb1c8);
+  --psp-datagrid--pos-cell--color: var(--mantine-color-accentCool-5, #007396);
+  --psp-datagrid--neg-cell--color: var(--mantine-color-primary-5, #800000);
+
+  /* Charts: grid, axes, legend, tooltip */
+  --psp-charts--gridline--color: var(--mantine-color-base-light, #eeeae7);
+  --psp-charts--axis-lines--color: var(--mantine-color-base-vivid, #e0dbd6);
+  --psp-charts--axis-ticks--color: var(--mantine-color-base-darker, #4d4d4d);
+  --psp-charts--legend--color: var(--mantine-color-base-min, #181818);
+  --psp-charts--legend--background: var(--mantine-color-base-0, #fdfcfb);
+  --psp-charts--tooltip--background: rgba(247, 245, 244, 0.95);
+  --psp-charts--tooltip--color: var(--mantine-color-base-min, #181818);
+  --psp-charts--tooltip--border-color: var(--mantine-color-base-vivid, #e0dbd6);
+
+  /* Series palette, gen3 brand colours in order (shared by charts and the datagrid's bar columns) */
+  --psp-charts--series--color: var(--mantine-color-accent-5, #3eb1c8);
+  --psp-charts--series-1--color: var(--mantine-color-accent-5, #3eb1c8);
+  --psp-charts--series-2--color: var(--mantine-color-accentCool-5, #007396);
+  --psp-charts--series-3--color: var(--mantine-color-primary-5, #800000);
+  --psp-charts--series-4--color: var(--mantine-color-accentWarm-5, #de7c00);
+  --psp-charts--series-5--color: var(--mantine-color-secondary-5, #a6a6a6);
+  --psp-charts--series-6--color: var(--mantine-color-accent-dark, #2f8a9c);
+  --psp-charts--series-7--color: var(--mantine-color-accentCool-dark, #005770);
+  --psp-charts--series-8--color: var(--mantine-color-primary-vivid, #8c0000);
+  --psp-charts--series-9--color: var(--mantine-color-accentWarm-dark, #a75d00);
+  --psp-charts--series-10--color: var(--mantine-color-base-dark, #b7b7b7);
+  --psp-datagrid--series-1--color: var(--mantine-color-accent-5, #3eb1c8);
+  --psp-datagrid--series-2--color: var(--mantine-color-accentCool-5, #007396);
+  --psp-datagrid--series-3--color: var(--mantine-color-primary-5, #800000);
+  --psp-datagrid--series-4--color: var(--mantine-color-accentWarm-5, #de7c00);
+  --psp-datagrid--series-5--color: var(--mantine-color-secondary-5, #a6a6a6);
+}
+
+/* The viewer fills the container the page gives it, with a quiet border like the other panels. */
+perspective-viewer.gen3Theme {
+  display: block;
+  border: 1px solid var(--mantine-color-base-vivid, #e0dbd6);
+  border-radius: 6px;
+  overflow: hidden;
+}

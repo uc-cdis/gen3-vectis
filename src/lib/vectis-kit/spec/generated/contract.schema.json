@@ -1,0 +1,5328 @@
+{
+  "$defs": {
+    "AiSummaryResponse": {
+      "additionalProperties": false,
+      "description": "The AI analyst slot. The producer is behind the AI gateway and arrives later; the UI renders every state.",
+      "properties": {
+        "detail": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "note": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CaseNote"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "state": {
+          "enum": [
+            "not_configured",
+            "running",
+            "ready",
+            "failed"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "title": "AiSummaryResponse",
+      "type": "object"
+    },
+    "AlertBulkRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "group_ids": {
+          "items": {
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "type": "array"
+        },
+        "patch": {
+          "$ref": "#/$defs/AlertPatch"
+        }
+      },
+      "required": [
+        "group_ids",
+        "patch"
+      ],
+      "title": "AlertBulkRequest",
+      "type": "object"
+    },
+    "AlertBulkResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "failed": {
+          "patternProperties": {
+            "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$": {
+              "type": "string"
+            }
+          },
+          "propertyNames": {
+            "maxLength": 128
+          },
+          "type": "object"
+        },
+        "updated": {
+          "items": {
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "updated",
+        "failed"
+      ],
+      "title": "AlertBulkResponse",
+      "type": "object"
+    },
+    "AlertGroup": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "assignee": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "base_severity": {
+          "anyOf": [
+            {
+              "enum": [
+                "info",
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "blocked_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "bytes_out_max": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "bytes_out_p99": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "case_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "control_worked": {
+          "type": "boolean"
+        },
+        "corroboration": {
+          "items": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "type": "array"
+        },
+        "detector_tier": {
+          "enum": [
+            "ioc",
+            "rule",
+            "baseline",
+            "novelty"
+          ],
+          "type": "string"
+        },
+        "disposition": {
+          "anyOf": [
+            {
+              "enum": [
+                "true_positive",
+                "false_positive",
+                "true_negative",
+                "false_negative",
+                "benign",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "distinct_accounts": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "distinct_countries": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "distinct_src_ips": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "etag": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Version of this alert's analyst state. Send it back as expected_etag"
+        },
+        "evidence_uri": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "first_seen": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "group_date": {
+          "format": "date",
+          "type": "string"
+        },
+        "group_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "last_seen": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "matched_indicators": {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "noise": {
+          "default": false,
+          "type": "boolean"
+        },
+        "novelty_class": {
+          "anyOf": [
+            {
+              "enum": [
+                "normal",
+                "drift",
+                "anomaly"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "novelty_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "occurrence_count": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "robust_zscore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "type": "string"
+        },
+        "severity_score": {
+          "maximum": 4,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "signature_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "signature_label": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "default": "new",
+          "enum": [
+            "new",
+            "triaged",
+            "investigating",
+            "resolved",
+            "noise"
+          ],
+          "type": "string"
+        },
+        "techniques": {
+          "items": {
+            "pattern": "^T\\d{4}(\\.\\d{3})?$",
+            "type": "string"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "tenant_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "tenants_affected": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "top_sources": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/EntitySeed"
+              },
+              "maxItems": 10,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The most active source entities. None means not computed: show 'unmeasured'"
+        },
+        "why": {
+          "items": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array"
+        }
+      },
+      "required": [
+        "group_id",
+        "signature_id",
+        "group_date",
+        "tenant_id",
+        "detector_tier",
+        "title",
+        "severity",
+        "severity_score",
+        "occurrence_count",
+        "first_seen",
+        "last_seen",
+        "distinct_src_ips",
+        "distinct_accounts",
+        "distinct_countries",
+        "tenants_affected",
+        "allowed_count",
+        "blocked_count",
+        "control_worked"
+      ],
+      "title": "AlertGroup",
+      "type": "object"
+    },
+    "AlertPatch": {
+      "additionalProperties": false,
+      "description": "Analyst state. Written to the S3 overlay, never to the Delta table.",
+      "properties": {
+        "assignee": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "case_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "disposition": {
+          "anyOf": [
+            {
+              "enum": [
+                "true_positive",
+                "false_positive",
+                "true_negative",
+                "false_negative",
+                "benign",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "expected_etag": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Conditional write; a mismatch returns 412"
+        },
+        "noise": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why. Required when closing as noise or resolved; recorded with the change"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "enum": [
+                "new",
+                "triaged",
+                "investigating",
+                "resolved",
+                "noise"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "AlertPatch",
+      "type": "object"
+    },
+    "AlertsRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "detector_tiers": {
+          "items": {
+            "enum": [
+              "ioc",
+              "rule",
+              "baseline",
+              "novelty"
+            ],
+            "type": "string"
+          },
+          "maxItems": 4,
+          "type": "array"
+        },
+        "filters": {
+          "items": {
+            "$ref": "#/$defs/FilterClause"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "include_noise": {
+          "default": false,
+          "type": "boolean"
+        },
+        "min_severity": {
+          "anyOf": [
+            {
+              "enum": [
+                "info",
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "paging": {
+          "$ref": "#/$defs/Paging"
+        },
+        "sort": {
+          "default": "severity",
+          "enum": [
+            "severity",
+            "last_seen",
+            "occurrence_count",
+            "novelty_score"
+          ],
+          "type": "string"
+        },
+        "statuses": {
+          "items": {
+            "enum": [
+              "new",
+              "triaged",
+              "investigating",
+              "resolved",
+              "noise"
+            ],
+            "type": "string"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "window": {
+          "$ref": "#/$defs/TimeWindow"
+        }
+      },
+      "required": [
+        "window"
+      ],
+      "title": "AlertsRequest",
+      "type": "object"
+    },
+    "AlertsResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/AlertGroup"
+          },
+          "type": "array"
+        },
+        "source_version": {
+          "description": "Delta version the groups were read at",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "total": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "groups",
+        "total",
+        "truncated",
+        "as_of",
+        "source_version"
+      ],
+      "title": "AlertsResponse",
+      "type": "object"
+    },
+    "Bucket": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "key": {
+          "maxLength": 256,
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "count"
+      ],
+      "title": "Bucket",
+      "type": "object"
+    },
+    "CaseCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "assignee": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "description": {
+          "default": "",
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "group_ids": {
+          "items": {
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "type": "array"
+        },
+        "priority": {
+          "default": "medium",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "title": "CaseCreate",
+      "type": "object"
+    },
+    "CaseList": {
+      "additionalProperties": false,
+      "properties": {
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/CaseRecord"
+          },
+          "type": "array"
+        },
+        "total": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "cases",
+        "total"
+      ],
+      "title": "CaseList",
+      "type": "object"
+    },
+    "CaseNote": {
+      "additionalProperties": false,
+      "description": "An analyst or agent note. Agent notes carry provenance and never change case or alert state.",
+      "properties": {
+        "at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "author": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "author_kind": {
+          "enum": [
+            "analyst",
+            "agent"
+          ],
+          "type": "string"
+        },
+        "body": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "input_digest": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model id; set only for agent notes"
+        },
+        "note_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "prompt_hash": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "note_id",
+        "author",
+        "author_kind",
+        "at",
+        "body"
+      ],
+      "title": "CaseNote",
+      "type": "object"
+    },
+    "CasePatch": {
+      "additionalProperties": false,
+      "properties": {
+        "add_note": {
+          "anyOf": [
+            {
+              "maxLength": 8192,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "assignee": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 8192,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "expected_etag": {
+          "description": "Required: every case edit is conditional",
+          "maxLength": 128,
+          "type": "string"
+        },
+        "priority": {
+          "anyOf": [
+            {
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "anyOf": [
+            {
+              "enum": [
+                "open",
+                "in_progress",
+                "resolved",
+                "closed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "expected_etag"
+      ],
+      "title": "CasePatch",
+      "type": "object"
+    },
+    "CaseRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "assignee": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "case_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "etag": {
+          "maxLength": 128,
+          "type": "string"
+        },
+        "group_ids": {
+          "items": {
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "$ref": "#/$defs/CaseNote"
+          },
+          "maxItems": 500,
+          "type": "array"
+        },
+        "priority": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "open",
+            "in_progress",
+            "resolved",
+            "closed"
+          ],
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "title",
+        "description",
+        "status",
+        "priority",
+        "tags",
+        "group_ids",
+        "notes",
+        "created_at",
+        "updated_at",
+        "etag"
+      ],
+      "title": "CaseRecord",
+      "type": "object"
+    },
+    "CaseRef": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "open",
+            "in_progress",
+            "resolved",
+            "closed"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "title",
+        "status"
+      ],
+      "title": "CaseRef",
+      "type": "object"
+    },
+    "CatalogResponse": {
+      "additionalProperties": false,
+      "description": "Generated from the dictionary, so a new source gets filters and columns without UI code.",
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "indexes": {
+          "items": {
+            "$ref": "#/$defs/IndexCatalog"
+          },
+          "maxItems": 20,
+          "type": "array"
+        }
+      },
+      "required": [
+        "indexes",
+        "as_of"
+      ],
+      "title": "CatalogResponse",
+      "type": "object"
+    },
+    "ColumnMeta": {
+      "additionalProperties": false,
+      "properties": {
+        "default_visible": {
+          "default": false,
+          "type": "boolean"
+        },
+        "description": {
+          "default": "",
+          "maxLength": 512,
+          "type": "string"
+        },
+        "enum_values": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 200,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "filterable": {
+          "default": true,
+          "type": "boolean"
+        },
+        "label": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "type": "string"
+        },
+        "pii": {
+          "default": false,
+          "type": "boolean"
+        },
+        "sortable": {
+          "default": true,
+          "type": "boolean"
+        },
+        "type": {
+          "enum": [
+            "string",
+            "integer",
+            "float",
+            "boolean",
+            "timestamp",
+            "ip",
+            "enum"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "label",
+        "type"
+      ],
+      "title": "ColumnMeta",
+      "type": "object"
+    },
+    "CoverageResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "caught": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "missed": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/CoverageRow"
+          },
+          "type": "array"
+        },
+        "run_at": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rows",
+        "caught",
+        "missed",
+        "run_at"
+      ],
+      "title": "CoverageResponse",
+      "type": "object"
+    },
+    "CoverageRow": {
+      "additionalProperties": false,
+      "properties": {
+        "replay": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "step": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "technique_id": {
+          "pattern": "^T\\d{4}(\\.\\d{3})?$",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "both",
+            "rule",
+            "behavioral",
+            "missed"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "technique_id",
+        "verdict",
+        "replay",
+        "step"
+      ],
+      "title": "CoverageRow",
+      "type": "object"
+    },
+    "DecisionRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "comment": {
+          "default": "",
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "disposition": {
+          "enum": [
+            "true_positive",
+            "false_positive",
+            "true_negative",
+            "false_negative",
+            "benign",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "group_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "group_id",
+        "disposition"
+      ],
+      "title": "DecisionRequest",
+      "type": "object"
+    },
+    "DecisionResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "disposition": {
+          "enum": [
+            "true_positive",
+            "false_positive",
+            "true_negative",
+            "false_negative",
+            "benign",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "group_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "recorded_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "recorded_by": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "group_id",
+        "disposition",
+        "recorded_by",
+        "recorded_at"
+      ],
+      "title": "DecisionResponse",
+      "type": "object"
+    },
+    "EntityProfileRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "ip",
+            "domain",
+            "url",
+            "hash",
+            "email",
+            "host",
+            "user",
+            "session",
+            "arn"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        "window": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "title": "EntityProfileRequest",
+      "type": "object"
+    },
+    "EntityProfileResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/CaseRef"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "dropped": {
+          "default": 0,
+          "description": "Matches beyond the caps, reported not hidden",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "event_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "first_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "geo": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GeoInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "graph_id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "pattern": "^[^\\x00-\\x20\\x7f]{1,256}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "This entity's node id in the graph; None when it has no node"
+        },
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/AlertGroup"
+          },
+          "maxItems": 100,
+          "type": "array"
+        },
+        "indicator_matches": {
+          "items": {
+            "$ref": "#/$defs/IndicatorMatch"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "key": {
+          "maxLength": 600,
+          "type": "string"
+        },
+        "last_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "type": {
+          "enum": [
+            "ip",
+            "domain",
+            "url",
+            "hash",
+            "email",
+            "host",
+            "user",
+            "session",
+            "arn"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 512,
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value",
+        "key",
+        "as_of"
+      ],
+      "title": "EntityProfileResponse",
+      "type": "object"
+    },
+    "EntityRecallRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "anyOf": [
+            {
+              "enum": [
+                "ip",
+                "domain",
+                "url",
+                "hash",
+                "email"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "host",
+                "user",
+                "session",
+                "arn"
+              ],
+              "type": "string"
+            }
+          ]
+        },
+        "value": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        "window": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "title": "EntityRecallRequest",
+      "type": "object"
+    },
+    "EntityRecallResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "dropped": {
+          "description": "Matches beyond the per-key and overall caps, reported not hidden",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "first_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/AlertGroup"
+          },
+          "maxItems": 100,
+          "type": "array"
+        },
+        "key": {
+          "maxLength": 600,
+          "type": "string"
+        },
+        "last_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "key",
+        "groups",
+        "dropped"
+      ],
+      "title": "EntityRecallResponse",
+      "type": "object"
+    },
+    "EntitySeed": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "ip",
+            "domain",
+            "url",
+            "hash",
+            "email",
+            "host",
+            "user",
+            "session",
+            "arn"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "title": "EntitySeed",
+      "type": "object"
+    },
+    "EvidenceAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "description": "ALLOW, BLOCK, COUNT ... as the source recorded it",
+          "maxLength": 32,
+          "type": "string"
+        },
+        "count": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "count"
+      ],
+      "title": "EvidenceAction",
+      "type": "object"
+    },
+    "FacetResult": {
+      "additionalProperties": false,
+      "properties": {
+        "approximate": {
+          "description": "True when counts come from a rollup or sketch, not a scan",
+          "type": "boolean"
+        },
+        "buckets": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "field": {
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "enum",
+            "range",
+            "time"
+          ],
+          "type": "string"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "null_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "field",
+        "kind",
+        "approximate"
+      ],
+      "title": "FacetResult",
+      "type": "object"
+    },
+    "FacetsRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 12,
+          "minItems": 1,
+          "type": "array"
+        },
+        "filters": {
+          "items": {
+            "$ref": "#/$defs/FilterClause"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "index_name": {
+          "enum": [
+            "http_activity",
+            "api_activity",
+            "authentication",
+            "audit_event",
+            "network_activity"
+          ],
+          "type": "string"
+        },
+        "top_n": {
+          "default": 10,
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "window": {
+          "$ref": "#/$defs/TimeWindow"
+        }
+      },
+      "required": [
+        "window",
+        "index_name",
+        "fields"
+      ],
+      "title": "FacetsRequest",
+      "type": "object"
+    },
+    "FacetsResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "facets": {
+          "items": {
+            "$ref": "#/$defs/FacetResult"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "index_name": {
+          "enum": [
+            "http_activity",
+            "api_activity",
+            "authentication",
+            "audit_event",
+            "network_activity"
+          ],
+          "type": "string"
+        },
+        "notes": {
+          "description": "e.g. 'counted over the first 100,000 rows read'",
+          "items": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array"
+        }
+      },
+      "required": [
+        "index_name",
+        "facets",
+        "as_of"
+      ],
+      "title": "FacetsResponse",
+      "type": "object"
+    },
+    "FeatureDiff": {
+      "additionalProperties": false,
+      "properties": {
+        "feature": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "nearest": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "this": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "feature"
+      ],
+      "title": "FeatureDiff",
+      "type": "object"
+    },
+    "FilterClause": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "eq",
+            "neq",
+            "in",
+            "gte",
+            "lte",
+            "contains"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "required": [
+        "field",
+        "op",
+        "value"
+      ],
+      "title": "FilterClause",
+      "type": "object"
+    },
+    "FindSimilarRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "group_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kinds": {
+          "items": {
+            "enum": [
+              "exact",
+              "structural",
+              "behavioral",
+              "graph"
+            ],
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "type": "array"
+        },
+        "limit": {
+          "default": 25,
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntitySeed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "window": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "FindSimilarRequest",
+      "type": "object"
+    },
+    "FindSimilarResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "behavioral": {
+          "items": {
+            "$ref": "#/$defs/SimilarHit"
+          },
+          "maxItems": 100,
+          "type": "array"
+        },
+        "exact": {
+          "items": {
+            "$ref": "#/$defs/AlertGroup"
+          },
+          "maxItems": 100,
+          "type": "array"
+        },
+        "graph": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GraphTraverseResponse"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "measured": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "propertyNames": {
+            "enum": [
+              "exact",
+              "structural",
+              "behavioral",
+              "graph"
+            ]
+          },
+          "type": "object"
+        },
+        "structural": {
+          "items": {
+            "$ref": "#/$defs/StructuralMatch"
+          },
+          "maxItems": 50,
+          "type": "array"
+        }
+      },
+      "required": [
+        "measured"
+      ],
+      "title": "FindSimilarResponse",
+      "type": "object"
+    },
+    "GeoInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "asn": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "asn_org": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "city": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "country": {
+          "anyOf": [
+            {
+              "maxLength": 2,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "GeoInfo",
+      "type": "object"
+    },
+    "GraphEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "dst_id": {
+          "maxLength": 256,
+          "pattern": "^[^\\x00-\\x20\\x7f]{1,256}$",
+          "type": "string"
+        },
+        "edge_type": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "src_id": {
+          "maxLength": 256,
+          "pattern": "^[^\\x00-\\x20\\x7f]{1,256}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "src_id",
+        "dst_id",
+        "edge_type"
+      ],
+      "title": "GraphEdge",
+      "type": "object"
+    },
+    "GraphNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 256,
+          "pattern": "^[^\\x00-\\x20\\x7f]{1,256}$",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "properties": {
+          "additionalProperties": true,
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "title": "GraphNode",
+      "type": "object"
+    },
+    "GraphTraverseRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "default": 200,
+          "maximum": 500,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_hops": {
+          "default": 2,
+          "maximum": 3,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "start_id": {
+          "maxLength": 256,
+          "pattern": "^[^\\x00-\\x20\\x7f]{1,256}$",
+          "type": "string"
+        },
+        "window": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Edges considered; the server default (7 days) applies when omitted"
+        }
+      },
+      "required": [
+        "start_id"
+      ],
+      "title": "GraphTraverseRequest",
+      "type": "object"
+    },
+    "GraphTraverseResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/GraphEdge"
+          },
+          "type": "array"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/GraphNode"
+          },
+          "maxItems": 500,
+          "type": "array"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "nodes",
+        "edges",
+        "truncated"
+      ],
+      "title": "GraphTraverseResponse",
+      "type": "object"
+    },
+    "HealthQueue": {
+      "additionalProperties": false,
+      "properties": {
+        "consumers": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "depth": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dequeued_per_min": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "enqueued_per_min": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "maxLength": 128,
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "ingest",
+            "cleanup",
+            "failures",
+            "other"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "role"
+      ],
+      "title": "HealthQueue",
+      "type": "object"
+    },
+    "HealthResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "quarantine_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "quarantine_older_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Records older than the window; None when unknown"
+        },
+        "quarantine_reasons": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "quarantine_window_hours": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "quarantine_count and reasons cover this many recent hours"
+        },
+        "queues": {
+          "items": {
+            "$ref": "#/$defs/HealthQueue"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/HealthSource"
+          },
+          "maxItems": 100,
+          "type": "array"
+        }
+      },
+      "required": [
+        "sources",
+        "queues",
+        "as_of"
+      ],
+      "title": "HealthResponse",
+      "type": "object"
+    },
+    "HealthSource": {
+      "additionalProperties": false,
+      "properties": {
+        "events_1h": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "events_24h": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "last_event_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source": {
+          "maxLength": 128,
+          "type": "string"
+        },
+        "stale": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None when freshness is not evaluated: see stale_reason"
+        },
+        "stale_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "no_expectation",
+                "not_measurable"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why stale is None: no SIEM_SOURCE_EXPECTATIONS entry, or an expectation the rollups cannot evaluate"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "HealthSource",
+      "type": "object"
+    },
+    "Hunt": {
+      "additionalProperties": false,
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "created_by": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "etag": {
+          "maxLength": 128,
+          "type": "string"
+        },
+        "hunt_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "hypothesis": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "spec": {
+          "$ref": "#/$defs/QuerySpec"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "open",
+            "proven",
+            "disproven",
+            "inconclusive"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "hunt_id",
+        "title",
+        "hypothesis",
+        "verdict",
+        "spec",
+        "created_by",
+        "created_at",
+        "updated_at",
+        "etag"
+      ],
+      "title": "Hunt",
+      "type": "object"
+    },
+    "HuntCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "hypothesis": {
+          "default": "",
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "spec": {
+          "$ref": "#/$defs/QuerySpec"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "spec"
+      ],
+      "title": "HuntCreate",
+      "type": "object"
+    },
+    "HuntList": {
+      "additionalProperties": false,
+      "properties": {
+        "hunts": {
+          "items": {
+            "$ref": "#/$defs/Hunt"
+          },
+          "type": "array"
+        },
+        "total": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "hunts",
+        "total"
+      ],
+      "title": "HuntList",
+      "type": "object"
+    },
+    "HuntPatch": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_etag": {
+          "maxLength": 128,
+          "type": "string"
+        },
+        "hypothesis": {
+          "anyOf": [
+            {
+              "maxLength": 8192,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "spec": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QuerySpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "enum": [
+                "open",
+                "proven",
+                "disproven",
+                "inconclusive"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "expected_etag"
+      ],
+      "title": "HuntPatch",
+      "type": "object"
+    },
+    "IndexCatalog": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/ColumnMeta"
+          },
+          "maxItems": 300,
+          "type": "array"
+        },
+        "index_name": {
+          "enum": [
+            "http_activity",
+            "api_activity",
+            "authentication",
+            "audit_event",
+            "network_activity"
+          ],
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "time_field": {
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "index_name",
+        "label",
+        "time_field",
+        "columns"
+      ],
+      "title": "IndexCatalog",
+      "type": "object"
+    },
+    "IndicatorMatch": {
+      "additionalProperties": false,
+      "description": "An intel indicator that matched. ``value`` is the matched IP, domain, URL, hash or address read from the indicator's\npattern; every other field is None when the intel node does not record it (never inferred).",
+      "properties": {
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "first_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "indicator_id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The intel node id: an identifier, not the matched value"
+        },
+        "indicator_types": {
+          "items": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "last_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "revoked": {
+          "default": false,
+          "type": "boolean"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The feed the indicator was loaded from"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "enum": [
+                "ip",
+                "domain",
+                "url",
+                "hash",
+                "email"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None when the indicator could not be read, so its type is not known"
+        },
+        "valid_from": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "valid_until": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "value": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "IndicatorMatch",
+      "type": "object"
+    },
+    "IndicatorResolveRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "ids": {
+          "description": "matched_indicators entries of alert groups: intel node ids or plain values",
+          "items": {
+            "maxLength": 256,
+            "pattern": "^[^\\x00-\\x20\\x7f]{1,256}$",
+            "type": "string"
+          },
+          "maxItems": 50,
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "ids"
+      ],
+      "title": "IndicatorResolveRequest",
+      "type": "object"
+    },
+    "IndicatorResolveResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "matches": {
+          "description": "One per requested id, in order",
+          "items": {
+            "$ref": "#/$defs/IndicatorMatch"
+          },
+          "maxItems": 50,
+          "type": "array"
+        }
+      },
+      "required": [
+        "matches"
+      ],
+      "title": "IndicatorResolveResponse",
+      "type": "object"
+    },
+    "MembersRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "paging": {
+          "$ref": "#/$defs/Paging"
+        }
+      },
+      "title": "MembersRequest",
+      "type": "object"
+    },
+    "MembersResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "group_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "members": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "maxItems": 1000,
+          "type": "array"
+        },
+        "total": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "group_id",
+        "members",
+        "total",
+        "truncated"
+      ],
+      "title": "MembersResponse",
+      "type": "object"
+    },
+    "Neighbor": {
+      "additionalProperties": false,
+      "properties": {
+        "differing": {
+          "items": {
+            "$ref": "#/$defs/FeatureDiff"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "distance": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "group_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "group_id",
+        "title",
+        "severity",
+        "distance"
+      ],
+      "title": "Neighbor",
+      "type": "object"
+    },
+    "OverviewRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "filters": {
+          "items": {
+            "$ref": "#/$defs/FilterClause"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "top_n": {
+          "default": 10,
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "window": {
+          "$ref": "#/$defs/TimeWindow"
+        }
+      },
+      "required": [
+        "window"
+      ],
+      "title": "OverviewRequest",
+      "type": "object"
+    },
+    "OverviewResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "canUnmask": {
+          "type": "boolean"
+        },
+        "currentUser": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "notes": {
+          "description": "How the numbers were computed (rollup, bounded raw scan, sample)",
+          "items": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "topCountries": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "topEventSources": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "topRules": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "topSourceIps": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "totals": {
+          "$ref": "#/$defs/OverviewTotals"
+        }
+      },
+      "required": [
+        "totals",
+        "topSourceIps",
+        "topRules",
+        "topCountries",
+        "topEventSources",
+        "canUnmask",
+        "as_of"
+      ],
+      "title": "OverviewResponse",
+      "type": "object"
+    },
+    "OverviewTotals": {
+      "additionalProperties": false,
+      "properties": {
+        "audit": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None when the audit source has no data at all (unmeasured, not zero)"
+        },
+        "ioc_alerts": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Alert groups of tier ioc that overlap the window: alerts that matched an indicator"
+        },
+        "telemetry": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None until a telemetry index exists"
+        },
+        "threat": {
+          "description": "Indicators LOADED (current intel objects, not windowed). NOT the number of matches",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "waf": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "waf",
+        "threat"
+      ],
+      "title": "OverviewTotals",
+      "type": "object"
+    },
+    "Paging": {
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "default": 250,
+          "maximum": 5000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "maximum": 1000000,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "title": "Paging",
+      "type": "object"
+    },
+    "QuarantineGroup": {
+      "additionalProperties": false,
+      "description": "Records that share a reason. Counts cover the records read, so they are a lower bound when the response is truncated.",
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "first_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hint": {
+          "description": "Plain-language reading of the reason, from fixed rules",
+          "maxLength": 200,
+          "type": "string"
+        },
+        "last_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "maxLength": 300,
+          "type": "string"
+        },
+        "sample_key": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw key of the newest record in the group"
+        }
+      },
+      "required": [
+        "reason",
+        "hint",
+        "count"
+      ],
+      "title": "QuarantineGroup",
+      "type": "object"
+    },
+    "QuarantineRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "maxLength": 256,
+          "type": "string"
+        },
+        "quarantined_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "raw_key": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "maxLength": 1024,
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "key",
+        "reason"
+      ],
+      "title": "QuarantineRecord",
+      "type": "object"
+    },
+    "QuarantineRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "older": {
+          "default": false,
+          "description": "True returns only records OLDER than the window instead of those inside it",
+          "type": "boolean"
+        },
+        "paging": {
+          "$ref": "#/$defs/Paging"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Only records with exactly this reason (a QuarantineGroup.reason)"
+        },
+        "window_hours": {
+          "anyOf": [
+            {
+              "maximum": 2160,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How far back 'recent' reaches, by the record's quarantine time. Server default: 36"
+        }
+      },
+      "title": "QuarantineRequest",
+      "type": "object"
+    },
+    "QuarantineResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/QuarantineGroup"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "older": {
+          "default": false,
+          "type": "boolean"
+        },
+        "older_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Records older than the window; None when not counted (unknown, not zero)"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/QuarantineRecord"
+          },
+          "type": "array"
+        },
+        "total": {
+          "description": "A lower bound when truncated",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "truncated": {
+          "default": false,
+          "type": "boolean"
+        },
+        "window_hours": {
+          "default": 36,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "records",
+        "total"
+      ],
+      "title": "QuarantineResponse",
+      "type": "object"
+    },
+    "QuerySpec": {
+      "additionalProperties": false,
+      "description": "One view of the data. It renders as Python, curl, GraphQL, a DRS manifest or a notebook, so it is the\nsingle description of 'what the analyst is looking at'. Validated against the dictionary server-side.",
+      "properties": {
+        "columns": {
+          "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 60,
+          "type": "array"
+        },
+        "filters": {
+          "items": {
+            "$ref": "#/$defs/FilterClause"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "grain": {
+          "anyOf": [
+            {
+              "enum": [
+                "1m",
+                "5m",
+                "1h"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hops": {
+          "default": 2,
+          "maximum": 3,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "index_name": {
+          "enum": [
+            "http_activity",
+            "api_activity",
+            "authentication",
+            "audit_event",
+            "network_activity"
+          ],
+          "type": "string"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntitySeed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sort": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SortSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "window": {
+          "$ref": "#/$defs/TimeWindow"
+        }
+      },
+      "required": [
+        "window",
+        "index_name"
+      ],
+      "title": "QuerySpec",
+      "type": "object"
+    },
+    "RowsRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 60,
+          "type": "array"
+        },
+        "filters": {
+          "items": {
+            "$ref": "#/$defs/FilterClause"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "index_name": {
+          "enum": [
+            "http_activity",
+            "api_activity",
+            "authentication",
+            "audit_event",
+            "network_activity"
+          ],
+          "type": "string"
+        },
+        "paging": {
+          "$ref": "#/$defs/Paging"
+        },
+        "sort": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SortSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "window": {
+          "$ref": "#/$defs/TimeWindow"
+        }
+      },
+      "required": [
+        "window",
+        "index_name"
+      ],
+      "title": "RowsRequest",
+      "type": "object"
+    },
+    "RowsResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "columns": {
+          "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "index_name": {
+          "enum": [
+            "http_activity",
+            "api_activity",
+            "authentication",
+            "audit_event",
+            "network_activity"
+          ],
+          "type": "string"
+        },
+        "rows": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "maxItems": 5000,
+          "type": "array"
+        },
+        "source_version": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Delta version read; None when it could not be determined cheaply"
+        },
+        "total": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None when counting would scan; the grid says 'at least'"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "index_name",
+        "columns",
+        "rows",
+        "truncated",
+        "as_of"
+      ],
+      "title": "RowsResponse",
+      "type": "object"
+    },
+    "SavedView": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "default": "",
+          "maxLength": 1024,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "is_default": {
+          "default": false,
+          "type": "boolean"
+        },
+        "kind": {
+          "enum": [
+            "triage",
+            "hunt",
+            "dashboard",
+            "data"
+          ],
+          "type": "string"
+        },
+        "layout": {
+          "additionalProperties": true,
+          "description": "Perspective viewer config for the grid/chart",
+          "type": "object"
+        },
+        "owner": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "scope": {
+          "enum": [
+            "shared",
+            "private"
+          ],
+          "type": "string"
+        },
+        "spec": {
+          "$ref": "#/$defs/QuerySpec"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "kind",
+        "scope",
+        "spec"
+      ],
+      "title": "SavedView",
+      "type": "object"
+    },
+    "SavedViewInput": {
+      "additionalProperties": false,
+      "description": "What a client sends to save a view. The server assigns id and owner and decides is_default.",
+      "properties": {
+        "description": {
+          "default": "",
+          "maxLength": 1024,
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "triage",
+            "hunt",
+            "dashboard",
+            "data"
+          ],
+          "type": "string"
+        },
+        "layout": {
+          "additionalProperties": true,
+          "description": "Perspective viewer config; capped at 64 KiB",
+          "type": "object"
+        },
+        "scope": {
+          "enum": [
+            "shared",
+            "private"
+          ],
+          "type": "string"
+        },
+        "spec": {
+          "$ref": "#/$defs/QuerySpec"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "kind",
+        "scope",
+        "spec"
+      ],
+      "title": "SavedViewInput",
+      "type": "object"
+    },
+    "SavedViewList": {
+      "additionalProperties": false,
+      "properties": {
+        "views": {
+          "items": {
+            "$ref": "#/$defs/SavedView"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "views"
+      ],
+      "title": "SavedViewList",
+      "type": "object"
+    },
+    "SequenceStage": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "group_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "stage": {
+          "enum": [
+            "recon",
+            "attack",
+            "impact"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "stage",
+        "at",
+        "title"
+      ],
+      "title": "SequenceStage",
+      "type": "object"
+    },
+    "SharedNeighbor": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "id": {
+          "maxLength": 256,
+          "pattern": "^[^\\x00-\\x20\\x7f]{1,256}$",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "relation": {
+          "maxLength": 64,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "relation",
+        "count"
+      ],
+      "title": "SharedNeighbor",
+      "type": "object"
+    },
+    "SimilarHit": {
+      "additionalProperties": false,
+      "properties": {
+        "distance": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "group_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "group_id",
+        "distance",
+        "title",
+        "severity"
+      ],
+      "title": "SimilarHit",
+      "type": "object"
+    },
+    "SimilarRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "group_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "k": {
+          "default": 10,
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "group_id"
+      ],
+      "title": "SimilarRequest",
+      "type": "object"
+    },
+    "SimilarResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "hits": {
+          "items": {
+            "$ref": "#/$defs/SimilarHit"
+          },
+          "type": "array"
+        },
+        "measured": {
+          "default": true,
+          "description": "False when no embedding exists, so 'no hits' is not 'nothing similar'",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "hits"
+      ],
+      "title": "SimilarResponse",
+      "type": "object"
+    },
+    "SortSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "dir": {
+          "default": "desc",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field"
+      ],
+      "title": "SortSpec",
+      "type": "object"
+    },
+    "StructuralMatch": {
+      "additionalProperties": false,
+      "properties": {
+        "entities": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "feature": {
+          "enum": [
+            "ja4",
+            "user_agent",
+            "asn",
+            "path_signature"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 512,
+          "type": "string"
+        }
+      },
+      "required": [
+        "feature",
+        "value",
+        "entities"
+      ],
+      "title": "StructuralMatch",
+      "type": "object"
+    },
+    "TimeWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "start": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "TimeWindow",
+      "type": "object"
+    },
+    "TimelinePoint": {
+      "additionalProperties": false,
+      "properties": {
+        "bucket_start": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "bytes_out_max": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "bytes_out_sum": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dims": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": "object"
+        },
+        "distinct_src_ips": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None when not exactly measurable (merged rollups, no source column)"
+        },
+        "event_count": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "bucket_start",
+        "event_count"
+      ],
+      "title": "TimelinePoint",
+      "type": "object"
+    },
+    "TimelineRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "filters": {
+          "items": {
+            "$ref": "#/$defs/FilterClause"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "grain": {
+          "default": "5m",
+          "enum": [
+            "1m",
+            "5m",
+            "1h"
+          ],
+          "type": "string"
+        },
+        "group_by": {
+          "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 3,
+          "type": "array"
+        },
+        "index_name": {
+          "default": "http_activity",
+          "enum": [
+            "http_activity",
+            "api_activity",
+            "authentication",
+            "audit_event",
+            "network_activity"
+          ],
+          "type": "string"
+        },
+        "window": {
+          "$ref": "#/$defs/TimeWindow"
+        }
+      },
+      "required": [
+        "window"
+      ],
+      "title": "TimelineRequest",
+      "type": "object"
+    },
+    "TimelineResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "grain": {
+          "enum": [
+            "1m",
+            "5m",
+            "1h"
+          ],
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/TimelinePoint"
+          },
+          "maxItems": 200000,
+          "type": "array"
+        },
+        "source": {
+          "enum": [
+            "rollup",
+            "raw"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "grain",
+        "points",
+        "source",
+        "as_of"
+      ],
+      "title": "TimelineResponse",
+      "type": "object"
+    },
+    "TriageRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "detection",
+                "schedule",
+                "ask"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "paging": {
+          "$ref": "#/$defs/Paging"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "state": {
+          "anyOf": [
+            {
+              "enum": [
+                "queued",
+                "launched",
+                "merged",
+                "expired"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "TriageRequest",
+      "type": "object"
+    },
+    "TriageResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/TriageRow"
+          },
+          "type": "array"
+        },
+        "strip": {
+          "$ref": "#/$defs/TriageStrip"
+        },
+        "unmeasured_text": {
+          "maxLength": 512,
+          "type": "string"
+        }
+      },
+      "required": [
+        "strip",
+        "rows",
+        "unmeasured_text"
+      ],
+      "title": "TriageResponse",
+      "type": "object"
+    },
+    "TriageRow": {
+      "additionalProperties": false,
+      "properties": {
+        "age_seconds": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "case_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "group_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "detection",
+            "schedule",
+            "ask"
+          ],
+          "type": "string"
+        },
+        "last_quarter": {
+          "type": "boolean"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "state": {
+          "enum": [
+            "queued",
+            "launched",
+            "merged",
+            "expired"
+          ],
+          "type": "string"
+        },
+        "ttl_seconds": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "state",
+        "severity",
+        "age_seconds",
+        "ttl_seconds",
+        "last_quarter"
+      ],
+      "title": "TriageRow",
+      "type": "object"
+    },
+    "TriageStrip": {
+      "additionalProperties": false,
+      "description": "Anything not yet computed is None and must render as 'unmeasured', never as zero.",
+      "properties": {
+        "cases_created_today": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "picked_up_share": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "trust_floor": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "waiting": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None when the count could not be completed (candidate cap hit)"
+        }
+      },
+      "required": [
+        "cases_created_today"
+      ],
+      "title": "TriageStrip",
+      "type": "object"
+    },
+    "WatchlistEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "default": 75,
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "note": {
+          "default": "",
+          "maxLength": 512,
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "ip",
+            "domain",
+            "url",
+            "hash",
+            "email"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "title": "WatchlistEntry",
+      "type": "object"
+    },
+    "WatchlistRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/WatchlistEntry"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "entries"
+      ],
+      "title": "WatchlistRequest",
+      "type": "object"
+    },
+    "WatchlistResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "bundle_key": {
+          "maxLength": 1024,
+          "type": "string"
+        },
+        "rejected": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "accepted",
+        "rejected",
+        "bundle_key"
+      ],
+      "title": "WatchlistResponse",
+      "type": "object"
+    },
+    "WhyBaseline": {
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "historical_max_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "history_days": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kind": {
+          "const": "baseline",
+          "default": "baseline",
+          "type": "string"
+        },
+        "measured": {
+          "description": "False renders as 'unmeasured', never as zero or empty",
+          "type": "boolean"
+        },
+        "multiple": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "observed_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "samples": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "measured"
+      ],
+      "title": "WhyBaseline",
+      "type": "object"
+    },
+    "WhyEvidence": {
+      "additionalProperties": false,
+      "description": "What the group's own events show. Paths, actions, sources and countries come from the SAMPLED events\n(``events_sampled`` of ``events_total``); ``allowed`` and ``blocked`` are the group's exact totals.",
+      "properties": {
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/EvidenceAction"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "allowed": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "blocked": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "bytes_max": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "bytes_recorded": {
+          "description": "False when no sampled event carries a response size",
+          "type": "boolean"
+        },
+        "countries": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "distinct_countries": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "distinct_src_ips": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "events_sampled": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "events_total": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "first_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "last_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "not_measured": {
+          "items": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "type": "array"
+        },
+        "sensitive_paths": {
+          "items": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "status_classes": {
+          "description": "2xx, 3xx, 4xx, 5xx counts; empty when unrecorded",
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "status_recorded": {
+          "description": "False when no sampled event carries a response status",
+          "type": "boolean"
+        },
+        "top_paths": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 5,
+          "type": "array"
+        }
+      },
+      "required": [
+        "events_total",
+        "events_sampled",
+        "status_recorded",
+        "bytes_recorded"
+      ],
+      "title": "WhyEvidence",
+      "type": "object"
+    },
+    "WhyGraph": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "graph",
+          "default": "graph",
+          "type": "string"
+        },
+        "measured": {
+          "description": "False renders as 'unmeasured', never as zero or empty",
+          "type": "boolean"
+        },
+        "shared": {
+          "items": {
+            "$ref": "#/$defs/SharedNeighbor"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "techniques": {
+          "items": {
+            "pattern": "^T\\d{4}(\\.\\d{3})?$",
+            "type": "string"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "measured"
+      ],
+      "title": "WhyGraph",
+      "type": "object"
+    },
+    "WhyIndicator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "indicator",
+          "default": "indicator",
+          "type": "string"
+        },
+        "matches": {
+          "items": {
+            "$ref": "#/$defs/IndicatorMatch"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "measured": {
+          "description": "False renders as 'unmeasured', never as zero or empty",
+          "type": "boolean"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "measured"
+      ],
+      "title": "WhyIndicator",
+      "type": "object"
+    },
+    "WhyNovelty": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "novelty",
+          "default": "novelty",
+          "type": "string"
+        },
+        "measured": {
+          "description": "False renders as 'unmeasured', never as zero or empty",
+          "type": "boolean"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Embedding model id"
+        },
+        "neighbors": {
+          "items": {
+            "$ref": "#/$defs/Neighbor"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "novelty_class": {
+          "anyOf": [
+            {
+              "enum": [
+                "normal",
+                "drift",
+                "anomaly"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "measured"
+      ],
+      "title": "WhyNovelty",
+      "type": "object"
+    },
+    "WhyResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhyEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "group_id": {
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "baseline": "#/$defs/WhyBaseline",
+                "graph": "#/$defs/WhyGraph",
+                "indicator": "#/$defs/WhyIndicator",
+                "novelty": "#/$defs/WhyNovelty",
+                "rule": "#/$defs/WhyRule",
+                "sequence": "#/$defs/WhySequence"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/WhyRule"
+              },
+              {
+                "$ref": "#/$defs/WhyBaseline"
+              },
+              {
+                "$ref": "#/$defs/WhySequence"
+              },
+              {
+                "$ref": "#/$defs/WhyNovelty"
+              },
+              {
+                "$ref": "#/$defs/WhyIndicator"
+              },
+              {
+                "$ref": "#/$defs/WhyGraph"
+              }
+            ]
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "maxLength": 1200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Plain-language summary from fixed rules, not a model; states what was not measured"
+        }
+      },
+      "required": [
+        "group_id",
+        "sections",
+        "as_of"
+      ],
+      "title": "WhyResponse",
+      "type": "object"
+    },
+    "WhyRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "rule",
+          "default": "rule",
+          "type": "string"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "matched": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "measured": {
+          "description": "False renders as 'unmeasured', never as zero or empty",
+          "type": "boolean"
+        },
+        "pack": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Third-party pack id; None for first-party rules"
+        },
+        "pack_commit": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "measured"
+      ],
+      "title": "WhyRule",
+      "type": "object"
+    },
+    "WhySequence": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kind": {
+          "const": "sequence",
+          "default": "sequence",
+          "type": "string"
+        },
+        "measured": {
+          "description": "False renders as 'unmeasured', never as zero or empty",
+          "type": "boolean"
+        },
+        "proof": {
+          "default": false,
+          "type": "boolean"
+        },
+        "stages": {
+          "items": {
+            "$ref": "#/$defs/SequenceStage"
+          },
+          "maxItems": 100,
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "measured"
+      ],
+      "title": "WhySequence",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "AiSummaryResponse": {
+      "$ref": "#/$defs/AiSummaryResponse"
+    },
+    "AlertBulkRequest": {
+      "$ref": "#/$defs/AlertBulkRequest"
+    },
+    "AlertBulkResponse": {
+      "$ref": "#/$defs/AlertBulkResponse"
+    },
+    "AlertGroup": {
+      "$ref": "#/$defs/AlertGroup"
+    },
+    "AlertPatch": {
+      "$ref": "#/$defs/AlertPatch"
+    },
+    "AlertsRequest": {
+      "$ref": "#/$defs/AlertsRequest"
+    },
+    "AlertsResponse": {
+      "$ref": "#/$defs/AlertsResponse"
+    },
+    "Bucket": {
+      "$ref": "#/$defs/Bucket"
+    },
+    "CaseCreate": {
+      "$ref": "#/$defs/CaseCreate"
+    },
+    "CaseList": {
+      "$ref": "#/$defs/CaseList"
+    },
+    "CaseNote": {
+      "$ref": "#/$defs/CaseNote"
+    },
+    "CasePatch": {
+      "$ref": "#/$defs/CasePatch"
+    },
+    "CaseRecord": {
+      "$ref": "#/$defs/CaseRecord"
+    },
+    "CaseRef": {
+      "$ref": "#/$defs/CaseRef"
+    },
+    "CatalogResponse": {
+      "$ref": "#/$defs/CatalogResponse"
+    },
+    "ColumnMeta": {
+      "$ref": "#/$defs/ColumnMeta"
+    },
+    "CoverageResponse": {
+      "$ref": "#/$defs/CoverageResponse"
+    },
+    "CoverageRow": {
+      "$ref": "#/$defs/CoverageRow"
+    },
+    "DecisionRequest": {
+      "$ref": "#/$defs/DecisionRequest"
+    },
+    "DecisionResponse": {
+      "$ref": "#/$defs/DecisionResponse"
+    },
+    "EntityProfileRequest": {
+      "$ref": "#/$defs/EntityProfileRequest"
+    },
+    "EntityProfileResponse": {
+      "$ref": "#/$defs/EntityProfileResponse"
+    },
+    "EntityRecallRequest": {
+      "$ref": "#/$defs/EntityRecallRequest"
+    },
+    "EntityRecallResponse": {
+      "$ref": "#/$defs/EntityRecallResponse"
+    },
+    "EntitySeed": {
+      "$ref": "#/$defs/EntitySeed"
+    },
+    "EvidenceAction": {
+      "$ref": "#/$defs/EvidenceAction"
+    },
+    "FacetResult": {
+      "$ref": "#/$defs/FacetResult"
+    },
+    "FacetsRequest": {
+      "$ref": "#/$defs/FacetsRequest"
+    },
+    "FacetsResponse": {
+      "$ref": "#/$defs/FacetsResponse"
+    },
+    "FeatureDiff": {
+      "$ref": "#/$defs/FeatureDiff"
+    },
+    "FilterClause": {
+      "$ref": "#/$defs/FilterClause"
+    },
+    "FindSimilarRequest": {
+      "$ref": "#/$defs/FindSimilarRequest"
+    },
+    "FindSimilarResponse": {
+      "$ref": "#/$defs/FindSimilarResponse"
+    },
+    "GeoInfo": {
+      "$ref": "#/$defs/GeoInfo"
+    },
+    "GraphEdge": {
+      "$ref": "#/$defs/GraphEdge"
+    },
+    "GraphNode": {
+      "$ref": "#/$defs/GraphNode"
+    },
+    "GraphTraverseRequest": {
+      "$ref": "#/$defs/GraphTraverseRequest"
+    },
+    "GraphTraverseResponse": {
+      "$ref": "#/$defs/GraphTraverseResponse"
+    },
+    "HealthQueue": {
+      "$ref": "#/$defs/HealthQueue"
+    },
+    "HealthResponse": {
+      "$ref": "#/$defs/HealthResponse"
+    },
+    "HealthSource": {
+      "$ref": "#/$defs/HealthSource"
+    },
+    "Hunt": {
+      "$ref": "#/$defs/Hunt"
+    },
+    "HuntCreate": {
+      "$ref": "#/$defs/HuntCreate"
+    },
+    "HuntList": {
+      "$ref": "#/$defs/HuntList"
+    },
+    "HuntPatch": {
+      "$ref": "#/$defs/HuntPatch"
+    },
+    "IndexCatalog": {
+      "$ref": "#/$defs/IndexCatalog"
+    },
+    "IndicatorMatch": {
+      "$ref": "#/$defs/IndicatorMatch"
+    },
+    "IndicatorResolveRequest": {
+      "$ref": "#/$defs/IndicatorResolveRequest"
+    },
+    "IndicatorResolveResponse": {
+      "$ref": "#/$defs/IndicatorResolveResponse"
+    },
+    "MembersRequest": {
+      "$ref": "#/$defs/MembersRequest"
+    },
+    "MembersResponse": {
+      "$ref": "#/$defs/MembersResponse"
+    },
+    "Neighbor": {
+      "$ref": "#/$defs/Neighbor"
+    },
+    "OverviewRequest": {
+      "$ref": "#/$defs/OverviewRequest"
+    },
+    "OverviewResponse": {
+      "$ref": "#/$defs/OverviewResponse"
+    },
+    "OverviewTotals": {
+      "$ref": "#/$defs/OverviewTotals"
+    },
+    "Paging": {
+      "$ref": "#/$defs/Paging"
+    },
+    "QuarantineGroup": {
+      "$ref": "#/$defs/QuarantineGroup"
+    },
+    "QuarantineRecord": {
+      "$ref": "#/$defs/QuarantineRecord"
+    },
+    "QuarantineRequest": {
+      "$ref": "#/$defs/QuarantineRequest"
+    },
+    "QuarantineResponse": {
+      "$ref": "#/$defs/QuarantineResponse"
+    },
+    "QuerySpec": {
+      "$ref": "#/$defs/QuerySpec"
+    },
+    "RowsRequest": {
+      "$ref": "#/$defs/RowsRequest"
+    },
+    "RowsResponse": {
+      "$ref": "#/$defs/RowsResponse"
+    },
+    "SavedView": {
+      "$ref": "#/$defs/SavedView"
+    },
+    "SavedViewInput": {
+      "$ref": "#/$defs/SavedViewInput"
+    },
+    "SavedViewList": {
+      "$ref": "#/$defs/SavedViewList"
+    },
+    "SequenceStage": {
+      "$ref": "#/$defs/SequenceStage"
+    },
+    "SharedNeighbor": {
+      "$ref": "#/$defs/SharedNeighbor"
+    },
+    "SimilarHit": {
+      "$ref": "#/$defs/SimilarHit"
+    },
+    "SimilarRequest": {
+      "$ref": "#/$defs/SimilarRequest"
+    },
+    "SimilarResponse": {
+      "$ref": "#/$defs/SimilarResponse"
+    },
+    "SortSpec": {
+      "$ref": "#/$defs/SortSpec"
+    },
+    "StructuralMatch": {
+      "$ref": "#/$defs/StructuralMatch"
+    },
+    "TimeWindow": {
+      "$ref": "#/$defs/TimeWindow"
+    },
+    "TimelinePoint": {
+      "$ref": "#/$defs/TimelinePoint"
+    },
+    "TimelineRequest": {
+      "$ref": "#/$defs/TimelineRequest"
+    },
+    "TimelineResponse": {
+      "$ref": "#/$defs/TimelineResponse"
+    },
+    "TriageRequest": {
+      "$ref": "#/$defs/TriageRequest"
+    },
+    "TriageResponse": {
+      "$ref": "#/$defs/TriageResponse"
+    },
+    "TriageRow": {
+      "$ref": "#/$defs/TriageRow"
+    },
+    "TriageStrip": {
+      "$ref": "#/$defs/TriageStrip"
+    },
+    "WatchlistEntry": {
+      "$ref": "#/$defs/WatchlistEntry"
+    },
+    "WatchlistRequest": {
+      "$ref": "#/$defs/WatchlistRequest"
+    },
+    "WatchlistResponse": {
+      "$ref": "#/$defs/WatchlistResponse"
+    },
+    "WhyBaseline": {
+      "$ref": "#/$defs/WhyBaseline"
+    },
+    "WhyEvidence": {
+      "$ref": "#/$defs/WhyEvidence"
+    },
+    "WhyGraph": {
+      "$ref": "#/$defs/WhyGraph"
+    },
+    "WhyIndicator": {
+      "$ref": "#/$defs/WhyIndicator"
+    },
+    "WhyNovelty": {
+      "$ref": "#/$defs/WhyNovelty"
+    },
+    "WhyResponse": {
+      "$ref": "#/$defs/WhyResponse"
+    },
+    "WhyRule": {
+      "$ref": "#/$defs/WhyRule"
+    },
+    "WhySequence": {
+      "$ref": "#/$defs/WhySequence"
+    }
+  },
+  "title": "SiemContract",
+  "type": "object"
+}

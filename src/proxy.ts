@@ -8,6 +8,13 @@ export const config = {
   "/Workspace",
   "/Workspaces",
   "/WorkspaceRequestAccess",
-  "/Profile"
+  "/Profile",
+  "/Security",
+  "/Alerts",
+  "/Cases",
+  "/Investigate",
+  "/Detection",
+  "/Query",
+  "/Analysis"
 ],
 };

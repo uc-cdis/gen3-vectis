@@ -24,9 +24,11 @@ const AppsPage = ({ headerProps, footerProps, config }: AppConfig) => {
   const router = useRouter();
   const appName = getAppName(router);
 
+  // A registered app is a component, never an HTML tag name. Typing it as React.ElementType (which includes every tag
+  // name) stops type-checking once @perspective-dev's own JSX declarations are in the program.
   const Gen3App = useCoreSelector(
     () => selectGen3AppByName(appName), // TODO update ById to ByName
-  ) as React.ElementType;
+  ) as React.ComponentType<Record<string, unknown>> | undefined;
 
   // oxlint-disable-next-line no-console
   console.log("loading app", appName, 'app', Gen3App);

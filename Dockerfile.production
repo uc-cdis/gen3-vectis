@@ -48,6 +48,8 @@ COPY ./src ./src
 COPY ./public ./public
 COPY ./config ./config
 COPY ./start.sh ./
+# The type-check in `npm run build` also covers the unit tests, whose matcher types (toBeInTheDocument...) come from this setup file.
+COPY vitest.unit.setup.ts vitest.unit.config.mts ./
 
 # Build JupyterLite static assets (outputs to public/ before Next.js build)
 RUN npm run build:jupyterlite

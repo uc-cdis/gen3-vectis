@@ -47,7 +47,9 @@ const nextConfig = {
   reactStrictMode: true,
   pageExtensions: ['mdx', 'md', 'jsx', 'js', 'tsx', 'ts'],
   basePath: basePath,
-  transpilePackages: ['@gen3/core', '@gen3/frontend', '@gen3/workspaces'],
+  // @perspective-dev/viewer ships two TypeScript source files that its grid and chart plugins import at run time;
+  // webpack must compile them (see the alias in the webpack function below).
+  transpilePackages: ['@gen3/core', '@gen3/frontend', '@gen3/workspaces', '@perspective-dev/viewer'],
   logging: {
     fetches: {
       fullUrl: true,
@@ -57,6 +59,28 @@ const nextConfig = {
     config.infrastructureLogging = {
       level: 'error',
     };
+    // Perspective's WebAssembly engines are served as static files and imported as URLs (the data grid fetches them
+    // once, client-side only). Scoped to @perspective-dev so no other .wasm handling changes.
+    // The datagrid and chart plugins import these two files by a `.js` name that exists only as `.ts` in the package.
+    const perspectiveSrc = path.resolve(__dirname, 'node_modules', '@perspective-dev', 'viewer', 'src', 'ts');
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@perspective-dev/viewer/src/ts/column-format.js$': path.join(perspectiveSrc, 'column-format.ts'),
+      '@perspective-dev/viewer/src/ts/extensions.js$': path.join(perspectiveSrc, 'extensions.ts'),
+    };
+    // Two Perspective bundles import() URLs built at run time; webpack must leave those calls to the browser.
+    config.module.rules.push({
+      test: /\.js$/,
+      include: /node_modules[\\/]@perspective-dev[\\/](viewer|viewer-charts)[\\/]dist[\\/]esm[\\/]perspective-viewer(-charts)?\.js$/,
+      enforce: 'post',
+      loader: path.resolve(__dirname, 'src/lib/vectis-kit/data-table/webpackIgnoreImports.cjs'),
+    });
+    config.module.rules.push({
+      test: /\.wasm$/,
+      include: /node_modules[\\/]@perspective-dev[\\/]/,
+      type: 'asset/resource',
+      generator: { filename: 'static/wasm/[name].[hash][ext]' },
+    });
     return config;
   },
   async rewrites() {

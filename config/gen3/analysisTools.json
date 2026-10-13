@@ -1,31 +1,13 @@
 {
   "tools": [
     {
-      "title": "Cohort Discovery",
+      "title": "Query",
       "type": "application",
       "icon": "/images/apps/icons/gen3_app.png",
-      "image": "/images/apps/cohort_discovery.png",
-      "description": "The cohort discovery application is designed to assist researchers, clinicians, and data scientists in quickly identifying and exploring subsets of individuals from large datasets based on specific criteria.",
-      "loginRequired": false,
-      "href": "/app/CohortDiscovery"
-    },
-    {
-      "title": "Crosswalk",
-      "type": "application",
-      "icon": "/images/apps/icons/gen3_app.png",
-      "image": "/images/apps/crosswalk.png",
-      "description": "Map a set of ids to a set of foreign ids.",
-      "loginRequired": false,
-      "href": "Crosswalk"
-    },
-    {
-      "title": "Clinical Data Analysis",
-      "type": "application",
-      "icon": "/images/apps/icons/gen3_app.png",
-      "image": "/images/apps/ClinicalData.png",
-      "description": "Use clinical variables to perform basic statistical analysis of your cohort.",
-      "loginRequired": false,
-      "href": "ClinicalDataAnalysis"
+      "description": "Run GraphQL queries against the security data with GraphiQL. Anything you build in the console's Data view can be copied here.",
+      "loginRequired": true,
+      "href": "/Query",
+      "image": "/images/apps/generic_image.png"
     }
   ]
 }

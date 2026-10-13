@@ -1,4 +1,9 @@
 {
+  "headerMetadata": {
+    "title": "Vectis Profile",
+    "content": "Vectis profile page",
+    "key": "vectis-profile-page"
+  },
   "hasExternalLogins" : true,
   "resourceTable": {
     "serviceColors": {
