@@ -34,6 +34,7 @@
     "build:jupyterlite:assets": "bash ./node_modules/@gen3/workspaces/dist/jupyterlite-builds/scripts/sync-jupyter-assets-into-package.sh ./builds",
     "build:jupyterlite": "npm run build:jupyterlite:setupenv && npm run build:jupyterlite:gen3sdk && npm run build:jupyterlite:free && npm run build:jupyterlite:remote && npm run build:jupyterlite:assets",
     "test:unit": "vitest run --config vitest.unit.config.mts",
+    "test:dagu": "vitest run --config vitest.unit.config.mts src/lib/jobs/dagu/contract.test.ts",
     "gen:siem-types": "json2ts -i src/lib/vectis-kit/spec/generated/contract.schema.json -o src/lib/vectis-kit/spec/generated/contract.generated.ts --unreachableDefinitions --no-additionalProperties --ignoreMinAndMaxItems --bannerComment \"/* GENERATED from the siem-app contract (scripts/export_frontend.py). Do not edit by hand. */\""
   },
   "dependencies": {
@@ -71,7 +72,8 @@
     "remark-gfm": "^4.0.1",
     "tailwind-styled-components": "^2.2.0",
     "use-deep-compare": "^1.3.0",
-    "victory": "^37.3.6"
+    "victory": "^37.3.6",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@axe-core/react": "^4.10.2",
