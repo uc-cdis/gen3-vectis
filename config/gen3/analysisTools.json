@@ -8,6 +8,15 @@
       "loginRequired": true,
       "href": "/Query",
       "image": "/images/apps/generic_image.png"
+    },
+    {
+      "title": "Jobs",
+      "type": "application",
+      "icon": "/images/apps/icons/gen3_app.png",
+      "description": "Run approved jobs from the catalog and follow their progress. You see only your own runs.",
+      "loginRequired": true,
+      "href": "/Jobs",
+      "image": "/images/apps/generic_image.png"
     }
   ]
 }

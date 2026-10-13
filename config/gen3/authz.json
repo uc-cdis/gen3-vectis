@@ -45,6 +45,18 @@
         "/programs/vectis/projects/siem"
       ]
     },
+    "/Jobs": {
+      "loginRequired": true,
+      "authz": [
+        "/programs/vectis/projects/jobs"
+      ]
+    },
+    "/Jobs/submit": {
+      "loginRequired": true,
+      "authz": [
+        "/programs/vectis/projects/jobs-run"
+      ]
+    },
     "/Query": {
       "loginRequired": true
     },

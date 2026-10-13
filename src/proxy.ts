@@ -14,6 +14,8 @@ export const config = {
   "/Cases",
   "/Investigate",
   "/Detection",
+  "/Jobs",
+  "/Jobs/submit",
   "/Query",
   "/Analysis"
 ],
