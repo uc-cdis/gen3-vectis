@@ -27,6 +27,7 @@ import {
 import { registerDefaultRemoteSupport, setDRSHostnames } from '@gen3/core';
 import { registerCohortTableCustomCellRenderers } from '@/lib/CohortBuilder/CustomCellRenderers';
 import { registerCustomExplorerDetailsPanels } from '@/lib/CohortBuilder/FileDetailsPanel';
+import { registerCustomButtonActions } from '@/lib/CohortBuilder/CustomButtonActions';
 
 import '../styles/globals.css';
 import '@fontsource/montserrat';
@@ -115,6 +116,7 @@ const Gen3App = ({
       registerCohortBuilderDefaultPreviewRenderers();
       registerCohortTableCustomCellRenderers();
       registerCustomExplorerDetailsPanels();
+      registerCustomButtonActions();
       registerBaseSowerActions();
       registerCohortSowerActions();
       isFirstRender.current = false;

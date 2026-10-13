@@ -1,47 +1,36 @@
 [
   {
-    "tabTitle": "Subjects",
-    "flattenFields": true,
-    "charts": {
-      "experimental_group": {
-        "chartType": "fullPie",
-        "title": "Experimental Group",
-        "label": {
-          "show": true
-        },
-        "showLegendInChart": false
-      },
-      "ethnicity": {
-        "chartType": "horizontalStacked",
-        "title": "Ethnicity"
-      }
-    },
+    "tabTitle": "WAF Requests",
     "filters": {
       "tabs": [
         {
-          "title": "Project Selection",
-          "fields": ["project_id"]
-        },
-        {
-          "title": "Subjects",
+          "title": "Request",
           "fields": [
-            "gender",
-            "race",
-            "ethnicity",
-            "age_at_enrollment",
-            "experimental_group"
+            "rule_action",
+            "http_method",
+            "rule_id",
+            "source"
           ],
           "fieldsConfig": {
-            "gender": {
-              "label": "Sex"
+            "rule_action": {
+              "label": "Rule Action",
+              "type": "enum",
+              "description": "WAF terminating action for the request (ALLOW / BLOCK / COUNT)."
             },
-            "age_at_enrollment": {
-              "type": "age_in_years",
-              "range": {
-                "maximum": 32507,
-                "minimum": 0,
-                "step": 10
-              }
+            "http_method": {
+              "label": "HTTP Method",
+              "type": "enum",
+              "description": "HTTP verb of the request."
+            },
+            "rule_id": {
+              "label": "Matched Rule",
+              "type": "enum",
+              "description": "Terminating WAF rule that decided the request."
+            },
+            "source": {
+              "label": "Log Source",
+              "type": "enum",
+              "description": "Ingest source that produced the record."
             }
           }
         }
@@ -49,163 +38,381 @@
     },
     "table": {
       "enabled": true,
-      "pageLimit": {
-        "limit": 10000
-      },
       "fields": [
-        "project_id",
-        "submitter_id",
-        "race",
-        "ethnicity",
-        "age_at_enrollment",
-        "experimental_group"
+        "event_time",
+        "http_method",
+        "uri_path",
+        "rule_action",
+        "rule_id",
+        "source"
       ],
       "columns": {
-        "submitter_id": {
-          "sortable": false
+        "uri_path": {
+          "sortable": true
         }
+      },
+      "pageLimit": {
+        "limit": 10000
       }
     },
-    "dropdowns": {
-      "download-table": {
-        "title": "Download Table",
-        "leftIcon": "gen3:download",
-        "rightIcon": "gen3:chevron-down",
-        "dropdownItems": [
-          {
-            "enabled": true,
-            "type": "data-json",
-            "title": "JSON",
-            "leftIcon": "datafile",
-            "rightIcon": "download",
-            "action": "data-json",
-            "actionArgs": {
-              "filename": "gen3_datacommon_subjects.json"
-            }
-          },
-          {
-            "enabled": true,
-            "type": "data-csv",
-            "title": "CSV",
-            "leftIcon": "datafile",
-            "rightIcon": "download",
-            "action": "data-csv",
-            "actionArgs": {
-              "filename": "gen3_datacommon_data_table.csv"
-            }
-          }
-        ]
-      }
-    },
+    "dropdowns": {},
     "buttons": [
       {
         "enabled": true,
-        "type": "manifest",
-        "action": "manifest",
-        "title": "Download File Manifest for Subjects",
+        "type": "data-json",
+        "title": "Export JSON",
         "leftIcon": "datafile",
         "rightIcon": "download",
-        "fileName": "subject_files_manifest.json",
         "actionArgs": {
-          "resourceIndexType": "file",
-          "resourceIdField": "_subject_id",
-          "referenceIdFieldInResourceIndex": "_subject_id",
-          "referenceIdFieldInDataIndex": "_file_id",
-          "fileFields": ["file_name", "file_size", "md5sum", "object_id"]
+          "filename": "waf_requests.json"
         }
+      },
+      {
+        "enabled": true,
+        "type": "data-csv",
+        "title": "Export CSV",
+        "leftIcon": "datafile",
+        "rightIcon": "download",
+        "actionArgs": {
+          "filename": "waf_requests.csv"
+        }
+      },
+      {
+        "enabled": true,
+        "type": "copy-filter-python",
+        "title": "Copy as Python",
+        "leftIcon": "datafile"
       }
     ],
     "loginForDownload": false,
     "guppyConfig": {
-      "dataType": "subject",
-      "nodeCountTitle": "Subject",
+      "dataType": "http_activity",
+      "nodeCountTitle": "WAF Requests",
       "fieldMapping": [
         {
-          "field": "_samples_count",
-          "name": "Samples Count"
+          "field": "event_time",
+          "name": "Time"
         },
         {
-          "field": "_imaging_files_count",
-          "name": "Imaging Files Count"
+          "field": "http_method",
+          "name": "Method"
         },
         {
-          "field": "_unaligned_reads_files_count",
-          "name": "Unaligned Reads Count"
+          "field": "uri_path",
+          "name": "URI"
         },
         {
-          "field": "_aligned_reads_files_count",
-          "name": "Aligned Reads Count"
+          "field": "rule_action",
+          "name": "Action"
         },
         {
-          "field": "_expression_arrays_count",
-          "name": "Expression Arrays Count"
+          "field": "rule_id",
+          "name": "Matched Rule"
+        },
+        {
+          "field": "source",
+          "name": "Log Source"
+        },
+        {
+          "field": "host_header",
+          "name": "Host"
+        },
+        {
+          "field": "status_code",
+          "name": "Status"
+        },
+        {
+          "field": "country",
+          "name": "Country"
+        },
+        {
+          "field": "src_ip",
+          "name": "Source IP"
+        },
+        {
+          "field": "account_id",
+          "name": "Account"
         }
       ],
-      "manifestMapping": {
-        "resourceIndexType": "file",
-        "resourceIdField": "object_id",
-        "referenceIdFieldInResourceIndex": "subject_id",
-        "referenceIdFieldInDataIndex": "subject_id"
-      },
-      "accessibleFieldCheckList": ["project"],
-      "accessibleValidationField": "project"
+      "manifestMapping": {},
+      "accessibleFieldCheckList": [],
+      "accessibleValidationField": ""
     }
   },
   {
-    "tabTitle": "Data Files",
-    "charts": {
-      "file_type": {
-        "chartType": "stackedBar",
-        "title": "File Type"
-      },
-      "file_format": {
-        "chartType": "stackedBar",
-        "title": "File Format"
-      }
-    },
+    "tabTitle": "Threat Intel",
     "filters": {
       "tabs": [
         {
-          "title": "File",
-          "fields": ["project_id", "data_type", "data_format", "data_category"]
+          "title": "Indicator",
+          "fields": [
+            "pattern_type",
+            "indicator_types"
+          ],
+          "fieldsConfig": {
+            "pattern_type": {
+              "label": "Pattern Type",
+              "type": "enum",
+              "description": "STIX pattern dialect (typically 'stix')."
+            },
+            "indicator_types": {
+              "label": "Indicator Type",
+              "type": "multiselect",
+              "description": "STIX indicator_types, e.g. malicious-activity."
+            }
+          }
         }
       ]
     },
     "table": {
       "enabled": true,
-      "fields": ["project_id", "file_name", "file_size", "_file_id"]
-    },
-    "guppyConfig": {
-      "dataType": "file",
-      "fieldMapping": [
-        {
-          "field": "file_id",
-          "name": "GUID"
-        }
+      "fields": [
+        "name",
+        "pattern_type",
+        "pattern",
+        "valid_from"
       ],
-      "nodeCountTitle": "Files",
-      "manifestMapping": {
-        "resourceIndexType": "subject",
-        "resourceIdField": "subject_id",
-        "referenceIdFieldInResourceIndex": "object_id",
-        "referenceIdFieldInDataIndex": "object_id"
+      "columns": {
+        "pattern": {
+          "sortable": false
+        }
       },
-      "accessibleFieldCheckList": ["subject_id"],
-      "accessibleValidationField": "subject_id",
-      "downloadAccessor": "subject_id"
+      "pageLimit": {
+        "limit": 10000
+      }
     },
+    "dropdowns": {},
     "buttons": [
       {
         "enabled": true,
-        "type": "manifest",
-        "title": "Download File Manifest",
+        "type": "data-json",
+        "title": "Export JSON",
         "leftIcon": "datafile",
         "rightIcon": "download",
         "actionArgs": {
-          "filename": "data_table_manifest.csv"
+          "filename": "threat_indicators.json"
         }
+      },
+      {
+        "enabled": true,
+        "type": "data-csv",
+        "title": "Export CSV",
+        "leftIcon": "datafile",
+        "rightIcon": "download",
+        "actionArgs": {
+          "filename": "threat_indicators.csv"
+        }
+      },
+      {
+        "enabled": true,
+        "type": "copy-filter-python",
+        "title": "Copy as Python",
+        "leftIcon": "datafile"
       }
     ],
-    "loginForDownload": true
+    "loginForDownload": false,
+    "guppyConfig": {
+      "dataType": "indicator",
+      "nodeCountTitle": "Threat Indicators",
+      "fieldMapping": [
+        {
+          "field": "name",
+          "name": "Indicator"
+        },
+        {
+          "field": "pattern",
+          "name": "STIX Pattern"
+        },
+        {
+          "field": "pattern_type",
+          "name": "Pattern Type"
+        },
+        {
+          "field": "indicator_types",
+          "name": "Indicator Type"
+        },
+        {
+          "field": "valid_from",
+          "name": "Valid From"
+        },
+        {
+          "field": "valid_until",
+          "name": "Valid Until"
+        },
+        {
+          "field": "tlp",
+          "name": "TLP"
+        },
+        {
+          "field": "intel_tier",
+          "name": "Intel Tier"
+        },
+        {
+          "field": "source_feed",
+          "name": "Source Feed"
+        },
+        {
+          "field": "confidence",
+          "name": "Confidence"
+        }
+      ],
+      "manifestMapping": {},
+      "accessibleFieldCheckList": [],
+      "accessibleValidationField": ""
+    }
+  },
+  {
+    "tabTitle": "API Activity",
+    "filters": {
+      "tabs": [
+        {
+          "title": "Call",
+          "fields": [
+            "api_operation",
+            "api_service",
+            "outcome",
+            "error_code",
+            "region",
+            "account_id",
+            "is_read_only"
+          ],
+          "fieldsConfig": {
+            "api_operation": {
+              "label": "Operation",
+              "type": "enum",
+              "description": "API action invoked; this is the graph edge relating principal to resource."
+            },
+            "api_service": {
+              "label": "Service",
+              "type": "enum",
+              "description": "Cloud service the call was made against."
+            },
+            "outcome": {
+              "label": "Outcome",
+              "type": "enum",
+              "description": "Whether the call succeeded or was denied."
+            },
+            "error_code": {
+              "label": "Error Code",
+              "type": "enum",
+              "description": "Error returned by the API, when the call failed."
+            },
+            "region": {
+              "label": "Region",
+              "type": "enum"
+            },
+            "account_id": {
+              "label": "Account",
+              "type": "enum"
+            },
+            "is_read_only": {
+              "label": "Read-only",
+              "type": "toggle",
+              "description": "Read-only calls are usually reconnaissance; writes change state."
+            }
+          }
+        }
+      ]
+    },
+    "table": {
+      "enabled": true,
+      "fields": [
+        "event_time",
+        "api_operation",
+        "api_service",
+        "outcome",
+        "error_code",
+        "region",
+        "account_id",
+        "principal_arn"
+      ],
+      "columns": {
+        "principal_arn": {
+          "sortable": true
+        }
+      },
+      "pageLimit": {
+        "limit": 10000
+      }
+    },
+    "dropdowns": {},
+    "buttons": [
+      {
+        "enabled": true,
+        "type": "data-json",
+        "title": "Export JSON",
+        "leftIcon": "datafile",
+        "rightIcon": "download",
+        "actionArgs": {
+          "filename": "api_activity.json"
+        }
+      },
+      {
+        "enabled": true,
+        "type": "data-csv",
+        "title": "Export CSV",
+        "leftIcon": "datafile",
+        "rightIcon": "download",
+        "actionArgs": {
+          "filename": "api_activity.csv"
+        }
+      },
+      {
+        "enabled": true,
+        "type": "copy-filter-python",
+        "title": "Copy as Python",
+        "leftIcon": "datafile"
+      }
+    ],
+    "loginForDownload": false,
+    "guppyConfig": {
+      "dataType": "api_activity",
+      "nodeCountTitle": "API Calls",
+      "fieldMapping": [
+        {
+          "field": "event_time",
+          "name": "Time"
+        },
+        {
+          "field": "api_operation",
+          "name": "Operation"
+        },
+        {
+          "field": "api_service",
+          "name": "Service"
+        },
+        {
+          "field": "outcome",
+          "name": "Outcome"
+        },
+        {
+          "field": "error_code",
+          "name": "Error Code"
+        },
+        {
+          "field": "region",
+          "name": "Region"
+        },
+        {
+          "field": "account_id",
+          "name": "Account"
+        },
+        {
+          "field": "principal_arn",
+          "name": "Principal"
+        },
+        {
+          "field": "src_ip",
+          "name": "Source IP"
+        },
+        {
+          "field": "is_read_only",
+          "name": "Read-only"
+        }
+      ],
+      "manifestMapping": {},
+      "accessibleFieldCheckList": [],
+      "accessibleValidationField": ""
+    }
   }
 ]
