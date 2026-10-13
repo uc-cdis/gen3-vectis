@@ -105,7 +105,6 @@ export function createFixtureApi(delayMs = 120, options: FixtureOptions = {}): S
       if (!w) throw new ApiError(404, 'No explanation for this alert.', 'alertWhy');
       return cloneDeep(rebase(w as C.WhyResponse, delta));
     },
-    alertMembers: (i) => ({ group_id: i.params?.id as string, members: [], total: 0, truncated: false }),
     alertPatch: (i) => {
       const g = alerts.groups.find((x) => x.group_id === i.params?.id);
       if (!g) throw new ApiError(404, 'Alert not found.', 'alertPatch');
@@ -152,24 +151,9 @@ export function createFixtureApi(delayMs = 120, options: FixtureOptions = {}): S
     similar: () => fx('similar.response'),
     findSimilar: () => fx('find-similar.response'),
     entityProfile: (i) => ({ ...fx<C.EntityProfileResponse>('entity.profile'), type: i.body!.type, value: i.body!.value, key: `${i.body!.type}:${i.body!.value}` }),
-    entityRecall: () => ({ key: 'ip:fixture', groups: alerts.groups.slice(0, 4), dropped: 0, first_seen: null, last_seen: null }),
     watchlist: () => fx('watchlist.response'),
     coverage: () => fx('coverage.response'),
     views: () => cloneDeep(views),
-    viewCreate: (i) => {
-      const v: C.SavedView = { ...i.body!, id: `view-${views.views.length + 1}`, owner: 'you', is_default: false };
-      views.views.push(v); return cloneDeep(v);
-    },
-    viewUpdate: (i) => {
-      const v = views.views.find((x) => x.id === i.params?.id);
-      if (!v) throw new ApiError(404, 'View not found.', 'viewUpdate');
-      Object.assign(v, i.body); return cloneDeep(v);
-    },
-    viewDelete: (i) => {
-      const n = views.views.length;
-      views.views = views.views.filter((x) => x.id !== i.params?.id || x.is_default);
-      return { ok: views.views.length < n };
-    },
     hunts: () => cloneDeep(hunts),
     huntCreate: (i) => {
       const now = new Date().toISOString();

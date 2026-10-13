@@ -19,7 +19,6 @@ export const ROUTES = {
   alerts: { method: 'POST', path: 'alerts' },
   alertGet: { method: 'GET', path: 'alerts/:id' },
   alertWhy: { method: 'GET', path: 'alerts/:id/why' },
-  alertMembers: { method: 'POST', path: 'alerts/:id/members' },
   alertPatch: { method: 'PATCH', path: 'alerts/:id' },
   alertBulk: { method: 'POST', path: 'alerts/bulk' },
   alertAiSummary: { method: 'GET', path: 'alerts/:id/ai-summary' },
@@ -33,13 +32,9 @@ export const ROUTES = {
   similar: { method: 'POST', path: 'similar' },
   findSimilar: { method: 'POST', path: 'find-similar' },
   entityProfile: { method: 'POST', path: 'entity/profile' },
-  entityRecall: { method: 'POST', path: 'entity/recall' },
   watchlist: { method: 'POST', path: 'watchlist' },
   coverage: { method: 'GET', path: 'coverage' },
   views: { method: 'GET', path: 'views' },
-  viewCreate: { method: 'POST', path: 'views' },
-  viewUpdate: { method: 'PUT', path: 'views/:id' },
-  viewDelete: { method: 'DELETE', path: 'views/:id' },
   hunts: { method: 'GET', path: 'hunts' },
   huntCreate: { method: 'POST', path: 'hunts' },
   huntPatch: { method: 'PATCH', path: 'hunts/:id' },
@@ -62,7 +57,6 @@ export interface ApiMap {
   alerts: [C.AlertsRequest, C.AlertsResponse];
   alertGet: [NoBody, C.AlertGroup];
   alertWhy: [NoBody, C.WhyResponse];
-  alertMembers: [C.MembersRequest, C.MembersResponse];
   alertPatch: [C.AlertPatch, C.AlertGroup];
   alertBulk: [C.AlertBulkRequest, C.AlertBulkResponse];
   alertAiSummary: [NoBody, C.AiSummaryResponse];
@@ -76,13 +70,9 @@ export interface ApiMap {
   similar: [C.SimilarRequest, C.SimilarResponse];
   findSimilar: [C.FindSimilarRequest, C.FindSimilarResponse];
   entityProfile: [C.EntityProfileRequest, C.EntityProfileResponse];
-  entityRecall: [C.EntityRecallRequest, C.EntityRecallResponse];
   watchlist: [C.WatchlistRequest, C.WatchlistResponse];
   coverage: [NoBody, C.CoverageResponse];
   views: [NoBody, C.SavedViewList];
-  viewCreate: [C.SavedViewInput, C.SavedView];
-  viewUpdate: [C.SavedViewInput, C.SavedView];
-  viewDelete: [NoBody, { ok: boolean }];
   hunts: [NoBody, C.HuntList];
   huntCreate: [C.HuntCreate, C.Hunt];
   huntPatch: [C.HuntPatch, C.Hunt];

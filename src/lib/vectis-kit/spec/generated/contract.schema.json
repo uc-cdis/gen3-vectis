@@ -1502,108 +1502,6 @@
       "title": "EntityProfileResponse",
       "type": "object"
     },
-    "EntityRecallRequest": {
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "anyOf": [
-            {
-              "enum": [
-                "ip",
-                "domain",
-                "url",
-                "hash",
-                "email"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "host",
-                "user",
-                "session",
-                "arn"
-              ],
-              "type": "string"
-            }
-          ]
-        },
-        "value": {
-          "maxLength": 512,
-          "minLength": 1,
-          "type": "string"
-        },
-        "window": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TimeWindow"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        }
-      },
-      "required": [
-        "type",
-        "value"
-      ],
-      "title": "EntityRecallRequest",
-      "type": "object"
-    },
-    "EntityRecallResponse": {
-      "additionalProperties": false,
-      "properties": {
-        "dropped": {
-          "description": "Matches beyond the per-key and overall caps, reported not hidden",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "first_seen": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "groups": {
-          "items": {
-            "$ref": "#/$defs/AlertGroup"
-          },
-          "maxItems": 100,
-          "type": "array"
-        },
-        "key": {
-          "maxLength": 600,
-          "type": "string"
-        },
-        "last_seen": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        }
-      },
-      "required": [
-        "key",
-        "groups",
-        "dropped"
-      ],
-      "title": "EntityRecallResponse",
-      "type": "object"
-    },
     "EntitySeed": {
       "additionalProperties": false,
       "properties": {
@@ -2869,49 +2767,6 @@
       "title": "IndicatorResolveResponse",
       "type": "object"
     },
-    "MembersRequest": {
-      "additionalProperties": false,
-      "properties": {
-        "paging": {
-          "$ref": "#/$defs/Paging"
-        }
-      },
-      "title": "MembersRequest",
-      "type": "object"
-    },
-    "MembersResponse": {
-      "additionalProperties": false,
-      "properties": {
-        "group_id": {
-          "maxLength": 128,
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
-          "type": "string"
-        },
-        "members": {
-          "items": {
-            "additionalProperties": true,
-            "type": "object"
-          },
-          "maxItems": 1000,
-          "type": "array"
-        },
-        "total": {
-          "minimum": 0,
-          "type": "integer"
-        },
-        "truncated": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "group_id",
-        "members",
-        "total",
-        "truncated"
-      ],
-      "title": "MembersResponse",
-      "type": "object"
-    },
     "Neighbor": {
       "additionalProperties": false,
       "properties": {
@@ -3628,54 +3483,6 @@
         "spec"
       ],
       "title": "SavedView",
-      "type": "object"
-    },
-    "SavedViewInput": {
-      "additionalProperties": false,
-      "description": "What a client sends to save a view. The server assigns id and owner and decides is_default.",
-      "properties": {
-        "description": {
-          "default": "",
-          "maxLength": 1024,
-          "type": "string"
-        },
-        "kind": {
-          "enum": [
-            "triage",
-            "hunt",
-            "dashboard",
-            "data"
-          ],
-          "type": "string"
-        },
-        "layout": {
-          "additionalProperties": true,
-          "description": "Perspective viewer config; capped at 64 KiB",
-          "type": "object"
-        },
-        "scope": {
-          "enum": [
-            "shared",
-            "private"
-          ],
-          "type": "string"
-        },
-        "spec": {
-          "$ref": "#/$defs/QuerySpec"
-        },
-        "title": {
-          "maxLength": 256,
-          "minLength": 1,
-          "type": "string"
-        }
-      },
-      "required": [
-        "title",
-        "kind",
-        "scope",
-        "spec"
-      ],
-      "title": "SavedViewInput",
       "type": "object"
     },
     "SavedViewList": {
@@ -5112,12 +4919,6 @@
     "EntityProfileResponse": {
       "$ref": "#/$defs/EntityProfileResponse"
     },
-    "EntityRecallRequest": {
-      "$ref": "#/$defs/EntityRecallRequest"
-    },
-    "EntityRecallResponse": {
-      "$ref": "#/$defs/EntityRecallResponse"
-    },
     "EntitySeed": {
       "$ref": "#/$defs/EntitySeed"
     },
@@ -5193,12 +4994,6 @@
     "IndicatorResolveResponse": {
       "$ref": "#/$defs/IndicatorResolveResponse"
     },
-    "MembersRequest": {
-      "$ref": "#/$defs/MembersRequest"
-    },
-    "MembersResponse": {
-      "$ref": "#/$defs/MembersResponse"
-    },
     "Neighbor": {
       "$ref": "#/$defs/Neighbor"
     },
@@ -5237,9 +5032,6 @@
     },
     "SavedView": {
       "$ref": "#/$defs/SavedView"
-    },
-    "SavedViewInput": {
-      "$ref": "#/$defs/SavedViewInput"
     },
     "SavedViewList": {
       "$ref": "#/$defs/SavedViewList"
