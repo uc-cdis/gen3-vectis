@@ -23,8 +23,6 @@ export interface SiemContract {
   DecisionResponse?: DecisionResponse;
   EntityProfileRequest?: EntityProfileRequest;
   EntityProfileResponse?: EntityProfileResponse;
-  EntityRecallRequest?: EntityRecallRequest;
-  EntityRecallResponse?: EntityRecallResponse;
   EntitySeed?: EntitySeed;
   EvidenceAction?: EvidenceAction;
   FacetResult?: FacetResult;
@@ -50,8 +48,6 @@ export interface SiemContract {
   IndicatorMatch?: IndicatorMatch;
   IndicatorResolveRequest?: IndicatorResolveRequest;
   IndicatorResolveResponse?: IndicatorResolveResponse;
-  MembersRequest?: MembersRequest;
-  MembersResponse?: MembersResponse;
   Neighbor?: Neighbor;
   OverviewRequest?: OverviewRequest;
   OverviewResponse?: OverviewResponse;
@@ -65,7 +61,6 @@ export interface SiemContract {
   RowsRequest?: RowsRequest;
   RowsResponse?: RowsResponse;
   SavedView?: SavedView;
-  SavedViewInput?: SavedViewInput;
   SavedViewList?: SavedViewList;
   SequenceStage?: SequenceStage;
   SharedNeighbor?: SharedNeighbor;
@@ -563,32 +558,6 @@ export interface IndicatorMatch {
 }
 /**
  * This interface was referenced by `SiemContract`'s JSON-Schema
- * via the `definition` "EntityRecallRequest".
- */
-export interface EntityRecallRequest {
-  type: ("ip" | "domain" | "url" | "hash" | "email") | ("host" | "user" | "session" | "arn");
-  value: string;
-  window?: TimeWindow | null;
-}
-/**
- * This interface was referenced by `SiemContract`'s JSON-Schema
- * via the `definition` "EntityRecallResponse".
- */
-export interface EntityRecallResponse {
-  /**
-   * Matches beyond the per-key and overall caps, reported not hidden
-   */
-  dropped: number;
-  first_seen?: string | null;
-  /**
-   * @maxItems 100
-   */
-  groups: AlertGroup[];
-  key: string;
-  last_seen?: string | null;
-}
-/**
- * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "EvidenceAction".
  */
 export interface EvidenceAction {
@@ -930,28 +899,6 @@ export interface IndicatorResolveResponse {
 }
 /**
  * This interface was referenced by `SiemContract`'s JSON-Schema
- * via the `definition` "MembersRequest".
- */
-export interface MembersRequest {
-  paging?: Paging;
-}
-/**
- * This interface was referenced by `SiemContract`'s JSON-Schema
- * via the `definition` "MembersResponse".
- */
-export interface MembersResponse {
-  group_id: string;
-  /**
-   * @maxItems 1000
-   */
-  members: {
-    [k: string]: unknown;
-  }[];
-  total: number;
-  truncated: boolean;
-}
-/**
- * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "Neighbor".
  */
 export interface Neighbor {
@@ -1161,25 +1108,6 @@ export interface SavedView {
     [k: string]: unknown;
   };
   owner?: string | null;
-  scope: "shared" | "private";
-  spec: QuerySpec;
-  title: string;
-}
-/**
- * What a client sends to save a view. The server assigns id and owner and decides is_default.
- *
- * This interface was referenced by `SiemContract`'s JSON-Schema
- * via the `definition` "SavedViewInput".
- */
-export interface SavedViewInput {
-  description?: string;
-  kind: "triage" | "hunt" | "dashboard" | "data";
-  /**
-   * Perspective viewer config; capped at 64 KiB
-   */
-  layout?: {
-    [k: string]: unknown;
-  };
   scope: "shared" | "private";
   spec: QuerySpec;
   title: string;
