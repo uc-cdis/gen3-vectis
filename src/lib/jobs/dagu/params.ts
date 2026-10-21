@@ -56,3 +56,56 @@ export function assertInertValues(params: Record<string, string>): string | null
   }
   return null;
 }
+
+// ---- secret parameters ------------------------------------------------------------------------------------------------
+// A `secret` param is a value the user types for ONE run (an API key). It is never a workflow parameter: those are saved with the run,
+// shown on the run page and substituted into the command text. It is handed to the job pod as an environment variable by the runner,
+// under a name the reviewed catalog entry chose, and nowhere else.
+
+/** A secret's variable name: ends in a credential word, and cannot be one that steers the platform, the pod's identity or the runtime. */
+const SECRET_ENV_NAME = /^[A-Z][A-Z0-9_]{0,63}_(API_KEY|TOKEN|SECRET|PASSWORD)$/;
+const SECRET_ENV_FORBIDDEN = /^(AWS_|RUNNER_|KUBERNETES_|GEN3|ACCESS_TOKEN$|LD_|PYTHON)/;
+export const SECRET_VALUE = /^[A-Za-z0-9._~+/=:-]{8,512}$/;
+const MAX_SECRET_ENV = 4;
+
+export const secretEnvNameProblem = (name: unknown): string | null =>
+  typeof name !== 'string' || !SECRET_ENV_NAME.test(name) ? 'must be UPPER_CASE and end in _API_KEY, _TOKEN, _SECRET or _PASSWORD'
+    : SECRET_ENV_FORBIDDEN.test(name) ? 'is reserved for the platform' : null;
+
+/** Catalog-load check of one `secret` param: only workflow jobs, a valid variable name used once, and none of the plain-parameter options. */
+export function secretParamProblems(p: JobParam, dag: boolean, seen: Set<string>): string[] {
+  const out: string[] = [];
+  const at = `params.${p.name}`;
+  if (!dag) return [`${at}: secret params are only for workflow jobs`];
+  if (p.env === undefined) out.push(`${at}: a secret param needs env (the variable the job receives it in)`);
+  else {
+    const bad = secretEnvNameProblem(p.env);
+    if (bad) out.push(`${at}: env ${bad}`);
+    if (seen.has(p.env)) out.push(`${at}: env ${p.env} is used by another param`);
+    seen.add(p.env);
+  }
+  if (seen.size > MAX_SECRET_ENV) out.push(`${at}: at most ${MAX_SECRET_ENV} secret params`);
+  for (const k of ['default', 'pattern', 'values', 'min', 'max', 'max_length', 'allow_leading_dash'] as const) {
+    if (p[k] !== undefined) out.push(`${at}: ${k} is not allowed on a secret param`);
+  }
+  return out;
+}
+
+type SecretCheck = { ok: true; value: string } | { ok: false; error: string };
+/** The value the user typed. The message never repeats it. */
+export function checkSecretValue(p: JobParam, raw: unknown): SecretCheck {
+  if (typeof raw !== 'string' || !SECRET_VALUE.test(raw)) return { ok: false, error: `${p.name}: must be 8 to 512 characters: letters, digits and . _ ~ + / = : - (no spaces)` };
+  return { ok: true, value: raw };
+}
+
+/** The runner's own last check of what it was handed to inject (it does not trust the caller). Returns an error text or null. */
+export function assertSecretEnv(list: ReadonlyArray<{ name: string; value: string }> | undefined): string | null {
+  if (list === undefined) return null;
+  if (!Array.isArray(list) || list.length > MAX_SECRET_ENV) return 'too many secret values';
+  const names = new Set<string>();
+  for (const e of list) {
+    if (!e || typeof e !== 'object' || secretEnvNameProblem(e.name) || typeof e.value !== 'string' || !SECRET_VALUE.test(e.value) || names.has(e.name)) return 'a secret value was refused';
+    names.add(e.name);
+  }
+  return null;
+}

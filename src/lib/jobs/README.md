@@ -194,7 +194,7 @@ Dagu runs everything as ONE identity (the service API key), and its own users/ro
 - Every run is created with the label **`vectis.owner=<HMAC-SHA256 of the verified user under JOBS_OWNER_HMAC_KEY>`** (an e-mail cannot be a Dagu label value, a lossy "safe name" could collide between two users, and an UNKEYED hash could be computed by anyone who can create a run in Dagu to plant one in a victim's list; the HMAC cannot be computed without the portal's key) and `vectis.submitted_by=<lossy lower-case display form>`. Only the runner sets them, from `ctx.user`. A client can send only a catalog job id and params; a catalog file cannot declare `vectis.*` labels (lint) and the runner builds labels from an allowlist (`vectis.job`, `vectis.catalog_sha`, `vectis.catalog_repo`) then adds the two it owns.
 - **list** asks Dagu to filter by the caller's label and then re-checks every run it gets back (it works even if Dagu ignores the filter). **get/cancel** read the run first and answer **404** unless it carries exactly one owner label equal to the caller's; "not yours" and "does not exist" are indistinguishable. Runs without the label (created by anyone else) are invisible. The answer must also be for the run that was asked about (name and id match), and crafted ids (`latest`, `..`, extra segments, other case) are refused before any call.
 - Dagu's own UI/API users are outside this model: they can see everything and can create runs with any label. **The primary control is that Dagu is unreachable by end users (NetworkPolicy / private service, no ingress) and its credential exists only in the portal's Secret**; the HMAC is defence in depth.
-- The identity is the user's e-mail, else username. The display NAME is never used with the Dagu runner (`identityOrder`); a user with neither gets 401.
+- The identity with the Dagu runner is the Fence username (`context.user.name` in the access token: unique and stable), else e-mail, else `username` (`identityOrder`). The human name is `display_name` and is never used; a user with none of them gets 401.
 - The user's bearer is never forwarded to Dagu and Dagu's credential never leaves `daguRunner.ts`.
 
 ## Submit is idempotent and creates nothing durable
@@ -228,3 +228,28 @@ DAGU_CONTRACT_URL=http://127.0.0.1:8080 DAGU_TOKEN=<api key> npm run test:dagu  
 `/dev/jobs` renders the Jobs page against synthetic fixtures (`api/fixtureApi.ts`, inline definitions in `api/fixtureDefs.ts`), with no login. It is loaded through a guarded `require` so a production build drops it and `getServerSideProps` returns 404 there. There is no local-directory catalog and no local runner launcher: to see real runs, point a portal at a real catalog repository and a real TES or Dagu server.
 
 `lib/jobs/handlers.ts` holds the handler logic. Each handler takes an optional `deps: JobsDeps` (authorize, getRunner, runnerId, catalogSource, writeAllowed) that defaults to the real ones; the Next routes in `pages/api/jobs/*` never pass it. It is a test seam (`handlers.deps.test.ts`), the same pattern as `authorize()` in `lib/siem/bff.ts`; there is no auth bypass, flag or env switch in the routes.
+
+## Job profiles (what a catalog workflow runs AS)
+By default a Dagu job pod runs as `DAGU_K8S_SERVICE_ACCOUNT` (no permissions, no secrets). A catalog entry (`kind: dag`) may add `profile: <name>`.
+`DAGU_K8S_PROFILES` (JSON, see `dagu/profiles.ts`) maps a name to a service account in the jobs namespace and, optionally, `user_token: true`:
+the pod is then annotated `gen3username=<verified user>` and the Gen3 workspace token service issues that user's own token to it
+(`Gen3Auth()` with no arguments, as in a Jupyter pod). The annotation, like the service account, comes only from the operator's table and the
+verified login, never from a definition (the lint refuses a `kubernetes:` block) and never for a pasted workflow.
+Starting a profile's job needs the route `/Jobs/profile/<name>` in `authz.json` (an Arborist resource; with none configured the answer is no)
+in addition to `/Jobs/submit`. The runner checks the profile against its own table again. Jobs are labelled `vectis.profile`.
+
+## Run history, names and groups
+
+The workflow engine keeps a run only as long as its own volume lives, so the portal also keeps one small record per run in the bucket, through the
+catalog service (`jobs-catalog`, the only pod with bucket access; `CATALOG_S3_RUNS_PREFIX`). The Runs list is read from those records, so a person's
+runs outlast the engine's copy and do not depend on a key that lives in the cluster. A person is identified by the hash of their verified Fence username.
+Runs the engine still holds that the history lacks are imported the next time the list is read. A run the engine has forgotten is shown as
+**archived** with its last state and its results (the step logs are not kept).
+
+* **Names.** A run can be given a name when it starts (up to 80 characters, one line) and renamed later from its page. The name lives in the record,
+  not in the engine, and the Runs list searches it.
+* **Groups.** A group is a route `/Jobs/group/<name>` in `config/gen3/authz.json` whose `authz` names the Arborist resource that makes someone a member
+  (for example `/programs/vectis/projects/jobs-group-soc`). A member can choose **Run as** that group when starting a run: the group owns the run, and
+  every member can see it, open its results, name it and cancel it. A personal run is private to its owner. With no group routes configured there are no
+  groups and no choice is shown. Granting membership is an Arborist grant (user.yaml), nothing in this repository.
+* **Secrets.** A `type: secret` param is typed for one run only and goes to the pod as an environment variable, never as a parameter (see `dagu/params.ts`).

@@ -12,7 +12,14 @@
 import type { LaunchSpec } from './launch';
 import type { Detail, Run, RunList, RunState, ServiceInfo, StorageSetup } from './model';
 
-export interface RunnerContext { user: string; token: string }
+export interface RunnerContext {
+  user: string;
+  token: string;
+  /** the groups the portal has already checked this user is in (Arborist); a group run is theirs to see and cancel only for these */
+  groups?: readonly string[];
+}
+/** What a person chose when starting a run. `group` must be one of ctx.groups. */
+export interface SubmitOptions { group?: string }
 
 export interface RunQuery {
   state?: RunState;
@@ -21,6 +28,8 @@ export interface RunQuery {
   tag_value?: string[];
   page_size?: number;
   page_token?: string;
+  /** whose runs: your own, the groups', or both (default) */
+  scope?: 'mine' | 'shared' | 'all';
   /** summary = no logs (list default); full = with logs (get default) */
   detail?: Detail;
   /** get only: fetch logs for exactly these steps (a workflow runner otherwise fetches them for failed/running steps only) */
@@ -29,7 +38,7 @@ export interface RunQuery {
 
 export interface Runner {
   readonly id: string;
-  submit(spec: LaunchSpec, ctx: RunnerContext): Promise<{ id: string; warnings: string[] }>;
+  submit(spec: LaunchSpec, ctx: RunnerContext, opts?: SubmitOptions): Promise<{ id: string; warnings: string[] }>;
   list(query: RunQuery, ctx: RunnerContext): Promise<RunList>;
   get(id: string, ctx: RunnerContext, opts?: { detail?: Detail; steps?: string[] }): Promise<Run>;
   cancel(id: string, ctx: RunnerContext): Promise<void>;

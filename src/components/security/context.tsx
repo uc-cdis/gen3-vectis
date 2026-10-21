@@ -44,7 +44,7 @@ function decodeEntity(raw: string | undefined): EntitySeed | null {
   const i = raw.indexOf(':');
   if (i < 1 || i === raw.length - 1) return null;
   const type = raw.slice(0, i) as EntityType;
-  const types: EntityType[] = ['ip', 'domain', 'url', 'hash', 'email', 'host', 'user', 'session', 'arn'];
+  const types: EntityType[] = ['ip', 'domain', 'url', 'hash', 'email', 'path', 'host', 'user', 'session', 'arn'];
   return types.includes(type) ? { type, value: raw.slice(i + 1) } : null;
 }
 

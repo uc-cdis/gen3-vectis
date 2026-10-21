@@ -6,10 +6,10 @@ import { JobsApiError, createLiveApi } from './client';
 const { Provider: JobsApiProvider, useApi: useJobsApi } = createApiContext<JobsApi>('Jobs', createLiveApi);
 export { JobsApiProvider, useJobsApi };
 
-/** Runs list: every 5s for 2 minutes, every 15s up to 10 minutes, then stop. */
-export const RUNS_POLL: readonly PollPhase[] = [{ untilMs: 120_000, everyMs: 5_000 }, { untilMs: 600_000, everyMs: 15_000 }];
-/** Run drawer: every 3s for 1 minute, every 10s up to 10 minutes, then stop. */
-export const DRAWER_POLL: readonly PollPhase[] = [{ untilMs: 60_000, everyMs: 3_000 }, { untilMs: 600_000, everyMs: 10_000 }];
+/** Runs list: every 5s for 2 minutes, every 15s up to 10 minutes, then every 30s up to 4 hours (a notebook can run for a long time), then stop. */
+export const RUNS_POLL: readonly PollPhase[] = [{ untilMs: 120_000, everyMs: 5_000 }, { untilMs: 600_000, everyMs: 15_000 }, { untilMs: 14_400_000, everyMs: 30_000 }];
+/** Run drawer: every 3s for 1 minute, every 10s up to 10 minutes, then every 30s up to 4 hours, then stop. */
+export const DRAWER_POLL: readonly PollPhase[] = [{ untilMs: 60_000, everyMs: 3_000 }, { untilMs: 600_000, everyMs: 10_000 }, { untilMs: 14_400_000, everyMs: 30_000 }];
 
 /**
  * Read data over the Jobs client (`key = null` pauses). Polling follows a schedule with a ceiling; see lib/api-query.

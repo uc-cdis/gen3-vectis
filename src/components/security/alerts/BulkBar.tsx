@@ -6,8 +6,10 @@ import type { AlertBulkResponse, AlertPatch, TriageStatus } from '@/lib/vectis-k
 import { STATUS_LABEL } from '@/lib/vectis-kit/spec';
 import { ErrorState } from '@/lib/vectis-kit/ui/primitives';
 import NoiseReasonModal from './NoiseReasonModal';
+import ResolveReasonModal from './ResolveReasonModal';
 import { LIMITS, validateAssignee } from './validate';
 
+// 'noise' is set by Mark as noise. 'resolved' closes a group, so it opens a dialog for the disposition and reason the service requires.
 const SETTABLE: TriageStatus[] = ['new', 'triaged', 'investigating', 'resolved'];
 
 /** Bulk actions for the selected alerts. One request per action, then the alert list is revalidated. */
@@ -17,6 +19,7 @@ const BulkBar = ({ ids, onClear }: { ids: string[]; onClear: () => void }) => {
   const [assignee, setAssignee] = useState('');
   const [assigneeError, setAssigneeError] = useState<string | null>(null);
   const [noiseOpen, setNoiseOpen] = useState(false);
+  const [resolveOpen, setResolveOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [result, setResult] = useState<AlertBulkResponse | null>(null);
@@ -46,7 +49,7 @@ const BulkBar = ({ ids, onClear }: { ids: string[]; onClear: () => void }) => {
           <Group gap="sm" align="flex-end" wrap="wrap">
             <Text size="sm" fw={600} data-testid="bulk-count">{ids.length} selected</Text>
             <Select label="Set status" size="xs" w={160} placeholder="Choose status" data={SETTABLE.map((s) => ({ value: s, label: STATUS_LABEL[s] }))} value={status} onChange={setStatus} />
-            <Button size="xs" variant="default" disabled={!status || busy || tooMany} onClick={() => status && void run({ status: status as TriageStatus })}>Apply status</Button>
+            <Button size="xs" variant="default" disabled={!status || busy || tooMany} onClick={() => { if (status === 'resolved') setResolveOpen(true); else if (status) void run({ status: status as TriageStatus }); }}>Apply status</Button>
             <TextInput
               label="Assign to" size="xs" w={180} maxLength={LIMITS.assignee} value={assignee} error={assigneeError ?? undefined}
               onChange={(e) => { setAssignee(e.currentTarget.value); setAssigneeError(null); }}
@@ -74,6 +77,13 @@ const BulkBar = ({ ids, onClear }: { ids: string[]; onClear: () => void }) => {
           {failed.length ? <ul>{failed.slice(0, 10).map(([id, why]) => <li key={id}><code>{id}</code>: {why}</li>)}</ul> : null}
         </Alert>
       ) : null}
+      <ResolveReasonModal
+        opened={resolveOpen}
+        count={ids.length}
+        busy={busy}
+        onCancel={() => setResolveOpen(false)}
+        onConfirm={(reason, disposition) => void run({ status: 'resolved', disposition, ...(reason ? { reason } : {}) }).then((ok) => ok && setResolveOpen(false))}
+      />
       <NoiseReasonModal
         opened={noiseOpen}
         count={ids.length}

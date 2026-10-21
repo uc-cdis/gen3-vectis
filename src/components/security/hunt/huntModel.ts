@@ -6,7 +6,11 @@ import type { CatalogResponse, FilterClause, IndexCatalog, IndexName, QuerySpec,
 import type { Grain, TimeRange } from '@/lib/vectis-kit/timeseries/rollupOption';
 import { hasControlChars } from '@/lib/safe-text';
 
-const HUNT_INDEXES: readonly IndexName[] = ['http_activity', 'api_activity', 'network_activity'];
+const HUNT_INDEXES: readonly IndexName[] = ['http_activity', 'api_activity', 'network_activity', 'all_events'];
+
+/** Reads every index at once; the hunt starts here, split by index_name. */
+export const ALL_EVENTS: IndexName = 'all_events';
+export const defaultGroupBy = (index: IndexName): string[] => (index === ALL_EVENTS ? ['index_name'] : []);
 export const GRAINS: readonly Grain[] = ['1m', '5m', '1h'];
 export const MAX_GROUP_BY = 3;
 export const MAX_ROWS = 100;
@@ -133,7 +137,7 @@ export function applySpec(spec: QuerySpec, catalog: CatalogResponse): AppliedSpe
       columns: columns.length > 0 ? columns : null,
       filters: (spec.filters ?? []).slice(0, MAX_FILTERS),
       sort: spec.sort && known.has(spec.sort.field) ? spec.sort : null,
-      groupBy: [],
+      groupBy: defaultGroupBy(index.index_name),
       chartWindow: range ? { start: range.start, end: range.end } : null,
     },
   };

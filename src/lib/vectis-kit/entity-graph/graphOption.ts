@@ -30,6 +30,8 @@ export interface BuildOptions {
   legend?: boolean;
   /** Force layout repulsion. Default 220. */
   repulsion?: number;
+  /** Force layout edge length range. Default [60, 140]. */
+  edgeLength?: [number, number];
 }
 
 interface GraphOptionResult extends GraphData {
@@ -58,7 +60,7 @@ export function tooltipHtml(params: { dataType?: unknown; data?: unknown; name?:
  * string that reaches the chart is truncated and neutralised, and node kinds differ by shape as well as colour.
  */
 export function buildGraphOption(input: GraphData, opts: BuildOptions = {}): GraphOptionResult {
-  const { lens, highlight, selectedId, positions, layout = 'force', dashedEdgeTypes, edgeLabels = true, legend = true, repulsion = 220 } = opts;
+  const { lens, highlight, selectedId, positions, layout = 'force', dashedEdgeTypes, edgeLabels = true, legend = true, repulsion = 220, edgeLength = [60, 140] } = opts;
   const merged = mergeGraph({ nodes: [], edges: [] }, input, opts.cap ?? MAX_GRAPH_NODES);
   const { nodes, edges } = merged;
 
@@ -126,7 +128,7 @@ export function buildGraphOption(input: GraphData, opts: BuildOptions = {}): Gra
         edgeSymbol: ['none', 'arrow'],
         edgeSymbolSize: 6,
         categories: categories.map((c) => ({ name: labelText(c, 40), symbol: styleFor(lens, c).symbol, itemStyle: { color: styleFor(lens, c).color } })),
-        force: { repulsion, edgeLength: [60, 140], gravity: 0.08, layoutAnimation: true },
+        force: { repulsion, edgeLength, gravity: 0.08, layoutAnimation: true },
         label: { show: true, position: layout === 'circular' ? 'right' : 'bottom', fontSize: 11 },
         edgeLabel: { show: edgeLabels, fontSize: 10 },
         emphasis: { focus: 'adjacency', lineStyle: { width: 3 } },

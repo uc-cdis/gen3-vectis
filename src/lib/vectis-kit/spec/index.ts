@@ -3,6 +3,7 @@
  * (`siem-app/scripts/export_frontend.py`), so the two sides cannot drift. Do not hand-write response types.
  */
 export type {
+  AccountNames,
   AiSummaryResponse,
   AlertBulkRequest,
   AlertBulkResponse,
@@ -27,6 +28,9 @@ export type {
   EntityProfileResponse,
   EntitySeed,
   EvidenceAction,
+  AggregateRequest,
+  AggregateResponse,
+  AggregateRow,
   FacetResult,
   FacetsRequest,
   FacetsResponse,
@@ -51,6 +55,7 @@ export type {
   IndicatorResolveRequest,
   IndicatorResolveResponse,
   Neighbor,
+  OriginBucket,
   OverviewRequest,
   OverviewResponse,
   Paging,
@@ -94,13 +99,10 @@ export type {
 export type Severity = 'info' | 'low' | 'medium' | 'high' | 'critical';
 export type DetectorTier = 'ioc' | 'rule' | 'baseline' | 'novelty';
 export type TriageStatus = 'new' | 'triaged' | 'investigating' | 'resolved' | 'noise';
-export type IndexName =
-  | 'http_activity'
-  | 'api_activity'
-  | 'authentication'
-  | 'audit_event'
-  | 'network_activity';
-export type EntityType = 'ip' | 'domain' | 'url' | 'hash' | 'email' | 'host' | 'user' | 'session' | 'arn';
+/** An index is a dictionary entity, so the names are whatever the tenant's dictionary declares ('all_events' is every event index at once). */
+export type IndexName = string;
+export type IndexCategory = 'events' | 'findings' | 'entities' | 'threat_intel';
+export type EntityType = 'ip' | 'domain' | 'url' | 'hash' | 'email' | 'path' | 'host' | 'user' | 'session' | 'arn';
 export type WhySection = WhyRuleSection | WhyBaselineSection | WhySequenceSection | WhyNoveltySection | WhyIndicatorSection | WhyGraphSection;
 
 import type {

@@ -27,9 +27,15 @@ const JOBS_ERRORS: ErrorWording = {
   serverError: 'The jobs service had a problem. Try again in a moment.',
 };
 
-export const ErrorState = ({ error, onRetry }: { error: JobsApiError; onRetry?: () => void }) => (
-  <SharedErrorState error={error} onRetry={onRetry} wording={JOBS_ERRORS} />
-);
+/** `what` names the part that failed ("The job catalog", "Run history"). For a server-side failure the portal's own public message (or the HTTP status) is shown, so the cause can be told apart. */
+export const ErrorState = ({ error, onRetry, what }: { error: JobsApiError; onRetry?: () => void; what?: string }) => {
+  const detail = error.message && !/^Request failed/.test(error.message) ? error.message : `HTTP ${error.status}`;
+  const wording: ErrorWording = {
+    ...JOBS_ERRORS,
+    ...(what ? { unreachable: `${what} could not be reached.`, serverError: `${what} could not be loaded: ${detail} Try again in a moment.` } : {}),
+  };
+  return <SharedErrorState error={error} onRetry={onRetry} wording={wording} />;
+};
 
 /** A captured log or other long text: plain text in a <pre>, capped height with scroll, with Copy. */
 export const TextBlock = ({ label, text, truncated }: { label: string; text: string; truncated?: boolean }) => (
@@ -50,4 +56,12 @@ export const TextBlock = ({ label, text, truncated }: { label: string; text: str
     </Paper>
     {truncated ? <Text size="xs" c="orange.8">Output was truncated by the server; only the first part is shown.</Text> : null}
   </Stack>
+);
+
+/** Where a run belongs and whether the workflow server still has it. Nothing is shown for an ordinary personal run. */
+export const OwnerBadges = ({ run }: { run: Pick<Run, 'group' | 'archived'> }) => (
+  <>
+    {run.group ? <Badge variant="outline" color="grape" radius="sm" size="sm" title={`Everyone in the ${run.group} group can see this run`} data-testid="group-badge">{`Group: ${run.group}`}</Badge> : null}
+    {run.archived ? <Badge variant="outline" color="gray" radius="sm" size="sm" title="The workflow server no longer has this run; this is what was saved" data-testid="archived-badge">Archived</Badge> : null}
+  </>
 );

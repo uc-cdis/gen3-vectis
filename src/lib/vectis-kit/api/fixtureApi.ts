@@ -78,6 +78,30 @@ export function createFixtureApi(delayMs = 120, options: FixtureOptions = {}): S
       const want = new Set(i.body?.fields ?? []);
       return { ...f, facets: f.facets.filter((x) => want.has(x.field)) };
     },
+    aggregate: (i) => {
+      const b = i.body;
+      const group = b?.group_by ?? [];
+      // Serve the fixture's own grouping as written; count any other grouping from the fixture rows.
+      const canned = fx<C.AggregateResponse>('aggregate.response');
+      if (group.join(',') === canned.group_by.join(',')) return { ...canned, index_name: b?.index_name ?? canned.index_name };
+      const r = fx<C.RowsResponse>('rows.response');
+      const known = new Set(r.rows.flatMap((row) => Object.keys(row)));
+      if (group.length === 0 || group.some((g) => !known.has(g))) throw new ApiError(422, 'Unknown column for this index.', 'aggregate');
+      const cells = new Map<string, number>();
+      for (const row of r.rows) {
+        const key = JSON.stringify(group.map((g) => (row[g] === null || row[g] === undefined ? null : String(row[g]))));
+        cells.set(key, (cells.get(key) ?? 0) + 1);
+      }
+      const total = [...cells.values()].reduce((a, n) => a + n, 0);
+      const byFirst = new Map<string | null, number>();
+      for (const [k, n] of cells) { const v = (JSON.parse(k) as (string | null)[])[0] ?? null; byFirst.set(v, (byFirst.get(v) ?? 0) + n); }
+      const keep = new Set([...byFirst.entries()].sort((a, c) => c[1] - a[1]).slice(0, b?.top_n ?? 15).map(([v]) => v));
+      const rows = [...cells.entries()]
+        .map(([k, n]) => ({ values: JSON.parse(k) as (string | null)[], count: n }))
+        .filter((c) => keep.has(c.values[0] ?? null))
+        .sort((a, c) => c.count - a.count);
+      return { index_name: b?.index_name ?? 'all_events', group_by: group, rows, total, truncated: byFirst.size > keep.size, as_of: new Date().toISOString(), notes: [] };
+    },
     alerts: (i) => {
       const b = i.body;
       let groups = alerts.groups;
@@ -154,6 +178,7 @@ export function createFixtureApi(delayMs = 120, options: FixtureOptions = {}): S
     watchlist: () => fx('watchlist.response'),
     coverage: () => fx('coverage.response'),
     views: () => cloneDeep(views),
+    accounts: () => fx('accounts.names'),
     hunts: () => cloneDeep(hunts),
     huntCreate: (i) => {
       const now = new Date().toISOString();

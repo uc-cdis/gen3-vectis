@@ -138,6 +138,8 @@ export interface FixtureOptions {
   now?: number;
 }
 
+/** Groups the development page offers, so the group choice and the shared runs can be tried without a cluster. */
+const FIXTURE_GROUPS = ['soc', 'platform'];
 export function createFixtureApi(opts: FixtureOptions = {}): JobsApi {
   const delayMs = opts.delayMs ?? 60;
   const now = opts.now ?? Date.now();
@@ -156,6 +158,10 @@ export function createFixtureApi(opts: FixtureOptions = {}): JobsApi {
 
   const tasks: TesTask[] = seeds().map((s) => seedTask(s, now));
   const dags: Run[] = dagRuns(now);
+  if (dags[0]) dags[0] = { ...dags[0], title: 'Friday WAF review', group: 'soc' };
+  if (dags[1]) dags[1] = { ...dags[1], title: 'Quarterly export check' };
+  const gone = dags.findIndex((r) => r.name === 'hello' && r.state === 'succeeded'); // a finished run the workflow server has since forgotten
+  if (gone >= 0) dags[gone] = { ...dags[gone], archived: true };
   const dagReads = new Map<string, number>(); // a submitted workflow run is `running` for its first reads, then `succeeded`
   const reads = new Map<string, number>(); // submitted runs advance on every read
   let counter = 100;
@@ -207,7 +213,8 @@ export function createFixtureApi(opts: FixtureOptions = {}): JobsApi {
         ...dags.map((r) => { advanceDag(r); return { at: Date.parse(r.created_at ?? ''), run: dagView(r, q.detail ?? 'summary') }; }),
       ];
       const rows = all
-        .filter((x) => (q.state ? x.run.state === q.state : true) && (q.name_prefix ? x.run.name.startsWith(q.name_prefix) : true))
+        .filter((x) => (q.scope === 'mine' ? !x.run.group : q.scope === 'shared' ? !!x.run.group : true))
+        .filter((x) => (q.state ? x.run.state === q.state : true) && (q.name_prefix ? x.run.name.startsWith(q.name_prefix) || (x.run.title ?? '').toLowerCase().includes(q.name_prefix.toLowerCase()) : true))
         .sort((a, b) => b.at - a.at);
       const offset = q.page_token && /^\d{1,6}$/.test(q.page_token) ? Number(q.page_token) : 0;
       const runs = rows.slice(offset, offset + size).map((x) => x.run);
@@ -238,7 +245,7 @@ export function createFixtureApi(opts: FixtureOptions = {}): JobsApi {
         const nowIso = new Date().toISOString();
         const w = dagWire({ now: Date.now(), name: id.split('.')[0], id: id.split('.')[1], status: 1, label: 'running', ago: 0, params: Object.entries(dc.spec.dag?.params ?? {}).map(([k, v]) => `${k}=${v}`).join(' '), job: def.id, by: 'you',
           nodes: (def.graph ?? []).map((g) => ({ id: g.name, deps: g.depends_on, status: 0, exec: g.executor === 'command' ? 'command' : g.executor.split('.')[0] })) });
-        const run = fromDagu({ ...w, startedAt: nowIso, queuedAt: nowIso }) as Run;
+        const run = { ...(fromDagu({ ...w, startedAt: nowIso, queuedAt: nowIso }) as Run), ...(req.title ? { title: req.title } : {}), ...(req.group && FIXTURE_GROUPS.includes(req.group) ? { group: req.group } : {}) };
         dags.push(run); dagReads.set(run.id, 0);
         return { id: run.id, warnings: [] };
       }
@@ -251,6 +258,41 @@ export function createFixtureApi(opts: FixtureOptions = {}): JobsApi {
       tasks.push(t);
       reads.set(id, 0);
       return { id, warnings: c.spec.warnings };
+    },
+    async checkYaml(yaml: string, _params?: Record<string, string | number | boolean>) {
+      await sleep(delayMs);
+      if (!/^steps:/m.test(yaml)) throw new JobsApiError(400, 'The workflow was refused.', ['steps: a workflow needs a steps: list']);
+      return { name: /^name:\s*(\S+)/m.exec(yaml)?.[1] ?? 'adhoc', steps: (yaml.match(/^\s*-\s+(id|name):/gm) ?? []).length, warnings: ['This workflow was pasted, not read from the job catalog.'] };
+    },
+    async submitYaml(yaml: string, _params?: Record<string, string | number | boolean>, choices?: { title?: string; group?: string }) {
+      const c = await this.checkYaml(yaml);
+      counter += 1;
+      const id = `${c.name}.fx${String(counter).padStart(4, '0')}`;
+      const nowIso = new Date().toISOString();
+      const w = dagWire({ now: Date.now(), name: c.name, id: id.split('.')[1], status: 1, label: 'running', ago: 0, params: '', job: 'adhoc', by: 'you', nodes: [] });
+      const run = { ...(fromDagu({ ...w, startedAt: nowIso, queuedAt: nowIso }) as Run), ...(choices?.title ? { title: choices.title } : {}), ...(choices?.group && FIXTURE_GROUPS.includes(choices.group) ? { group: choices.group } : {}) };
+      dags.push(run); dagReads.set(run.id, 0);
+      return { id: run.id, warnings: c.warnings };
+    },
+    async runResults(id: string) {
+      await sleep(delayMs);
+      if (!dags.some((x) => x.id === id)) throw new JobsApiError(404, 'Run not found.');
+      return FIXTURE_RESULTS.map((f) => ({ name: f.name, size: f.text.length }));
+    },
+    async resultText(id: string, name: string) {
+      await sleep(delayMs);
+      const f = FIXTURE_RESULTS.find((x) => x.name === name);
+      if (!f || !dags.some((x) => x.id === id)) throw new JobsApiError(404, 'No such result.');
+      return f.text;
+    },
+    resultUrl(id: string, name: string) { return `/api/jobs/runs/${encodeURIComponent(id)}/results/${encodeURIComponent(name)}?download=1`; },
+    async groups() { await sleep(delayMs); return [...FIXTURE_GROUPS]; },
+    async renameRun(id, title) {
+      await sleep(delayMs);
+      const dr = dags.find((x) => x.id === id);
+      if (!dr) throw new JobsApiError(404, 'Run not found.');
+      if (title.trim()) dr.title = title.trim(); else delete dr.title;
+      return dagView(dr, 'summary');
     },
     async cancelRun(id) {
       await sleep(delayMs);
@@ -269,6 +311,14 @@ export function createFixtureApi(opts: FixtureOptions = {}): JobsApi {
     },
   };
 }
+
+/** Synthetic result files for the development fixtures: a Markdown report, an HTML report and a JSON summary. */
+const FIXTURE_RESULTS: Array<{ name: string; text: string }> = [
+  { name: 'sample_report.md', text: '# Sample investigation\n\n## Final assessment\n\n- Suspicion level: **high**\n- Hypothesis: likely reconnaissance or scanning\n\n| Source IP | Requests | Score |\n| --- | --- | --- |\n| 203.0.113.12 | 97 | 100 |\n| 203.0.113.11 | 96 | 100 |\n\nSee the HTML report for the full picture.\n' },
+  { name: 'sample_report.html', text: '<html><body style="font-family:sans-serif"><h2>Sample report</h2><p>Rendered in a locked-down frame.</p><script>document.title = "scripts must not run"</script></body></html>' },
+  { name: 'sample_summary.json', text: JSON.stringify({ suspicion: 'high', top_ips: ['203.0.113.12', '203.0.113.11'], requests: 668 }) },
+  { name: 'sample.executed.ipynb', text: '{"cells": []}' },
+];
 
 /** Catalog definitions for the development fixtures. Synthetic: the real catalog is loaded at run time from the catalog repository and nothing here ships to production. */
 export const EXAMPLE_YAML: Record<string, string> = {

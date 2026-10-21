@@ -11,6 +11,11 @@ export const PRIORITY_COLOR: Record<Priority, string> = { low: 'blue', medium: '
 
 export const STATUSES: readonly CaseStatus[] = ['open', 'in_progress', 'resolved', 'closed'];
 export const CASE_STATUS_LABEL: Record<CaseStatus, string> = { open: 'Open', in_progress: 'In progress', resolved: 'Resolved', closed: 'Closed' };
+/** Statuses the Cases list shows by default (closed is hidden). */
+export const DEFAULT_VISIBLE_STATUSES: readonly CaseStatus[] = ['open', 'in_progress', 'resolved'];
+export const filterCasesByStatus = (cases: readonly CaseRecord[], visible: readonly CaseStatus[]): CaseRecord[] =>
+  cases.filter((c) => visible.includes(c.status));
+
 export const CASE_STATUS_COLOR: Record<CaseStatus, string> = { open: 'blue', in_progress: 'violet', resolved: 'green', closed: 'gray' };
 
 /** Limits copied from siem_service/contract.py (ShortText, LongText, tags). */

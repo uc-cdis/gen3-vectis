@@ -14,6 +14,8 @@ interface RollupChartProps {
   /** Called with the brushed span (ISO start/end, snapped to buckets) or null when the selection is cleared. Omit to disable brushing. */
   onRangeSelect?: (range: TimeRange | null) => void;
   zoom?: boolean;
+  /** Draw grouped series as a stacked area. */
+  stacked?: boolean;
   height?: number;
   /** Names the chart for assistive technology. */
   label: string;
@@ -55,10 +57,10 @@ function RangeFields({ points, grain, onSelect }: { points: readonly TimelinePoi
  * A rollup time-series: counts as an area, distinct counts on a second axis, optional magnitude markers,
  * a dataZoom slider and a brush that reports a time range. Always paired with a text summary and a data table.
  */
-export const RollupChart = ({ points, grain, onRangeSelect, zoom = true, height = 320, label, empty }: RollupChartProps) => {
+export const RollupChart = ({ points, grain, onRangeSelect, zoom = true, stacked = false, height = 320, label, empty }: RollupChartProps) => {
   const ref = useRef<Handle | null>(null);
   const brushable = onRangeSelect !== undefined;
-  const option = useMemo(() => buildRollupOption(points, { grain, zoom, brush: brushable }), [points, grain, zoom, brushable]);
+  const option = useMemo(() => buildRollupOption(points, { grain, zoom, brush: brushable, stacked }), [points, grain, zoom, brushable, stacked]);
   const summary = useMemo(() => summarizeRollup(points, grain), [points, grain]);
   const table = useMemo(() => tableRows(points), [points]);
 

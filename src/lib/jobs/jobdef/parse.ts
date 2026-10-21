@@ -1,6 +1,6 @@
 import type { DagJobDef, DagParseResult, JobDef, JobParam, ParseResult } from './types';
 import { dagDefValidator, jobDefValidator } from './schema';
-import { dagEnumProblems } from '../dagu/params';
+import { dagEnumProblems, secretParamProblems } from '../dagu/params';
 import { BUILTIN_USER_BUCKET, hasStrayBraces, isWholeToken, shellPlaceholderViolations, tokensIn } from './templates';
 import { checkParam, compilePattern, MAX_PATTERN_INPUT } from './params';
 import { lintDef } from './lint';
@@ -26,9 +26,10 @@ export function parseJobDef(yamlText: unknown): ParseResult {
 }
 
 /** Checks of a `params:` list that do not depend on where the placeholders are used. Shared by container jobs and DAG jobs. */
-function paramErrors(list: readonly JobParam[] | undefined): { errs: string[]; params: Map<string, JobParam> } {
+function paramErrors(list: readonly JobParam[] | undefined, dag = false): { errs: string[]; params: Map<string, JobParam> } {
   const errs: string[] = [];
   const params = new Map<string, JobParam>();
+  const secretEnvs = new Set<string>();
   for (const p of list ?? []) {
     if (params.has(p.name)) errs.push(`params.${p.name}: duplicate name`);
     params.set(p.name, p);
@@ -42,7 +43,9 @@ function paramErrors(list: readonly JobParam[] | undefined): { errs: string[]; p
       if ('error' in c) errs.push(`params.${p.name}: ${c.error}`);
     }
     if ((p.min !== undefined || p.max !== undefined) && p.type !== 'integer' && p.type !== 'number') errs.push(`params.${p.name}: min/max are only for numbers`);
-    if (p.default !== undefined) {
+    if (p.type === 'secret') errs.push(...secretParamProblems(p, dag, secretEnvs));
+    else if (p.env !== undefined) errs.push(`params.${p.name}: env is only for secret params`);
+    if (p.default !== undefined && p.type !== 'secret') {
       const c = checkParam(p, p.default);
       if (!c.ok) errs.push(`default ${c.error}`);
     }
@@ -100,7 +103,7 @@ export function parseDagEntry(yamlText: unknown): DagParseResult {
     return { ok: false, errors: (validate.errors ?? []).slice(0, 10).map((e) => sanitizeLabel(`${e.instancePath || '/'} ${e.message ?? 'is invalid'}${e.params && 'additionalProperty' in e.params ? `: ${String(e.params.additionalProperty).slice(0, 40)}` : ''}`, 200)) };
   }
   const def = y.data as unknown as DagJobDef;
-  const { errs } = paramErrors(def.params);
+  const { errs } = paramErrors(def.params, true);
   for (const p of def.params ?? []) errs.push(...dagEnumProblems(p));
   if (def.definition.includes('..')) errs.push('definition: path may not contain ".."');
   return errs.length ? { ok: false, errors: errs.slice(0, 20) } : { ok: true, def };

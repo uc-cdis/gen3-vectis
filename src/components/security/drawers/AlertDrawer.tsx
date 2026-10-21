@@ -11,7 +11,9 @@ import AiAnalystSlot from '../alerts/AiAnalystSlot';
 import AlertActions from '../alerts/AlertActions';
 import { ControlCell } from '../alerts/AlertsTable';
 import Time from '@/lib/vectis-kit/ui/Time';
+import { OriginTags } from '@/lib/vectis-kit/ui/origin';
 import { guessEntityType } from '@/lib/vectis-kit/spec/indicator';
+import { SHOW_DRS_EVIDENCE } from '@/lib/vectis-kit/spec-actions/drs';
 
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <Table.Tr><Table.Th scope="row" w={190} fw={500}>{label}</Table.Th><Table.Td>{children}</Table.Td></Table.Tr>
@@ -83,11 +85,17 @@ const AlertDrawer = ({ groupId, onClose }: { groupId: string; onClose: () => voi
     >
       <Stack gap="md">
         <Summary g={group} verdict={why.data?.verdict} loading={why.loading || alerts.loading} />
+        <Panel title="Where it came from">
+          {group ? (
+            <OriginTags origin={{ account: group.origin_account, accounts: group.origin_accounts, environments: group.origin_environments, sources: group.origin_sources, hosts: group.origin_hosts }} />
+          ) : <Skeleton height={36} radius="sm" aria-label="Loading where the alert came from" />}
+        </Panel>
         <Panel title="Why this fired">
-          <QueryBoundary query={why} isEmpty={(d) => d.sections.length === 0 && !d.verdict && !d.evidence} empty={<EmptyState title="No explanation was recorded for this alert" />} rows={3}>
+          <QueryBoundary query={why} isEmpty={(d) => d.sections.length === 0 && !d.evidence} empty={<EmptyState title="No explanation was recorded for this alert" />} rows={3}>
             {(d) => (
               <Stack gap="xs">
-                <WhyPanel sections={d.sections} verdict={d.verdict} evidence={d.evidence} renderEntity={(type, value) => <EntityLink type={type} value={value} />} onOpenAlert={(id) => openAlert(id)} />
+                {/* The summary above already states the verdict. */}
+                <WhyPanel sections={d.sections} evidence={d.evidence} renderEntity={(type, value) => <EntityLink type={type} value={value} />} onOpenAlert={(id) => openAlert(id)} />
                 <Text size="xs" c="dimmed">Explained as of {formatTime(d.as_of)}</Text>
               </Stack>
             )}
@@ -108,15 +116,17 @@ const AlertDrawer = ({ groupId, onClose }: { groupId: string; onClose: () => voi
                   {group.techniques.map((t) => <Badge key={t} variant="light" radius="sm">{t}</Badge>)}
                 </Group>
               ) : null}
-              <Panel title="Evidence">
-                {group.evidence_uri ? (
-                  <Group gap="xs" wrap="nowrap">
-                    <Code style={{ overflowWrap: 'anywhere' }} data-testid="evidence-uri">{group.evidence_uri}</Code>
-                    <CopyIcon value={group.evidence_uri} what="the evidence location" />
-                  </Group>
-                ) : <Text size="sm" c="dimmed">No evidence location was recorded.</Text>}
-                <Text size="xs" c="dimmed" mt={4}>Shown as text and never opened for you. Fetch it with your approved tools.</Text>
-              </Panel>
+              {SHOW_DRS_EVIDENCE ? (
+                <Panel title="Evidence">
+                  {group.evidence_uri ? (
+                    <Group gap="xs" wrap="nowrap">
+                      <Code style={{ overflowWrap: 'anywhere' }} data-testid="evidence-uri">{group.evidence_uri}</Code>
+                      <CopyIcon value={group.evidence_uri} what="the evidence location" />
+                    </Group>
+                  ) : <Text size="sm" c="dimmed">No evidence location was recorded.</Text>}
+                  <Text size="xs" c="dimmed" mt={4}>Shown as text and never opened for you. Fetch it with your approved tools.</Text>
+                </Panel>
+              ) : null}
             </>
           ) : null)}
         </QueryBoundary>
@@ -134,6 +144,7 @@ const AlertDrawer = ({ groupId, onClose }: { groupId: string; onClose: () => voi
                       <Text component="button" type="button" size="sm" c="blue" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', textAlign: 'left' }} onClick={() => openAlert(h.group_id)}>{h.title}</Text>
                       <Text size="xs" c="dimmed">distance {h.distance.toFixed(2)}</Text>
                     </Group>
+                    <OriginTags compact origin={{ account: h.origin_account, environments: h.origin_environments, sources: h.origin_sources }} />
                   </li>
                 ))}
               </Stack>

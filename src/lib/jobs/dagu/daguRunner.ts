@@ -36,9 +36,10 @@ import { sanitizeLabel, sanitizeLogText } from '@/lib/safe-text';
 import { daguTarget } from './config';
 import type { DaguTarget } from './config';
 import { lintDaguDefinition } from './lint';
-import { DAG_NAME, DAG_RUN_ID, OWNER_KEY, STEP_NAME, SUBMITTER_KEY, composeRunId, fromDagu, ownedBy, parseRunId, statusesFor } from './map';
+import { jobProfiles } from './profiles';
+import { DAG_NAME, DAG_RUN_ID, GROUP_KEY, OWNER_KEY, STEP_NAME, SUBMITTER_KEY, composeRunId, fromDagu, inGroup, ownedBy, parseRunId, statusesFor } from './map';
 import type { StepLog } from './map';
-import { assertInertValues } from './params';
+import { assertInertValues, assertSecretEnv } from './params';
 import { isObj } from '@/lib/jobs/model';
 
 type Env = Record<string, string | undefined>;
@@ -60,7 +61,7 @@ const displayUser = (user: string): string => user.toLowerCase().replace(LABEL_V
 const labelValue = (v: string): string => v.toLowerCase().replace(LABEL_VALUE, '_').slice(0, 128);
 
 // ---------------------------------------------------------------- upstream
-type Called = { ok: true; status: number; payload: unknown } | { ok: false; status: number; error: string };
+type Called = { ok: true; status: number; payload: unknown } | { ok: false; status: number; error: string; detail?: string };
 
 /** What the portal says for a Dagu status. Dagu's own message is never echoed (it can name files or internals). */
 function publicError(status: number): { status: number; error: string } {
@@ -83,7 +84,13 @@ async function callDagu(t: DaguTarget, method: 'GET' | 'POST', path: string, bod
   }, { timeoutMs: ms, maxBytes: cap });
   switch (r.kind) {
     case 'ok': return { ok: true, status: r.status, payload: r.payload };
-    case 'rejected': return { ok: false, ...publicError(r.status) };
+    case 'rejected': {
+      // Dagu's message is never echoed in general (it can name files or internals). The one exception is its validation of the document the
+      // user submitted ("failed to process document ..." / "failed to build DAG: ..."), which describes only that document.
+      const m = isObj(r.payload) && typeof r.payload.message === 'string' ? r.payload.message : '';
+      const detail = (r.status === 400 || r.status === 422) && /^failed to (process document|build DAG)\b/.test(m) ? sanitizeLabel(m, 300) : undefined;
+      return { ok: false, ...publicError(r.status), ...(detail ? { detail } : {}) };
+    }
     case 'too-large': return { ok: false, status: 502, error: 'The workflow service returned too much data.' };
     case 'unreadable': return { ok: false, status: 502, error: 'The workflow service returned an unreadable response.' };
     case 'timeout': return { ok: false, status: 504, error: 'The workflow service took too long to respond.' };
@@ -93,17 +100,80 @@ async function callDagu(t: DaguTarget, method: 'GET' | 'POST', path: string, bod
 
 const unreadable = () => new RunnerError(502, 'The workflow service returned an unreadable response.');
 
+const K8S_NAME = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+const K8S_QTY = /^[0-9]+(\.[0-9]+)?(m|Ki|Mi|Gi)?$/;
+
+/**
+ * The top-level `kubernetes:` block of a Dagu spec, from this server's environment: where Kubernetes steps run (DAGU_K8S_NAMESPACE),
+ * as which service account (DAGU_K8S_SERVICE_ACCOUNT, which should have no permissions), and the default resources of each step
+ * (DAGU_K8S_CPU_LIMIT, DAGU_K8S_MEMORY_LIMIT). A definition cannot set any of it. Not configured = Kubernetes jobs are refused.
+ */
+export function kubernetesBlock(env: Env, profile?: { name: string; service_account: string; user_token: boolean; env?: Array<{ name: string; value: string }> }, user?: string, runId?: string, secretEnv?: ReadonlyArray<{ name: string; value: string }>): Record<string, unknown> {
+  const namespace = env.DAGU_K8S_NAMESPACE?.trim();
+  const sa = (profile ? profile.service_account : env.DAGU_K8S_SERVICE_ACCOUNT)?.trim();
+  const cpu = env.DAGU_K8S_CPU_LIMIT?.trim() || '2';
+  const mem = env.DAGU_K8S_MEMORY_LIMIT?.trim() || '4Gi';
+  if (!namespace || !sa || !K8S_NAME.test(namespace) || !K8S_NAME.test(sa) || !K8S_QTY.test(cpu) || !K8S_QTY.test(mem)) {
+    throw new RunnerError(503, 'Kubernetes jobs are not configured on this server.');
+  }
+  const block: Record<string, unknown> = { namespace, service_account: sa, resources: { requests: { cpu: '100m', memory: '128Mi' }, limits: { cpu, memory: mem } } };
+  if (profile) {
+    block.labels = { 'vectis-profile': profile.name };
+    const env = (profile.env ?? []).map((e) => ({ name: e.name, value: e.value }));
+    // The run id names the folder the job writes its results to, so the portal knows where to read them for exactly this run.
+    if (runId && DAG_RUN_ID.test(runId)) env.push({ name: 'RUNNER_RUN_ID', value: runId });
+    if (env.length) block.env = env;
+    // The Gen3 workspace token service finds the calling pod by IP and reads this annotation, then gives the pod THAT user's token
+    // (the same way a Jupyter pod gets its owner's). It is set only here, from the verified user, for a profile that opted in.
+    if (profile.user_token) {
+      if (typeof user !== 'string' || user.trim() === '' || user.length > 253 || /[\u0000-\u001f\u007f]/.test(user)) throw new RunnerError(403, 'No verified identity.');
+      block.annotations = { gen3username: user };
+    }
+  }
+  if (secretEnv && secretEnv.length) {
+    // values the user typed for this run: pod environment only. A name the profile already sets is refused, never overridden.
+    const have = new Set(((block.env as Array<{ name: string }> | undefined) ?? []).map((e) => e.name));
+    for (const e of secretEnv) if (have.has(e.name)) throw new RunnerError(400, 'The parameters were refused.', ['a secret value would replace a variable this job already sets']);
+    block.env = [...((block.env as unknown[] | undefined) ?? []), ...secretEnv.map((e) => ({ name: e.name, value: e.value }))];
+  }
+  return block;
+}
+
+/** Text that may come back from the workflow server, with any secret value removed (it can quote the definition it refused). */
+const scrub = (text: string, secretEnv: ReadonlyArray<{ value: string }> | undefined): string => (secretEnv ?? []).reduce((t, e) => t.split(e.value).join('***'), text);
+
 export function createDaguRunner(getEnv: () => Env = () => process.env): Runner {
   const target = (): DaguTarget => {
     const t = daguTarget(getEnv());
     if (!t) throw new RunnerError(503, 'The jobs service is not configured.');
     return t;
   };
-  const who = (ctx: RunnerContext): string => {
-    const key = getEnv().JOBS_OWNER_HMAC_KEY;
-    if (typeof key !== 'string' || Buffer.byteLength(key, 'utf8') < MIN_OWNER_KEY_BYTES) throw new RunnerError(503, 'The jobs service is not configured (JOBS_OWNER_HMAC_KEY is missing or shorter than 32 bytes).');
+  /**
+   * The opaque owner label of the verified user. With JOBS_OWNER_HMAC_KEY set the portal makes it itself. In service-account mode
+   * (DAGU_AUTH=serviceaccount) the portal holds no key: the gate in front of Dagu makes it, from a key that never leaves the Dagu pod,
+   * for the user this portal has already verified.
+   */
+  const ownerCache = new Map<string, { owner: string; until: number }>();
+  const who = async (t: DaguTarget, ctx: RunnerContext): Promise<string> => {
     if (typeof ctx.user !== 'string' || ctx.user.trim() === '') throw new RunnerError(403, 'No verified identity.');
-    return ownerHash(ctx.user, key);
+    const env = getEnv();
+    const key = env.JOBS_OWNER_HMAC_KEY;
+    if (typeof key === 'string' && key !== '') {
+      if (Buffer.byteLength(key, 'utf8') < MIN_OWNER_KEY_BYTES) throw new RunnerError(503, 'The jobs service is not configured (JOBS_OWNER_HMAC_KEY is shorter than 32 bytes).');
+      return ownerHash(ctx.user, key);
+    }
+    if (env.DAGU_AUTH !== 'serviceaccount') throw new RunnerError(503, 'The jobs service is not configured (JOBS_OWNER_HMAC_KEY is missing).');
+    const hit = ownerCache.get(ctx.user);
+    if (hit && hit.until > Date.now()) return hit.owner;
+    const r = await callUpstream(`${t.base}/gate/owner`, {
+      method: 'GET',
+      headers: { accept: 'application/json', authorization: t.authorization, 'x-vectis-user': encodeURIComponent(ctx.user) },
+    }, { timeoutMs: UPSTREAM_TIMEOUT_MS, maxBytes: 4096 });
+    const owner = r.kind === 'ok' && isObj(r.payload) ? r.payload.owner : undefined;
+    if (typeof owner !== 'string' || !/^[0-9a-f]{64}$/.test(owner)) throw new RunnerError(502, 'The workflow service could not identify the user.');
+    if (ownerCache.size >= 1000) ownerCache.clear();
+    ownerCache.set(ctx.user, { owner, until: Date.now() + 5 * 60_000 });
+    return owner;
   };
   async function ok(t: DaguTarget, method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown> {
     const out = await callDagu(t, method, path, body);
@@ -112,7 +182,7 @@ export function createDaguRunner(getEnv: () => Env = () => process.env): Runner 
   }
 
   /** The run `id` if it exists AND is the caller's; otherwise a 404 that is identical for "not yours" and "does not exist". */
-  async function ownRun(t: DaguTarget, id: string, owner: string, deadline?: number): Promise<{ name: string; dagRunId: string; details: Record<string, unknown> }> {
+  async function ownRun(t: DaguTarget, id: string, owner: string, deadline?: number, groups?: readonly string[]): Promise<{ name: string; dagRunId: string; details: Record<string, unknown> }> {
     const p = parseRunId(id);
     if (!p) throw new RunnerError(400, 'Invalid run id.');
     const out = await callDagu(t, 'GET', `/dag-runs/${p.name}/${p.dagRunId}`, undefined, MAX_RESPONSE_BYTES, deadline);
@@ -120,7 +190,7 @@ export function createDaguRunner(getEnv: () => Env = () => process.env): Runner 
     const d = isObj(out.payload) && isObj(out.payload.dagRunDetails) ? out.payload.dagRunDetails : null;
     if (!d) throw unreadable();
     // the answer must be about the run that was asked for (never Dagu's "latest" alias) and must carry the caller's owner label
-    if (d.name !== p.name || d.dagRunId !== p.dagRunId || !ownedBy(d.labels, owner)) throw new RunnerError(404, 'Run not found.');
+    if (d.name !== p.name || d.dagRunId !== p.dagRunId || !(ownedBy(d.labels, owner) || inGroup(d.labels, groups))) throw new RunnerError(404, 'Run not found.');
     return { ...p, details: d };
   }
 
@@ -160,9 +230,9 @@ export function createDaguRunner(getEnv: () => Env = () => process.env): Runner 
   return {
     id: 'dagu',
 
-    async submit(spec: LaunchSpec, ctx) {
+    async submit(spec: LaunchSpec, ctx, opts) {
       const t = target();
-      const owner = who(ctx);
+      const owner = await who(t, ctx);
       const dag = spec.dag;
       if (!dag || dag.engine !== 'dagu') throw new RunnerError(400, 'The active jobs runner (Dagu) runs workflow jobs only; this job is not one.');
       const env = getEnv();
@@ -171,23 +241,42 @@ export function createDaguRunner(getEnv: () => Env = () => process.env): Runner 
       if (!lint.ok) throw new RunnerError(400, 'The workflow definition was refused.', lint.errors);
       const bad = assertInertValues(dag.params);
       if (bad) throw new RunnerError(400, 'The parameters were refused.', [bad]);
+      const badSecret = assertSecretEnv(dag.secret_env);
+      if (badSecret) throw new RunnerError(400, 'The parameters were refused.', [badSecret]);
+      if (dag.secret_env?.length && !lint.info.usesKubernetes) throw new RunnerError(400, 'The parameters were refused.', ['a secret value can only be given to a job that runs as a Kubernetes step']);
       const name = lint.info.name ?? dag.dag_name;
       if (!DAG_NAME.test(name)) throw new RunnerError(400, 'The workflow name is not allowed.');
 
       // labels: only what the portal itself decides. spec.tags is read through an allowlist; any other key (including a
       // client-looking vectis.*) is dropped, and the owner/submitter labels are always set last from the verified user.
       const labels: string[] = [];
-      for (const k of ['vectis.job', 'vectis.catalog_sha', 'vectis.catalog_repo'] as const) {
+      for (const k of ['vectis.job', 'vectis.catalog_sha', 'vectis.catalog_repo', 'vectis.profile'] as const) {
         const v = spec.tags?.[k];
         if (typeof v === 'string' && v) labels.push(`${k}=${labelValue(v)}`);
       }
       labels.push(`${SUBMITTER_KEY}=${displayUser(ctx.user)}`, `${OWNER_KEY}=${owner}`);
+      if (opts?.group !== undefined) {
+        // a group run: the portal has checked the caller is in this group; the runner checks again, and sets the label itself
+        if (!/^[a-z][a-z0-9-]{0,31}$/.test(opts.group) || !(ctx.groups ?? []).includes(opts.group)) throw new RunnerError(403, 'You are not in that group.');
+        labels.push(`${GROUP_KEY}=${opts.group}`);
+      }
 
-      const dagRunId = randomBytes(16).toString('base64url'); // 22 chars of [A-Za-z0-9_-]
+      // 22 chars of [A-Za-z0-9_-], and the first one a letter or digit: the gate only forwards path segments that start with one, so an id
+      // starting with "-" or "_" (about 3 in 100) could be submitted but never read back, cancelled or have its logs fetched.
+      let dagRunId = randomBytes(16).toString('base64url');
+      while (!/^[A-Za-z0-9]/.test(dagRunId)) dagRunId = randomBytes(16).toString('base64url');
       if (!DAG_RUN_ID.test(dagRunId) || dagRunId === 'latest') throw new RunnerError(500, 'The jobs service had a problem.');
       // Dagu receives a document RE-SERIALISED from the parsed, linted object, never the original bytes: what was checked is exactly what runs
-      const wire = stringify(lint.info.doc, { lineWidth: 0, schema: 'yaml-1.1' });
-      if (JSON.stringify(parseYaml(wire)) !== JSON.stringify(lint.info.doc)) throw new RunnerError(500, 'The jobs service had a problem.'); // round trip must be exact
+      // A Kubernetes step runs where the OPERATOR says (namespace, service account, limits from this server's environment); a definition cannot choose.
+      // A profile (named by the reviewed catalog entry) must be one this server offers; the table is checked here again, not trusted from the caller.
+      let profile: ReturnType<typeof jobProfiles> extends Map<string, infer P> ? P | undefined : never;
+      if (dag.profile !== undefined) {
+        profile = jobProfiles(env).get(dag.profile);
+        if (!profile) throw new RunnerError(400, 'This job needs a profile that this server does not offer.');
+      }
+      const doc = lint.info.usesKubernetes ? { ...lint.info.doc, kubernetes: kubernetesBlock(env, profile, ctx.user, dagRunId, dag.secret_env) } : lint.info.doc;
+      const wire = stringify(doc, { lineWidth: 0, schema: 'yaml-1.1' });
+      if (JSON.stringify(parseYaml(wire)) !== JSON.stringify(doc)) throw new RunnerError(500, 'The jobs service had a problem.'); // round trip must be exact
       const body = { spec: wire, name, params: JSON.stringify(dag.params), dagRunId, labels };
 
       const out = await callDagu(t, 'POST', '/dag-runs', body);
@@ -196,7 +285,7 @@ export function createDaguRunner(getEnv: () => Env = () => process.env): Runner 
           // the answer may have been lost after Dagu accepted it: if the run exists and is ours, it is not a failure
           try { await ownRun(t, composeRunId(name, dagRunId), owner); return { id: composeRunId(name, dagRunId), warnings: spec.warnings }; } catch { /* not created */ }
         }
-        throw new RunnerError(out.status === 409 ? 502 : out.status, out.status === 400 || out.status === 422 ? 'The workflow service refused the definition or parameters.' : out.error);
+        throw new RunnerError(out.status === 409 ? 502 : out.status, out.status === 400 || out.status === 422 ? 'The workflow service refused the definition or parameters.' : scrub(out.error, dag.secret_env), out.detail ? [scrub(out.detail, dag.secret_env)] : []);
       }
       const rid = isObj(out.payload) ? out.payload.dagRunId : undefined;
       if (rid !== dagRunId) throw unreadable();
@@ -205,7 +294,7 @@ export function createDaguRunner(getEnv: () => Env = () => process.env): Runner 
 
     async list(q: RunQuery, ctx): Promise<RunList> {
       const t = target();
-      const owner = who(ctx);
+      const owner = await who(t, ctx);
       const params = new URLSearchParams();
       params.append('labels', `${OWNER_KEY}=${owner}`);
       params.set('limit', String(Math.min(q.page_size ?? 25, MAX_LIST)));
@@ -234,7 +323,7 @@ export function createDaguRunner(getEnv: () => Env = () => process.env): Runner 
     async get(id, ctx, opts): Promise<Run> {
       const t = target();
       const deadline = Date.now() + GET_DEADLINE_MS;
-      const own = await ownRun(t, id, who(ctx), deadline);
+      const own = await ownRun(t, id, await who(t, ctx), deadline, ctx.groups);
       const full = (opts?.detail ?? 'full') === 'full';
       const logs = full ? await fetchLogs(t, own.name, own.dagRunId, own.details, opts?.steps, deadline) : new Map<string, StepLog>();
       const run = fromDagu(own.details, (s) => logs.get(s));
@@ -244,7 +333,7 @@ export function createDaguRunner(getEnv: () => Env = () => process.env): Runner 
 
     async cancel(id, ctx) {
       const t = target();
-      const own = await ownRun(t, id, who(ctx));
+      const own = await ownRun(t, id, await who(t, ctx), undefined, ctx.groups);
       const run = fromDagu(own.details);
       if (!run) throw unreadable();
       if (run.state === 'succeeded' || run.state === 'failed' || run.state === 'cancelled') throw new RunnerError(409, 'This run has already finished.');

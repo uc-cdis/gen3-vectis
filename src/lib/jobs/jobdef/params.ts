@@ -97,6 +97,8 @@ export function checkParam(p: JobParam, raw: unknown): ParamCheck {
       else if (raw === false || raw === 'false') s = 'false';
       else return fail('must be true or false');
       break;
+    case 'secret':
+      return fail('is not supported for this kind of job'); // workflow jobs handle secrets in dagu/params.ts; nothing else may
     default: {
       if (typeof raw !== 'string') return fail('must be a string');
       const max = Math.min(p.max_length ?? DEFAULT_MAX_LEN, p.pattern !== undefined ? MAX_PATTERN_INPUT : MAX_STRING_PARAM); // a pattern never sees more than 256 chars

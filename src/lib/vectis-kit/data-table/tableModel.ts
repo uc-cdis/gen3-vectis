@@ -104,3 +104,14 @@ export function sanitizeLayout(layout: Record<string, unknown> | null | undefine
   }
   return out;
 }
+
+let tableSeq = 0;
+/** A table name unique across the page's one Perspective client; a per-grid counter reused names while an old table was still being deleted. */
+export const nextTableName = (): string => `rows-${(tableSeq += 1)}`;
+
+/**
+ * Whether the viewer's settings sidebar is open after a config update. The viewer reports it as `settings`; the grid has to
+ * follow it, or the next config it sends back (every filter or sort edit makes one) shuts the panel the person is using.
+ */
+export const settingsOpen = (update: { settings?: unknown }, previous: boolean): boolean =>
+  typeof update.settings === 'boolean' ? update.settings : previous;

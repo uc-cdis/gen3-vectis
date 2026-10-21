@@ -1,0 +1,6 @@
+# Packages with no browser-compatible wheel on PyPI, built from their released source by scripts/build-gen3sdk-lite.sh.
+# indexclient is pure Python; fastavro is built without its C extensions (it falls back to Python).
+fastavro==1.13.1 \
+    --hash=sha256:6f05aa2539bf7a19e9eb3bdaf6580c4d0f082a8230f641eaf9c84e4bcf0e6bc4
+indexclient==2.3.1 \
+    --hash=sha256:0beaf865aab58112961092aa58d06e31ca1cc8da26e9cd5cf84430d2f6567a0d

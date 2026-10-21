@@ -4,13 +4,13 @@ import { useSiemMutation } from '@/lib/vectis-kit/api/hooks';
 import { ApiError } from '@/lib/vectis-kit/api';
 import type { WatchlistResponse } from '@/lib/vectis-kit/spec';
 import { ErrorState, Panel } from '@/lib/vectis-kit/ui/primitives';
-import { IOC_TYPES, MAX_VALUE_LENGTH } from '@/lib/vectis-kit/spec/indicator';
+import { IOC_LABEL, IOC_TYPES, MAX_VALUE_LENGTH } from '@/lib/vectis-kit/spec/indicator';
 import { MAX_NOTE, MAX_WATCHLIST, parseWatchlistLines } from './watchlist';
 import type { MRT_ColumnDef } from 'mantine-react-table-open';
 import { SimpleTable } from '@/lib/vectis-kit/entity-card/blocks';
 import { safeText } from '@/lib/safe-text';
 
-const TYPE_OPTIONS = IOC_TYPES.map((t) => ({ value: t, label: t }));
+const TYPE_OPTIONS = IOC_TYPES.map((t) => ({ value: t, label: IOC_LABEL[t] }));
 
 /** Add indicators, one value per line, up to 1000 at a time. Every field is checked against the contract before anything is sent. */
 export const WatchlistForm = () => {

@@ -41,6 +41,7 @@ export function parseRunId(id: unknown): { name: string; dagRunId: string } | nu
 // ---------------------------------------------------------------- ownership labels (the portal's identity for a run)
 export const OWNER_KEY = 'vectis.owner';
 export const SUBMITTER_KEY = 'vectis.submitted_by';
+export const GROUP_KEY = 'vectis.group';
 const LABEL_KV = /^([A-Za-z0-9._-]{1,128})=([A-Za-z0-9._/-]{0,256})$/;
 
 /** Parse Dagu's `labels` ("k=v" strings, lower-cased by Dagu) into a map. Bad entries are dropped; at most 64. */
@@ -60,6 +61,18 @@ export function labelMap(v: unknown): { map: Record<string, string>; owners: str
 export function ownedBy(labels: unknown, ownerHash: string): boolean {
   const { owners } = labelMap(labels);
   return owners.length === 1 && owners[0] === ownerHash;
+}
+
+/** True when the run carries EXACTLY ONE portal group label, it names a group the caller was already shown to be in, and it has one owner label. */
+export function inGroup(labels: unknown, groups: readonly string[] | undefined): boolean {
+  if (!groups || groups.length === 0) return false;
+  const found: string[] = [];
+  for (const l of arr(labels, 64)) {
+    if (typeof l !== 'string') continue;
+    const m = LABEL_KV.exec(l);
+    if (m && m[1] === GROUP_KEY) found.push(m[2]);
+  }
+  return found.length === 1 && groups.includes(found[0]) && labelMap(labels).owners.length === 1;
 }
 
 // ---------------------------------------------------------------- text helpers
@@ -141,6 +154,7 @@ export function fromDagu(raw: unknown, logsFor?: (stepName: string) => StepLog |
     steps,
     inputs: [], outputs: [], resources: null,
     tags, params,
+    ...(tags[GROUP_KEY] ? { group: tags[GROUP_KEY] } : {}),
     ...(err(raw.error) ? { error: err(raw.error) } : {}),
   };
   return normalizeRun(run);

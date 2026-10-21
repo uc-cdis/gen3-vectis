@@ -113,3 +113,19 @@ describe('text alternative', () => {
     expect(tableRows([pt('2026-10-09T10:00:00Z', { bytes_out_max: null })]).rows[0]!.bytesMax).toBeNull();
   });
 });
+
+describe('stacked grouped series', () => {
+  const pts = [
+    { bucket_start: '2026-10-09T10:00:00Z', event_count: 5, distinct_src_ips: 1, bytes_out_sum: null, bytes_out_max: null, dims: { index_name: 'http_activity' } },
+    { bucket_start: '2026-10-09T10:00:00Z', event_count: 3, distinct_src_ips: 1, bytes_out_sum: null, bytes_out_max: null, dims: { index_name: 'authentication' } },
+  ];
+  it('stack as areas when asked, so the top edge is the total', () => {
+    const o = buildRollupOption(pts, { grain: '1h', stacked: true }) as unknown as { series: { stack?: string; areaStyle?: unknown }[] };
+    expect(o.series).toHaveLength(2);
+    for (const s of o.series) { expect(s.stack).toBe('events'); expect(s.areaStyle).toBeTruthy(); }
+  });
+  it('stay separate lines otherwise', () => {
+    const o = buildRollupOption(pts, { grain: '1h' }) as unknown as { series: { stack?: string; areaStyle?: unknown }[] };
+    for (const s of o.series) { expect(s.stack).toBeUndefined(); expect(s.areaStyle).toBeUndefined(); }
+  });
+});

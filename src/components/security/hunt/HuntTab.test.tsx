@@ -35,25 +35,55 @@ function spyApi(over: Partial<Record<RouteName, Override>> = {}): { api: SiemApi
   return { api, calls, of: (n) => calls.filter((c) => c.name === n) };
 }
 const reject = (status: number, message: string, route: RouteName): Override => () => { throw new ApiError(status, message, route); };
+// The page has two charts (timeline and heat map); find the one that takes a brush.
+const brushChart = () => [...charts].reverse().find((c) => typeof c.events?.brushEnd === 'function');
 const brush = async (a: string, b: string) => {
-  await waitFor(() => expect(charts.at(-1)?.events?.brushEnd).toBeTypeOf('function'));
-  act(() => charts.at(-1)!.events!.brushEnd!({ areas: [{ coordRange: [Date.parse(a), Date.parse(b)] }] }));
+  await waitFor(() => expect(brushChart()).toBeDefined());
+  act(() => brushChart()!.events!.brushEnd!({ areas: [{ coordRange: [Date.parse(a), Date.parse(b)] }] }));
 };
 
 beforeEach(() => { charts.length = 0; });
 
 describe('Hunt: timeline and linked rows', () => {
-  it('offers the three hunting indexes from the catalog and requests the timeline for the chosen index and grain', async () => {
+  it('starts on All events split by index, offers every hunting index, and requests the timeline for the chosen index and grain', async () => {
     const { api, of } = spyApi();
     renderSecurity(<HuntTab />, { api, url: '/Security?tab=hunt' });
     const select = (await screen.findAllByLabelText('Index')).find((e) => e.tagName === 'INPUT')!;
+    await waitFor(() => expect(of('timeline').at(-1)?.input.body).toMatchObject({ index_name: 'all_events', grain: '5m', group_by: ['index_name'] }));
     await userEvent.click(select);
-    for (const n of ['http_activity', 'api_activity', 'network_activity']) expect(await screen.findByRole('option', { name: new RegExp(n), hidden: true })).toBeInTheDocument();
+    for (const n of ['all_events', 'http_activity', 'api_activity', 'network_activity']) expect(await screen.findByRole('option', { name: new RegExp(n), hidden: true })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /authentication/, hidden: true })).toBeNull();
-    await waitFor(() => expect(of('timeline').at(-1)?.input.body).toMatchObject({ index_name: 'http_activity', grain: '5m' }));
     await userEvent.click(screen.getByRole('radio', { name: '1h' }));
     await waitFor(() => expect(of('timeline').at(-1)?.input.body).toMatchObject({ grain: '1h' }));
     expect(getMockQuery().hunt_grain).toBe('1h');
+    // choosing one index drops the split
+    await userEvent.click(await screen.findByRole('option', { name: /http_activity/, hidden: true }));
+    await waitFor(() => expect(of('timeline').at(-1)?.input.body).toMatchObject({ index_name: 'http_activity' }));
+    expect(of('timeline').at(-1)?.input.body).not.toHaveProperty('group_by');
+  });
+
+  it('draws the split as a stacked area, one band per index', async () => {
+    const { api } = spyApi({ timeline: () => ({
+      grain: '5m', source: 'raw', as_of: '2026-10-09T18:00:00Z', notes: [],
+      points: [
+        { bucket_start: '2026-10-09T10:00:00Z', event_count: 5, distinct_src_ips: 2, bytes_out_sum: null, bytes_out_max: null, dims: { index_name: 'http_activity' } },
+        { bucket_start: '2026-10-09T10:00:00Z', event_count: 3, distinct_src_ips: 1, bytes_out_sum: null, bytes_out_max: null, dims: { index_name: 'authentication' } },
+        { bucket_start: '2026-10-09T10:05:00Z', event_count: 7, distinct_src_ips: 2, bytes_out_sum: null, bytes_out_max: null, dims: { index_name: 'http_activity' } },
+      ],
+    }) });
+    renderSecurity(<HuntTab />, { api, url: '/Security?tab=hunt' });
+    await waitFor(() => expect(charts.some((c) => Array.isArray(c.option.series) && (c.option.series as { stack?: string }[]).length === 2)).toBe(true));
+    const series = charts.find((c) => Array.isArray(c.option.series) && (c.option.series as unknown[]).length === 2)!.option.series as { name: string; stack?: string; areaStyle?: unknown }[];
+    expect(series.map((s) => s.name).sort()).toEqual(['authentication', 'http_activity']);
+    for (const s of series) { expect(s.stack).toBe('events'); expect(s.areaStyle).toBeTruthy(); }
+  });
+
+  it('shows the activity heat map for the same window and filters', async () => {
+    const { api, of } = spyApi();
+    renderSecurity(<HuntTab />, { api, url: '/Security?tab=hunt' });
+    expect(await screen.findByTestId('activity-heatmap')).toBeInTheDocument();
+    await waitFor(() => expect(of('aggregate').at(-1)?.input.body).toMatchObject({ index_name: 'all_events', group_by: ['src_ip', 'outcome'], top_n: 15 }));
+    expect(of('timeline').at(-1)?.input.body?.window).toEqual(of('aggregate').at(-1)?.input.body?.window);
   });
 
   it('prompts for a range until one is brushed, and sends no rows request before that', async () => {
@@ -65,13 +95,14 @@ describe('Hunt: timeline and linked rows', () => {
 
   it('brushing a range loads rows for exactly that window, with the catalog default columns and limit 100', async () => {
     const { api, of } = spyApi();
-    renderSecurity(<HuntTab />, { api, url: '/Security?tab=hunt' });
+    renderSecurity(<HuntTab />, { api, url: '/Security?tab=hunt&hunt_index=http_activity' });
     await brush('2026-10-09T10:01:00Z', '2026-10-09T10:12:00Z');
     await waitFor(() => expect(of('rows')).toHaveLength(1));
     const body = of('rows')[0]!.input.body!;
     expect(body.window).toEqual({ start: '2026-10-09T10:00:00.000Z', end: '2026-10-09T10:15:00.000Z' });
     expect(body.index_name).toBe('http_activity');
-    expect(body.columns).toEqual(['event_time', 'src_ip', 'country', 'http_method', 'host_header', 'uri_path', 'status_code', 'rule_action', 'rule_id', 'sent_bytes']);
+    // the origin columns the index has (here: source) are always added after the first column
+    expect(body.columns).toEqual(['event_time', 'source', 'src_ip', 'country', 'http_method', 'host_header', 'uri_path', 'status_code', 'rule_action', 'rule_id', 'sent_bytes']);
     expect(body.paging).toEqual({ limit: 100 });
     expect(getMockQuery()).toMatchObject({ hunt_from: '2026-10-09T10:00:00.000Z', hunt_to: '2026-10-09T10:15:00.000Z' });
     // the table, and address cells are entity links
@@ -93,7 +124,8 @@ describe('Hunt: timeline and linked rows', () => {
     renderSecurity(<HuntTab />, { api, url: '/Security?tab=hunt&hunt_from=nope&hunt_to=2026-10-09T11:00:00Z&hunt_index=../etc' });
     expect(await screen.findByText(/No time range selected/)).toBeInTheDocument();
     expect(of('rows')).toHaveLength(0);
-    expect(of('timeline').at(-1)?.input.body).toMatchObject({ index_name: 'http_activity' });
+    // a non-hunting index name is ignored
+    expect(of('timeline').at(-1)?.input.body).toMatchObject({ index_name: 'all_events' });
   });
 
   it('shows an empty state for a range with no rows', async () => {
@@ -152,6 +184,22 @@ describe('Hunt: saved views', () => {
     expect(await screen.findByText(/No rows in this range/)).toBeInTheDocument();
   });
 
+  it('lists only the views Hunt can open: entity and reference-data views belong to the Data page', async () => {
+    const win = { start: '2026-10-09T08:00:00Z', end: '2026-10-09T09:00:00Z' };
+    const mixed: SavedViewList = {
+      views: [
+        { id: 'a', title: 'Across all events', kind: 'triage', scope: 'shared', owner: null, is_default: true, layout: {}, spec: { index_name: 'all_events', window: win } },
+        { id: 'b', title: 'Risky addresses', kind: 'data', scope: 'shared', owner: null, is_default: true, layout: { charts: [] }, spec: { index_name: 'ip_address', window: win } },
+        { id: 'c', title: 'Threat feeds', kind: 'data', scope: 'shared', owner: null, is_default: true, layout: {}, spec: { index_name: 'indicator', window: win } },
+      ],
+    };
+    const { api } = spyApi({ views: () => mixed });
+    renderSecurity(<HuntTab />, { api, url: '/Security?tab=hunt' });
+    expect(await screen.findByRole('button', { name: 'Apply view Across all events' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Apply view Risky addresses' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Apply view Threat feeds' })).toBeNull();
+  });
+
   it('lists the fixture views', async () => {
     const { api } = spyApi();
     renderSecurity(<HuntTab />, { api, url: '/Security?tab=hunt' });
@@ -162,7 +210,7 @@ describe('Hunt: saved views', () => {
 describe('Hunt: saved hunts', () => {
   it('creates a hunt from the current view and lists it', async () => {
     const { api, of } = spyApi();
-    renderSecurity(<HuntTab />, { api, url: '/Security?tab=hunt&hunt_from=2026-10-09T10:00:00Z&hunt_to=2026-10-09T11:00:00Z' });
+    renderSecurity(<HuntTab />, { api, url: '/Security?tab=hunt&hunt_index=http_activity&hunt_from=2026-10-09T10:00:00Z&hunt_to=2026-10-09T11:00:00Z' });
     const form = await screen.findByRole('form', { name: 'Save the current view as a hunt' });
     await userEvent.type(within(form).getByRole('textbox', { name: /Title/ }), '  Slow scan from one ASN  ');
     await userEvent.type(within(form).getByRole('textbox', { name: 'Hypothesis' }), 'Low and slow');

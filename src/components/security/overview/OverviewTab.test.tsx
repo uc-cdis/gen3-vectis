@@ -36,10 +36,21 @@ describe('OverviewTab', () => {
     expect(within(strip).queryByText('0%')).toBeNull();
   });
 
+  it('counts events across every source, and draws the trend from all of them', async () => {
+    const base = createFixtureApi(0);
+    const seen: { name: string; body?: Record<string, unknown> }[] = [];
+    const api = { mode: 'fixtures' as const, call: ((name: string, input: { body?: Record<string, unknown> }) => { seen.push({ name, body: input?.body }); return (base.call as (n: string, i: unknown) => unknown)(name, input); }) as typeof base.call };
+    renderSecurity(<OverviewTab />, { api });
+    const tiles = await screen.findByRole('region', { name: 'Key figures' });
+    expect(within(tiles).getByRole('button', { name: /^Events, all sources: 88,532/ })).toBeInTheDocument();
+    await screen.findByTestId('rollup-chart');
+    expect(seen.find((c) => c.name === 'timeline')?.body).toMatchObject({ index_name: 'all_events' });
+  });
+
   it('renders telemetry as Unmeasured and real totals as numbers', async () => {
     renderSecurity(<OverviewTab />);
     const tiles = await screen.findByRole('region', { name: 'Key figures' });
-    expect(within(tiles).getByRole('button', { name: /^WAF events: 88,412/ })).toBeInTheDocument();
+    expect(within(tiles).getByRole('button', { name: /^Web requests: 88,412/ })).toBeInTheDocument();
     const telemetry = within(tiles).getByRole('button', { name: /^Telemetry events: unmeasured/ });
     expect(within(telemetry).getByTestId('unmeasured')).toBeInTheDocument();
     expect(telemetry).not.toHaveTextContent('0');
@@ -68,7 +79,7 @@ describe('OverviewTab', () => {
     const matched = within(tiles).getByRole('button', { name: /^Alerts matching indicators: unmeasured/ });
     expect(within(matched).getByTestId('unmeasured')).toBeInTheDocument();
     // A measured zero stays a zero: only null is unmeasured.
-    expect(within(tiles).getByRole('button', { name: /^WAF events: 88,412/ })).toBeInTheDocument();
+    expect(within(tiles).getByRole('button', { name: /^Web requests: 88,412/ })).toBeInTheDocument();
   });
 
   it('a tile opens its tab', async () => {
@@ -92,7 +103,7 @@ describe('OverviewTab', () => {
     const base = createFixtureApi(0);
     const api = apiWith({ timeline: async () => ({ ...(await base.call('timeline', {})), points: [] }) });
     renderSecurity(<OverviewTab />, { api });
-    expect(await screen.findByText(/No rollup data in this window/)).toBeInTheDocument();
+    expect(await screen.findByText(/No events in this window/)).toBeInTheDocument();
     expect(screen.queryByTestId('rollup-chart')).toBeNull();
   });
 

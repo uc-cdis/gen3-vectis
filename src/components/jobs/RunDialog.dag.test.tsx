@@ -37,4 +37,32 @@ describe('RunDialog for a workflow job', () => {
     expect(paramError(p, '$(id)', true)).not.toBeNull();
     expect(paramError(p, '203.0.113.9', true)).toBeNull();
   });
+  it('masks a secret param, never shows it in the preview, and sends it with the run', async () => {
+    const KEY = 'sk-live_ABCDEFGHIJKLMNOP.1234567890';
+    const job = { ...fan, params: [...(fan.params ?? []), { name: 'ai_key', label: 'AI key', type: 'secret' as const, env: 'BIFROST_API_KEY' }] };
+    const submitJob = vi.fn(async () => ({ id: 'fanout.fx9', warnings: [] }));
+    renderJobs(<RunDialog job={job} repo="o/r" sha={'a'.repeat(40)} onClose={() => undefined} onSubmitted={vi.fn()} />, apiWith({ submitJob }));
+    const field = screen.getByLabelText(/AI key/);
+    expect(field).toHaveAttribute('type', 'password');
+    expect(field).toHaveAttribute('autocomplete', 'new-password');
+    await userEvent.type(field, 'too short');
+    expect(await screen.findByText(/8 to 512 characters/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Run job' })).toBeDisabled();
+    await userEvent.clear(field);
+    await userEvent.type(field, KEY);
+    expect(screen.getByRole('button', { name: 'Run job' })).toBeEnabled();
+    expect(screen.getByTestId('preview')).not.toHaveTextContent(KEY);
+    expect(screen.getByTestId('preview')).toHaveTextContent('••••••••');
+    await userEvent.click(screen.getByRole('button', { name: 'Run job' }));
+    await waitFor(() => expect(submitJob).toHaveBeenCalled());
+    expect((submitJob.mock.calls[0] as unknown[])[0]).toMatchObject({ job: 'dag-fanout', params: { ai_key: KEY } });
+  });
+  it('an empty optional secret is not sent', async () => {
+    const job = { ...fan, params: [...(fan.params ?? []), { name: 'ai_key', label: 'AI key', type: 'secret' as const, env: 'BIFROST_API_KEY' }] };
+    const submitJob = vi.fn(async () => ({ id: 'fanout.fx9', warnings: [] }));
+    renderJobs(<RunDialog job={job} repo="o/r" sha={'a'.repeat(40)} onClose={() => undefined} onSubmitted={vi.fn()} />, apiWith({ submitJob }));
+    await userEvent.click(screen.getByRole('button', { name: 'Run job' }));
+    await waitFor(() => expect(submitJob).toHaveBeenCalled());
+    expect(JSON.stringify(submitJob.mock.calls[0])).not.toContain('ai_key');
+  });
 });

@@ -7,6 +7,7 @@ import type { ColumnMeta, FilterClause, IndexName, QuerySpec, SavedView, SortSpe
 import { useSiemQuery } from '@/lib/vectis-kit/api/hooks';
 import type { QueryState } from '@/lib/vectis-kit/api/hooks';
 import { PerspectiveGrid } from '@/lib/vectis-kit/data-table/PerspectiveGrid';
+import { isOriginColumn, withOrigin } from '@/lib/vectis-kit/data-table/origin';
 import { filterKind, keepKnownFields, removeClauseAt, validateClauses, clauseChips } from '@/lib/vectis-kit/data-table/filters';
 import { SpecActionsMenu } from '@/lib/vectis-kit/spec-actions/SpecActionsMenu';
 import { RANGES, useSecurity } from '../context';
@@ -14,7 +15,9 @@ import { EmptyState, QueryBoundary, EntityLink, Unmeasured } from '@/lib/vectis-
 import { FilterPanel } from '../data/FilterPanel';
 import type { FacetInfo } from '../data/FilterPanel';
 import { ResultBar } from '../data/ResultBar';
+import { SavedCharts } from '../data/SavedCharts';
 import { formatTime } from '@/lib/vectis-kit/ui/format';
+import { DRS_FIELDS, SHOW_DRS_EVIDENCE } from '@/lib/vectis-kit/spec-actions/drs';
 
 const MAX_FACET_FIELDS = 12;
 
@@ -31,7 +34,19 @@ interface DataState {
 }
 const INITIAL: DataState = { index: null, columns: null, filters: [], sort: null, offset: 0, pageSize: 100, layout: null, viewId: null };
 
-const DataBody = ({ catalog }: { catalog: { indexes: { index_name: IndexName; label: string; time_field: string; columns: ColumnMeta[] }[] } }) => {
+const CATEGORY_LABEL: Record<string, string> = { events: 'Events', findings: 'Findings', entities: 'Entities', threat_intel: 'Threat intelligence' };
+
+/** Index picker options, grouped by category. */
+export const indexOptions = (indexes: readonly { index_name: string; label: string; category?: string }[]) => {
+  const groups = new Map<string, { value: string; label: string }[]>();
+  for (const i of indexes) {
+    const key = i.category ?? 'events';
+    groups.set(key, [...(groups.get(key) ?? []), { value: i.index_name, label: i.label }]);
+  }
+  return [...groups.entries()].map(([key, items]) => ({ group: CATEGORY_LABEL[key] ?? key, items }));
+};
+
+const DataBody = ({ catalog }: { catalog: { indexes: { index_name: IndexName; label: string; category?: string; time_field: string; columns: ColumnMeta[] }[] } }) => {
   const { window, range } = useSecurity();
   const [state, setState] = useState<DataState>(INITIAL);
   const [selectedRow, setSelectedRow] = useState<Record<string, unknown> | null>(null);
@@ -39,11 +54,11 @@ const DataBody = ({ catalog }: { catalog: { indexes: { index_name: IndexName; la
   const wide = useMediaQuery('(min-width: 62em)', true, { getInitialValueInEffect: false }) ?? true;
 
   const idx = catalog.indexes.find((i) => i.index_name === state.index) ?? catalog.indexes[0];
-  const meta = idx?.columns;
+  const meta = useMemo(() => (SHOW_DRS_EVIDENCE ? idx?.columns : idx?.columns.filter((c) => !DRS_FIELDS.has(c.name))), [idx]);
   const visible = useMemo(() => {
     if (!meta) return [];
     const wanted = state.columns?.filter((c) => meta.some((m) => m.name === c)) ?? [];
-    return wanted.length > 0 ? wanted : defaultColumns(meta);
+    return withOrigin(wanted.length > 0 ? wanted : defaultColumns(meta), meta);
   }, [meta, state.columns]);
 
   const patch = useCallback((p: Partial<DataState>, keepView = false) => {
@@ -99,7 +114,8 @@ const DataBody = ({ catalog }: { catalog: { indexes: { index_name: IndexName; la
   };
 
   const current: QueryState<RowsResponse> = { ...rows, data: rows.data && rows.data.index_name === idx?.index_name ? rows.data : undefined };
-  const rangeLabel = RANGES.find((r) => r.id === range)?.label ?? range;
+  // Reference data has no event time, so the time range does not apply.
+  const rangeLabel = idx?.category === 'threat_intel' ? 'Not applied (reference data)' : (RANGES.find((r) => r.id === range)?.label ?? range);
   const piiShown = (meta ?? []).filter((c) => c.pii && visible.includes(c.name));
 
   const rail = [
@@ -123,7 +139,7 @@ const DataBody = ({ catalog }: { catalog: { indexes: { index_name: IndexName; la
         <Select
           size="xs" w={220} label="Index" allowDeselect={false}
           value={idx?.index_name ?? null}
-          data={catalog.indexes.map((i) => ({ value: i.index_name, label: i.label }))}
+          data={indexOptions(catalog.indexes)}
           onChange={(v) => {
             const next = catalog.indexes.find((i) => i.index_name === v);
             if (next) patch({ index: next.index_name, columns: null, filters: [], sort: null, layout: null });
@@ -162,6 +178,9 @@ const DataBody = ({ catalog }: { catalog: { indexes: { index_name: IndexName; la
         </div>
         <div style={{ flex: '1 1 0', minWidth: wide ? 0 : '100%' }}>
           <Stack gap="sm">
+            {filtersOk && idx && state.layout ? (
+              <SavedCharts layout={state.layout} indexName={idx.index_name} category={idx.category} columns={meta ?? []} window={window} filters={state.filters} />
+            ) : null}
             {!filtersOk ? (
               <EmptyState title="Nothing to show yet" hint="Remove some filters so the query can run." />
             ) : (
@@ -309,33 +328,49 @@ export const RowDetail = ({ row, columns, meta, onClose }: { row: Record<string,
 /** Saved views from the service. Applying one sets index, columns, filters and sort; the time range stays as chosen. */
 export const ViewsPanel = ({ activeId, onApply }: { activeId: string | null; onApply: (view: SavedView) => void }) => {
   const views = useSiemQuery('views', {});
+  const catalog = useSiemQuery('catalog', {});
+  const categoryOf = (indexName: string) => catalog.data?.indexes.find((i) => i.index_name === indexName)?.category ?? 'events';
   return (
     <QueryBoundary query={views} isEmpty={(d) => d.views.length === 0} empty={<EmptyState title="No saved views" hint="Views saved by you or shared with you will appear here." />} rows={3}>
-      {(d) => (
-        <Stack gap="xs" role="list" aria-label="Saved views">
-          <Text size="xs" c="gray.7">Applying a view keeps the time range you have chosen.</Text>
-          {d.views.map((v) => (
-            <div key={v.id} role="listitem">
-              <Button
-                fullWidth
-                variant={activeId === v.id ? 'filled' : 'light'}
-                color={activeId === v.id ? undefined : 'gray'}
-                justify="space-between"
-                h="auto"
-                py={6}
-                aria-pressed={activeId === v.id}
-                onClick={() => onApply(v)}
-                rightSection={<Badge size="xs" variant="outline" radius="sm" color={activeId === v.id ? 'white' : 'gray'}>{v.kind}</Badge>}
-              >
-                <Stack gap={0} align="flex-start" style={{ whiteSpace: 'normal', textAlign: 'left' }}>
-                  <Text size="sm" fw={600} inherit>{v.title}</Text>
-                  {v.description ? <Text size="xs" inherit opacity={0.8}>{v.description}</Text> : null}
-                </Stack>
-              </Button>
-            </div>
-          ))}
-        </Stack>
-      )}
+      {(d) => {
+        const groups = new Map<string, SavedView[]>();
+        for (const v of d.views) {
+          const key = categoryOf(v.spec.index_name);
+          groups.set(key, [...(groups.get(key) ?? []), v]);
+        }
+        const ordered = [...groups.entries()].sort((a, b) => Object.keys(CATEGORY_LABEL).indexOf(a[0]) - Object.keys(CATEGORY_LABEL).indexOf(b[0]));
+        return (
+          <Stack gap="md" role="list" aria-label="Saved views">
+            <Text size="xs" c="gray.7">Applying a view keeps the time range you have chosen.</Text>
+            {ordered.map(([key, items]) => (
+              <Stack gap={6} key={key}>
+                <Text size="xs" fw={700} tt="uppercase" c="gray.7" style={{ letterSpacing: 0.6 }}>{CATEGORY_LABEL[key] ?? key}</Text>
+                {items.map((v) => (
+                  <div key={v.id} role="listitem">
+                    <Button
+                      fullWidth
+                      variant={activeId === v.id ? 'filled' : 'light'}
+                      color={activeId === v.id ? undefined : 'gray'}
+                      justify="flex-start"
+                      h="auto"
+                      py={8}
+                      px={10}
+                      aria-pressed={activeId === v.id}
+                      onClick={() => onApply(v)}
+                      styles={{ label: { whiteSpace: 'normal', textAlign: 'left', lineHeight: 1.4 } }}
+                    >
+                      <Stack gap={2} align="flex-start">
+                        <Text size="sm" fw={600} inherit lh={1.3}>{v.title}</Text>
+                        {v.description ? <Text size="xs" fw={400} inherit opacity={0.8} lh={1.4}>{v.description}</Text> : null}
+                      </Stack>
+                    </Button>
+                  </div>
+                ))}
+              </Stack>
+            ))}
+          </Stack>
+        );
+      }}
     </QueryBoundary>
   );
 };
@@ -367,7 +402,7 @@ export const ColumnsPanel = ({ columns, visible, onChange }: { columns: readonly
       </Group>
       <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--mantine-color-body)', paddingBottom: 6 }}>
         <TextInput size="xs" aria-label="Find a column" placeholder={`Find a column by name (${columns.length})`} value={query} maxLength={64} onChange={(e) => setQuery(e.currentTarget.value)} />
-        <Text size="xs" c="gray.7" mt={4}>{visible.length} of {columns.length} shown. At least one column is always shown.</Text>
+        <Text size="xs" c="gray.7" mt={4}>{visible.length} of {columns.length} shown. Company, account, environment and source are always shown.</Text>
       </div>
       {listed.length === 0 ? <Text size="sm" c="gray.7" role="status">No column is named like that.</Text> : null}
       <Stack gap={4} role="group" aria-label="Columns">
@@ -376,11 +411,12 @@ export const ColumnsPanel = ({ columns, visible, onChange }: { columns: readonly
             key={c.name}
             size="xs"
             checked={set.has(c.name)}
-            disabled={(set.size === 1 && set.has(c.name)) || (!set.has(c.name) && set.size >= MAX_COLUMNS)}
+            disabled={isOriginColumn(c.name) || (set.size === 1 && set.has(c.name)) || (!set.has(c.name) && set.size >= MAX_COLUMNS)}
             onChange={(e) => toggle(c.name, e.currentTarget.checked)}
             label={
               <Group gap={6} wrap="nowrap">
                 <span title={c.description}>{c.label}</span>
+                {isOriginColumn(c.name) ? <Badge size="xs" color="gray" variant="light" radius="sm" title="Where a row came from is always shown.">always shown</Badge> : null}
                 {c.pii ? <Badge size="xs" color="red" variant="outline" radius="sm" title="Personal data. What you can see is decided by your permissions.">PII</Badge> : null}
               </Group>
             }

@@ -141,8 +141,8 @@ describe('graph', () => {
     expect(errs('steps:\n  - id: a\n    run: x\n    depends: [a]\n', CMD)[0]).toMatch(/cycle/);
   });
   it('step ids are strict; id and name may not disagree', () => {
-    expect(errs('steps:\n  - id: "a b"\n    run: x\n', CMD)[0]).toMatch(/needs an id of letters/);
-    expect(errs('steps:\n  - id: "../x"\n    run: x\n', CMD)[0]).toMatch(/needs an id of letters/);
+    expect(errs('steps:\n  - id: "a b"\n    run: x\n', CMD)[0]).toMatch(/needs an id/);
+    expect(errs('steps:\n  - id: "../x"\n    run: x\n', CMD)[0]).toMatch(/needs an id/);
     expect(errs('steps:\n  - id: a\n    name: b\n    run: x\n', CMD)[0]).toMatch(/id OR a name/);
     expect(errs('steps:\n  - name: only_name\n    run: x\n', CMD)).toEqual([]);
   });
@@ -235,5 +235,35 @@ describe('credentials', () => {
     expect(s('  - name: A\n    provider: env\n    key: VECTIS_JOB_A\n    options: {token: x}\n')[0]).toMatch(/not allowed \(only name, provider, key\)/);
     expect(s('  - name: DAGU_AUTH_TOKEN_SECRET\n    provider: env\n    key: A\n')[0]).toMatch(/not DAGU_/);
     expect(s('  - ref: team/secret\n    name: A\n')[0]).toMatch(/not allowed/);
+  });
+});
+
+describe('Kubernetes steps (k8s.run)', () => {
+  const K8S = { ...DEV, DAGU_ALLOWED_EXECUTORS: 'kubernetes,http,jq' };
+  const k8sStep = (withBlock: string) => one(`action: k8s.run\nwith:\n${withBlock.split('\n').map((l) => `  ${l}`).join('\n')}`);
+  it('is off unless the operator lists kubernetes, and the default list still has no kubernetes', () => {
+    expect(allowedExecutors({}).has('kubernetes')).toBe(false);
+    expect(errs(k8sStep('image: quay.io/cdis/tool:1\ncommand: echo hi'), DEV)[0]).toMatch(/"kubernetes" executor is not enabled/);
+    expect(errs(k8sStep('image: quay.io/cdis/tool:1\ncommand: echo hi'), K8S)).toEqual([]);
+  });
+  it('reports the step as a Kubernetes step, so the runner adds the namespace and service account', () => {
+    const r = lintDaguDefinition(k8sStep('image: quay.io/cdis/tool:1\ncommand: echo hi'), { env: K8S, catalogParams: [] });
+    expect(r.ok && r.info.usesKubernetes).toBe(true);
+    const h = lintDaguDefinition(ex('soc-enrich-indicator.yaml'), { env: K8S, catalogParams: ['indicator'] });
+    expect(h.ok && h.info.usesKubernetes).toBe(false);
+  });
+  it('allows only image and command: no context, no resources, no service account, no namespace', () => {
+    for (const k of ['context: other-cluster', 'resources: {limits: {cpu: "64"}}', 'service_account: admin', 'namespace: kube-system', 'privileged: true']) {
+      expect(errs(k8sStep(`image: quay.io/cdis/tool:1\ncommand: echo hi\n${k}`), K8S).join(' '), k).toMatch(/not allowed for the "kubernetes" executor/);
+    }
+  });
+  it('refuses a top-level kubernetes block: a definition cannot choose where it runs', () => {
+    expect(errs(k8sStep('image: quay.io/cdis/tool:1\ncommand: echo hi'), K8S).length).toBe(0);
+    expect(errs(`kubernetes:\n  namespace: kube-system\n  service_account: admin\n${k8sStep('image: quay.io/cdis/tool:1\ncommand: echo hi')}`, K8S).join(' ')).toMatch(/kubernetes/);
+  });
+  it('applies the shared image policy', () => {
+    const policy = { ...K8S, JOBS_ALLOWED_IMAGE_PREFIXES: 'quay.io/cdis/' };
+    expect(errs(k8sStep('image: quay.io/cdis/tool:1\ncommand: echo hi'), policy)).toEqual([]);
+    expect(errs(k8sStep('image: evil.example/tool:1\ncommand: echo hi'), policy).join(' ')).toMatch(/image/);
   });
 });

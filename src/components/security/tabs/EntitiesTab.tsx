@@ -6,12 +6,12 @@ import { SimpleTable } from '@/lib/vectis-kit/entity-card/blocks';
 import { useSecurity } from '../context';
 import { EmptyState, EntityLink, Panel, QueryBoundary } from '@/lib/vectis-kit/ui/primitives';
 import { relativeTime } from '@/lib/vectis-kit/ui/format';
-import { ENTITY_TYPES, ENTITY_TYPE_LABEL, validateEntityInput } from '../entities/entityKeys';
+import { ENTITY_INPUT_LABEL, ENTITY_INPUT_TYPES, validateEntityInput } from '../entities/entityKeys';
 import { MAX_VALUE_LENGTH } from '@/lib/vectis-kit/spec/indicator';
 import type { SeenEntity } from '../entities/seenRecently';
 import { deriveSeenRecently } from '../entities/seenRecently';
 
-const TYPE_OPTIONS = ENTITY_TYPES.map((t) => ({ value: t, label: ENTITY_TYPE_LABEL[t] }));
+const TYPE_OPTIONS = ENTITY_INPUT_TYPES.map((t) => ({ value: t, label: ENTITY_INPUT_LABEL[t] ?? t }));
 
 const SeenRecently = () => {
   const { window } = useSecurity();

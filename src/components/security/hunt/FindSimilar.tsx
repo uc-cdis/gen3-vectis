@@ -5,6 +5,7 @@ import { useSiemQuery } from '@/lib/vectis-kit/api/hooks';
 import type { EntityType, FindSimilarRequest, FindSimilarResponse } from '@/lib/vectis-kit/spec';
 import { EmptyState, EntityLink, Panel, QueryBoundary, SeverityBadge, Unmeasured } from '@/lib/vectis-kit/ui/primitives';
 import { formatNumber } from '@/lib/vectis-kit/ui/format';
+import { OriginTags } from '@/lib/vectis-kit/ui/origin';
 import type { SimilarSeed } from '../context';
 import { useSecurity } from '../context';
 import { isIpAddress } from '@/lib/vectis-kit/spec/indicator';
@@ -45,7 +46,10 @@ const Results = ({ data }: { data: FindSimilarResponse }) => {
       <Result kind="exact" title="Exact" measured={m('exact')} reason="Indicator matches were not computed for this search." count={exact.length}>
         <Stack gap={4} component="ul" m={0} p={0} style={list}>
           {exact.map((g) => (
-            <li key={g.group_id}><Group gap="xs" wrap="nowrap"><SeverityBadge severity={g.severity} /><Anchor component="button" type="button" size="sm" ta="left" onClick={() => openAlert(g.group_id)} title={`Open alert ${g.group_id}`}>{g.title}</Anchor></Group></li>
+            <li key={g.group_id}>
+              <Group gap="xs" wrap="nowrap"><SeverityBadge severity={g.severity} /><Anchor component="button" type="button" size="sm" ta="left" onClick={() => openAlert(g.group_id)} title={`Open alert ${g.group_id}`}>{g.title}</Anchor></Group>
+              <OriginTags compact origin={{ account: g.origin_account, accounts: g.origin_accounts, environments: g.origin_environments, sources: g.origin_sources }} />
+            </li>
           ))}
         </Stack>
       </Result>
@@ -66,7 +70,10 @@ const Results = ({ data }: { data: FindSimilarResponse }) => {
       <Result kind="behavioral" title="Behavioral" measured={m('behavioral')} reason="Behavioral similarity is not measured yet. This is not zero matches." count={behavioral.length}>
         <Stack gap={4} component="ul" m={0} p={0} style={list}>
           {behavioral.map((h) => (
-            <li key={h.group_id}><Group gap="xs" wrap="nowrap"><SeverityBadge severity={h.severity} /><Anchor component="button" type="button" size="sm" ta="left" onClick={() => openAlert(h.group_id)} title={`Open alert ${h.group_id}`}>{h.title}</Anchor><Text size="xs" c="dimmed">distance {h.distance.toFixed(3)}</Text></Group></li>
+            <li key={h.group_id}>
+              <Group gap="xs" wrap="nowrap"><SeverityBadge severity={h.severity} /><Anchor component="button" type="button" size="sm" ta="left" onClick={() => openAlert(h.group_id)} title={`Open alert ${h.group_id}`}>{h.title}</Anchor><Text size="xs" c="dimmed">distance {h.distance.toFixed(3)}</Text></Group>
+              <OriginTags compact origin={{ account: h.origin_account, environments: h.origin_environments, sources: h.origin_sources }} />
+            </li>
           ))}
         </Stack>
       </Result>

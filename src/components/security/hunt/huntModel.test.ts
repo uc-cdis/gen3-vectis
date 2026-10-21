@@ -72,3 +72,21 @@ describe('spec mapping', () => {
     expect(groupableColumns(http).map((c) => c.value)).toEqual(['http_method', 'rule_action', 'source']);
   });
 });
+
+describe('All events', () => {
+  const all = catalog.indexes.find((i) => i.index_name === 'all_events')!;
+  it('is a hunting index and applying a view of it splits the timeline by index again', () => {
+    expect(all).toBeTruthy();
+    const spec = { index_name: 'all_events', window: { start: '2026-10-09T10:00:00Z', end: '2026-10-09T11:00:00Z' }, columns: ['event_time', 'index_name'], filters: [], sort: null } as unknown as QuerySpec;
+    const a = applySpec(spec, catalog)!;
+    expect(a.index).toBe('all_events');
+    expect(a.view.groupBy).toEqual(['index_name']);
+  });
+  it('a single index applies with no split', () => {
+    const spec = { index_name: 'http_activity', window: { start: '2026-10-09T10:00:00Z', end: '2026-10-09T11:00:00Z' }, columns: [], filters: [], sort: null } as unknown as QuerySpec;
+    expect(applySpec(spec, catalog)!.view.groupBy).toEqual([]);
+  });
+  it('can be chosen from a deep link', () => {
+    expect(readDeepLink({ hunt_index: 'all_events' }).index).toBe('all_events');
+  });
+});

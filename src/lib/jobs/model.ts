@@ -64,6 +64,12 @@ export interface Run {
   params?: Record<string, string>;
   system_logs?: string[];
   error?: string | null;
+  /** a name the person gave the run when they started it (or later); shown instead of the job name */
+  title?: string;
+  /** the group the run belongs to: everyone Arborist lets into that group sees it. Absent for a personal run */
+  group?: string;
+  /** the workflow server no longer has this run: what is shown is the saved summary (state when last seen, the results) */
+  archived?: boolean;
 }
 export interface RunList { runs: Run[]; next_page_token: string | null }
 export interface StorageSetup { bucket: string | null; region: string | null; endpoint: string | null }
@@ -126,6 +132,9 @@ export function normalizeRun(raw: unknown): Run | null {
   const tags = strMap(raw.tags, 64);
   return {
     id: raw.id,
+    ...(typeof raw.title === 'string' && raw.title.trim() ? { title: sanitizeLabel(raw.title, 80) } : {}),
+    ...(typeof raw.group === 'string' && /^[a-z][a-z0-9-]{0,31}$/.test(raw.group) ? { group: raw.group } : {}),
+    ...(raw.archived === true ? { archived: true } : {}),
     backend: typeof raw.backend === 'string' && BACKEND_ID.test(raw.backend) ? raw.backend : 'unknown',
     name: sanitizeLabel(raw.name, 256),
     ...(typeof raw.description === 'string' && raw.description ? { description: sanitizeText(raw.description, 4096) } : {}),

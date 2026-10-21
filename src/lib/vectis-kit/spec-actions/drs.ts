@@ -13,6 +13,11 @@ export const isDrsUri = (v: unknown): v is string =>
   typeof v === 'string' && DRS_URI.test(v) && !v.slice(v.indexOf('/', 6) + 1).split('/').some((seg) => seg === '..' || seg === '.');
 const MAX_MANIFEST_OBJECTS = 5000;
 
+/** Shows evidence pointers and the DRS manifest. Off because the ETL writes drs://<bucket>/<key>, which is not a DRS id. Turn on once it writes real ids. */
+export const SHOW_DRS_EVIDENCE = false;
+/** Columns that carry those pointers; hidden in the Data view while SHOW_DRS_EVIDENCE is off. */
+export const DRS_FIELDS: ReadonlySet<string> = new Set(['evidence_uri', 'object_id']);
+
 /**
  * Build a manifest from result rows. A row contributes its `object_id`, or failing that its `evidence_uri`, but only
  * when the value is a drs:// URI. Everything else is skipped and counted. Duplicates are listed once.

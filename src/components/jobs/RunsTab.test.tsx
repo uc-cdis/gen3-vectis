@@ -37,7 +37,7 @@ describe('RunsTab', () => {
     const listRuns = listing();
     renderJobs(<RunsTab onOpen={() => undefined} />, apiWith({ listRuns }));
     await screen.findByText('Test run');
-    await userEvent.type(screen.getByLabelText('Name starts with'), 'Log');
+    await userEvent.type(screen.getByLabelText('Search by name'), 'Log');
     expect(listRuns.mock.calls.some(([q]) => q.name_prefix)).toBe(false); // not on every keystroke
     await waitFor(() => expect(listRuns).toHaveBeenLastCalledWith(expect.objectContaining({ name_prefix: 'Log' })));
     await userEvent.click(screen.getAllByLabelText('State')[0]);

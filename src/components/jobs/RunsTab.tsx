@@ -7,11 +7,12 @@ import type { MRT_ColumnDef } from 'mantine-react-table-open';
 import { MantineReactTable, useMantineReactTable } from 'mantine-react-table-open';
 import type { Run, RunState } from '@/lib/jobs/model';
 import { JobsApiError } from '@/lib/jobs/api';
+import type { RunsScope } from '@/lib/jobs/api';
 import { useJobsApi, useJobsQuery } from '@/lib/jobs/api/hooks';
 import Time from '@/lib/vectis-kit/ui/Time';
 import { LoadingState } from '@/lib/vectis-kit/ui/primitives';
 import { formatDuration } from '@/lib/vectis-kit/ui/format';
-import { ErrorState, StateBadge } from './common';
+import { ErrorState, OwnerBadges, StateBadge } from './common';
 import type { PollPhase } from './model';
 import { RUNS_POLL, RUN_STATES, STATE_META, anyActive } from './model';
 
@@ -33,10 +34,12 @@ const RunsTab = ({ onOpen, schedule = RUNS_POLL }: { onOpen: (id: string) => voi
   const api = useJobsApi();
   const [state, setState] = useState<RunState | null>(null);
   const [prefix, setPrefix] = useState('');
+  const [scope, setScope] = useState<RunsScope>('all');
+  const groups = useJobsQuery('groups', [], (a) => a.groups());
   const [debounced] = useDebouncedValue(prefix.trim(), 300);
   // Older pages are fetched only by the "Load older" button, once per click, and are never refreshed.
   // They belong to the filter they were fetched under; a different filter ignores them (no reset effect needed).
-  const filterKey = `${state ?? ''}|${debounced}`;
+  const filterKey = `${state ?? ''}|${debounced}|${scope}`;
   const [olderFetched, setOlder] = useState<{ key: string; runs: Run[]; next: string | null } | null>(null);
   const [olderErrorFetched, setOlderError] = useState<{ key: string; error: JobsApiError } | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -44,8 +47,8 @@ const RunsTab = ({ onOpen, schedule = RUNS_POLL }: { onOpen: (id: string) => voi
   const olderError = olderErrorFetched?.key === filterKey ? olderErrorFetched.error : null;
 
   const q = useJobsQuery(
-    'runs', [state, debounced],
-    (a) => a.listRuns({ detail: 'summary', state: state ?? undefined, name_prefix: debounced || undefined, page_size: PAGE_SIZE }),
+    'runs', [state, debounced, scope],
+    (a) => a.listRuns({ detail: 'summary', state: state ?? undefined, name_prefix: debounced || undefined, page_size: PAGE_SIZE, scope }),
     { poll: { phases: schedule, active: (d) => anyActive(d?.runs) } }, // only the current (first) page, only while something on it can change
   );
   const firstPage = useMemo(() => q.data?.runs ?? [], [q.data]);
@@ -61,7 +64,7 @@ const RunsTab = ({ onOpen, schedule = RUNS_POLL }: { onOpen: (id: string) => voi
     setLoadingOlder(true); setOlderError(null);
     const key = filterKey;
     try {
-      const page = await api.listRuns({ detail: 'summary', state: state ?? undefined, name_prefix: debounced || undefined, page_size: PAGE_SIZE, page_token: nextToken });
+      const page = await api.listRuns({ detail: 'summary', state: state ?? undefined, name_prefix: debounced || undefined, page_size: PAGE_SIZE, page_token: nextToken, scope });
       setOlder((o) => ({ key, runs: [...(o?.key === key ? o.runs : []), ...page.runs], next: page.next_page_token }));
     } catch (e) {
       setOlderError({ key, error: e instanceof JobsApiError ? e : new JobsApiError(0, 'The jobs service could not be reached.') });
@@ -71,9 +74,17 @@ const RunsTab = ({ onOpen, schedule = RUNS_POLL }: { onOpen: (id: string) => voi
   const columns = useMemo<MRT_ColumnDef<Run>[]>(() => [
     { id: 'name', header: 'Name', accessorFn: (t) => t.name,
       Cell: ({ row }) => (
-        <Anchor component="button" type="button" size="sm" fw={600} ta="left" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onOpen(row.original.id); }} aria-label={`Open run ${row.original.name || row.original.id}`}>
-          {row.original.name || row.original.id}
-        </Anchor>
+        <Stack gap={2} align="flex-start">
+          <Anchor component="button" type="button" size="sm" fw={600} ta="left" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onOpen(row.original.id); }} aria-label={`Open run ${row.original.title || row.original.name || row.original.id}`}>
+            {row.original.title || row.original.name || row.original.id}
+          </Anchor>
+          {row.original.title || row.original.group || row.original.archived ? (
+            <Group gap={6} wrap="wrap">
+              {row.original.title ? <Text size="xs" c="dimmed">{row.original.name}</Text> : null}
+              <OwnerBadges run={row.original} />
+            </Group>
+          ) : null}
+        </Stack>
       ) },
     { id: 'state', header: 'State', accessorFn: (t) => t.state, Cell: ({ row }) => <StateBadge run={row.original} /> },
     { id: 'job', header: 'Job', accessorFn: (t) => t.job, Cell: ({ row }) => (row.original.job ? <Text size="sm" ff="monospace">{row.original.job}</Text> : <Dash />) },
@@ -86,7 +97,7 @@ const RunsTab = ({ onOpen, schedule = RUNS_POLL }: { onOpen: (id: string) => voi
     columns, data: runs,
     enableSorting: false, enableColumnActions: false, enableColumnFilters: false, enableGlobalFilter: false, enableDensityToggle: false,
     enableFullScreenToggle: false, enableHiding: false, enableTopToolbar: false, enableBottomToolbar: false, enablePagination: false,
-    renderEmptyRowsFallback: () => <EmptyTableMessage message={state || debounced ? 'No runs match these filters' : 'No runs yet. Run a job from the Catalog tab.'} />,
+    renderEmptyRowsFallback: () => <EmptyTableMessage message={state || debounced || scope !== 'all' ? 'No runs match these filters' : 'No runs yet. Run a job from the Catalog tab.'} />,
     mantineTableProps: { highlightOnHover: true, striped: true, 'aria-label': 'Runs' },
     mantineTableBodyRowProps: ({ row }) => ({ onClick: () => onOpen(row.original.id), style: { cursor: 'pointer' }, 'data-state': row.original.state }),
   });
@@ -96,7 +107,10 @@ const RunsTab = ({ onOpen, schedule = RUNS_POLL }: { onOpen: (id: string) => voi
       <Group justify="space-between" align="flex-end">
         <Group align="flex-end" gap="sm">
           <Select label="State" placeholder="All states" data={STATE_OPTIONS} value={state} onChange={(v) => setState((v as RunState | null) ?? null)} clearable w={190} size="sm" />
-          <TextInput label="Name starts with" placeholder="Run name" value={prefix} onChange={(e) => setPrefix(e.currentTarget.value)} maxLength={128} w={240} size="sm" />
+          {groups.data?.length ? (
+            <Select label="Whose runs" data={[{ value: 'all', label: 'Mine and my groups\'' }, { value: 'mine', label: 'Only mine' }, { value: 'shared', label: 'Only my groups\'' }]} value={scope} onChange={(v) => setScope((v as RunsScope | null) ?? 'all')} allowDeselect={false} w={190} size="sm" />
+          ) : null}
+          <TextInput label="Search by name" placeholder="Run name" value={prefix} onChange={(e) => setPrefix(e.currentTarget.value)} maxLength={128} w={240} size="sm" />
         </Group>
         <Stack gap={2} align="flex-end">
           <Group gap="xs">
@@ -111,7 +125,7 @@ const RunsTab = ({ onOpen, schedule = RUNS_POLL }: { onOpen: (id: string) => voi
           <ServiceLine />
         </Stack>
       </Group>
-      {q.error && !q.data ? <ErrorState error={q.error} onRetry={() => void q.refresh()} /> : !q.data ? <LoadingState rows={5} /> : (
+      {q.error && !q.data ? <ErrorState error={q.error} onRetry={() => void q.refresh()} what="Run history" /> : !q.data ? <LoadingState rows={5} /> : (
         <>
           {q.error ? <ErrorState error={q.error} onRetry={() => void q.refresh()} /> : null}
           <MantineReactTable table={table} />

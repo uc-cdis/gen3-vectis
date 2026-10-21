@@ -10,6 +10,8 @@ WORKDIR /gen3
 
 # Copy dependency files first for better caching
 COPY package.json package-lock.json ./
+# The install runs scripts/patch-gen3-workspaces.mjs (postinstall), so it must be present first.
+COPY scripts/patch-gen3-workspaces.mjs ./scripts/patch-gen3-workspaces.mjs
 
 # Install ALL dependencies once (including dev deps for build)
 RUN npm config set fetch-retries 5 && \
@@ -52,6 +54,7 @@ COPY ./start.sh ./
 COPY vitest.unit.setup.ts vitest.unit.config.mts ./
 
 # Build JupyterLite static assets (outputs to public/ before Next.js build)
+COPY scripts/build-gen3sdk-lite.sh ./scripts/build-gen3sdk-lite.sh
 RUN npm run build:jupyterlite
 
 # Build

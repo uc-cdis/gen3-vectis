@@ -24,6 +24,7 @@ const SourceLine = ({ c }: { c: CatalogResponse }) => (
     <Code>{c.sha ? c.sha.slice(0, 7) : '—'}</Code>
     <Text size="sm" c="dimmed">fetched</Text>
     <Time iso={c.fetched_at} />
+    {c.stale ? <Badge color="orange" variant="light" radius="sm" size="sm" title="The catalog source could not be reached just now">last loaded copy</Badge> : null}
   </Group>
 );
 
@@ -46,7 +47,7 @@ const JobCard = ({ def, onRun, onDetails }: { def: CatalogDef; onRun: () => void
         <Title order={4} style={{ overflowWrap: 'anywhere' }}>{def.name}</Title>
         {def.owner ? <Badge variant="outline" color="gray" radius="sm" size="sm" title="Owner">{def.owner}</Badge> : null}
       </Group>
-      <Group gap={4}><KindBadge def={def} /></Group>
+      <Group gap={4}><KindBadge def={def} />{isDagDef(def) && def.profile ? <Badge variant="outline" color="orange" radius="sm" size="sm" title="This job runs with extra access, and needs its own permission" data-testid="profile-badge">Runs as: {def.profile}</Badge> : null}</Group>
       <Text size="sm" c="dimmed" lineClamp={3}>{def.description || 'No description.'}</Text>
       {def.tags?.length ? <Group gap={4}>{def.tags.map((t) => <Badge key={t} variant="light" radius="sm" size="sm">{t}</Badge>)}</Group> : null}
       {isDagDef(def) ? (
@@ -102,9 +103,19 @@ export const JobDetailsDrawer = ({ def, onClose, onRun }: { def: CatalogDef; onC
   </Drawer>
 );
 
-const CatalogTab = ({ onRun, onDetails }: { onRun: (id: string) => void; onDetails: (id: string) => void }) => {
+const CatalogTab = ({ onRun, onDetails, onOpenRuns }: { onRun: (id: string) => void; onDetails: (id: string) => void; onOpenRuns?: () => void }) => {
   const q = useCatalog();
-  if (q.error && !q.data) return <ErrorState error={q.error} onRetry={() => void q.refresh()} />;
+  if (q.error && !q.data) {
+    return (
+      <Stack gap="xs">
+        <ErrorState error={q.error} onRetry={() => void q.refresh()} what="The job catalog" />
+        <Text size="sm" c="dimmed">
+          Catalog jobs can't be started right now, but existing runs are unaffected and the Run YAML tab doesn't need the catalog.
+          {onOpenRuns ? <> <Button variant="subtle" size="compact-sm" onClick={onOpenRuns}>Open Runs</Button></> : null}
+        </Text>
+      </Stack>
+    );
+  }
   if (!q.data) return <LoadingState rows={3} />;
   const c = q.data;
   if (!c.configured) {
@@ -112,7 +123,7 @@ const CatalogTab = ({ onRun, onDetails }: { onRun: (id: string) => void; onDetai
       <div data-testid="catalog-unconfigured">
         <EmptyState
           title="The job catalog is not configured"
-          hint="An administrator sets the catalog repository (the TES_CATALOG_REPO setting, plus optionally TES_CATALOG_PATH, TES_CATALOG_REF and, for private repositories, TES_CATALOG_GITHUB_TOKEN) on the portal. Until then there are no jobs to run."
+          hint="An administrator points the portal at the job catalog (the JOBS_CATALOG_URL setting for the catalog service, or the TES_CATALOG_REPO setting for a GitHub repository). Until then there are no jobs to run."
         />
       </div>
     );

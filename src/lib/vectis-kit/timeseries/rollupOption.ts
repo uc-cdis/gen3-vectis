@@ -78,6 +78,8 @@ interface BuildOptions {
   /** Enable the time-range brush (toolbox + brush config). */
   brush?: boolean;
   maxGroups?: number;
+  /** Stack grouped series as areas instead of separate lines. */
+  stacked?: boolean;
 }
 
 export function buildRollupOption(points: readonly TimelinePoint[], opts: BuildOptions): RollupOption {
@@ -100,7 +102,11 @@ export function buildRollupOption(points: readonly TimelinePoint[], opts: BuildO
     }
   } else {
     for (const g of prep.groups) {
-      series.push({ name: g.key === '' ? NO_GROUP_LABEL : g.key, type: 'line', yAxisIndex: 0, data: g.events, showSymbol: g.events.length <= 1, symbolSize: 6, lineStyle: { width: 1.75 }, emphasis: { focus: 'series' } });
+      series.push({
+        name: g.key === '' ? NO_GROUP_LABEL : g.key, type: 'line', yAxisIndex: 0, data: g.events, showSymbol: g.events.length <= 1, symbolSize: 6,
+        // Stacked: the top edge is the total.
+        ...(opts.stacked ? { stack: 'events', areaStyle: { opacity: 0.6 }, lineStyle: { width: 1 }, emphasis: { focus: 'series' } } : { lineStyle: { width: 1.75 }, emphasis: { focus: 'series' } }),
+      });
     }
   }
 

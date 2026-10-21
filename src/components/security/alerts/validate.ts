@@ -32,7 +32,7 @@ export function validateIndicator(type: IocType, raw: string): string | null {
   if (!v) return 'Enter the indicator value.';
   if (v.length > LIMITS.value) return `Keep the value under ${LIMITS.value} characters.`;
   if (hasControlChars(v)) return 'The value contains characters that are not allowed.';
-  return matchesIocType(type, v) ? null : `That is not a valid ${type === 'url' ? 'http(s) URL' : type === 'hash' ? 'hash (32 to 128 hex characters)' : type}.`;
+  return matchesIocType(type, v) ? null : `That is not a valid ${type === 'url' ? 'http(s) URL' : type === 'hash' ? 'hash (32 to 128 hex characters)' : type === 'path' ? 'URI path (starts with /, no query string)' : type === 'stix' ? 'STIX pattern, like [domain-name:value = \'example.com\']' : type}.`;
 }
 
 export function validateConfidence(raw: string): string | null {

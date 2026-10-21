@@ -1,6 +1,10 @@
 /* GENERATED from the siem-app contract (scripts/export_frontend.py). Do not edit by hand. */
 
 export interface SiemContract {
+  AccountNames?: AccountNames;
+  AggregateRequest?: AggregateRequest;
+  AggregateResponse?: AggregateResponse;
+  AggregateRow?: AggregateRow;
   AiSummaryResponse?: AiSummaryResponse;
   AlertBulkRequest?: AlertBulkRequest;
   AlertBulkResponse?: AlertBulkResponse;
@@ -49,6 +53,7 @@ export interface SiemContract {
   IndicatorResolveRequest?: IndicatorResolveRequest;
   IndicatorResolveResponse?: IndicatorResolveResponse;
   Neighbor?: Neighbor;
+  OriginBucket?: OriginBucket;
   OverviewRequest?: OverviewRequest;
   OverviewResponse?: OverviewResponse;
   OverviewTotals?: OverviewTotals;
@@ -88,6 +93,97 @@ export interface SiemContract {
   WhyResponse?: WhyResponse;
   WhyRule?: WhyRule;
   WhySequence?: WhySequence;
+}
+/**
+ * Friendly names for account ids and source systems; an id with no entry is shown as itself.
+ *
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "AccountNames".
+ */
+export interface AccountNames {
+  accounts?: {
+    /**
+     * This interface was referenced by `undefined`'s JSON-Schema definition
+     * via the `patternProperty` "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$".
+     */
+    [k: string]: string;
+  };
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "AggregateRequest".
+ */
+export interface AggregateRequest {
+  /**
+   * @maxItems 20
+   */
+  filters?: FilterClause[];
+  /**
+   * @minItems 1
+   * @maxItems 2
+   */
+  group_by: string[];
+  index_name: string;
+  /**
+   * Values of the first column kept, by total count
+   */
+  top_n?: number;
+  window: TimeWindow;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "FilterClause".
+ */
+export interface FilterClause {
+  field: string;
+  op: "eq" | "neq" | "in" | "gte" | "lte" | "contains";
+  value: string | number | boolean | (string | number)[];
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "TimeWindow".
+ */
+export interface TimeWindow {
+  end: string;
+  start: string;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "AggregateResponse".
+ */
+export interface AggregateResponse {
+  as_of: string;
+  group_by: string[];
+  index_name: string;
+  /**
+   * @maxItems 20
+   */
+  notes?: string[];
+  /**
+   * @maxItems 5000
+   */
+  rows: AggregateRow[];
+  /**
+   * Events counted in the window, including values not returned
+   */
+  total: number;
+  /**
+   * True when values beyond the top ones were left out
+   */
+  truncated: boolean;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "AggregateRow".
+ */
+export interface AggregateRow {
+  count: number;
+  /**
+   * One value per group_by column, in order
+   *
+   * @maxItems 2
+   */
+  values: (string | null)[];
 }
 /**
  * The AI analyst slot. The producer is behind the AI gateway and arrives later; the UI renders every state.
@@ -205,6 +301,23 @@ export interface AlertGroup {
   novelty_class?: ("normal" | "drift" | "anomaly") | null;
   novelty_score?: number | null;
   occurrence_count: number;
+  origin_account?: string | null;
+  /**
+   * @maxItems 20
+   */
+  origin_accounts?: string[];
+  /**
+   * @maxItems 20
+   */
+  origin_environments?: string[];
+  /**
+   * @maxItems 5
+   */
+  origin_hosts?: string[];
+  /**
+   * @maxItems 20
+   */
+  origin_sources?: string[];
   robust_zscore?: number | null;
   rule_id?: string | null;
   severity: "info" | "low" | "medium" | "high" | "critical";
@@ -233,7 +346,7 @@ export interface AlertGroup {
  * via the `definition` "EntitySeed".
  */
 export interface EntitySeed {
-  type: "ip" | "domain" | "url" | "hash" | "email" | "host" | "user" | "session" | "arn";
+  type: "ip" | "domain" | "url" | "hash" | "email" | "path" | "host" | "user" | "session" | "arn";
   value: string;
 }
 /**
@@ -261,28 +374,11 @@ export interface AlertsRequest {
 }
 /**
  * This interface was referenced by `SiemContract`'s JSON-Schema
- * via the `definition` "FilterClause".
- */
-export interface FilterClause {
-  field: string;
-  op: "eq" | "neq" | "in" | "gte" | "lte" | "contains";
-  value: string | number | boolean | (string | number)[];
-}
-/**
- * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "Paging".
  */
 export interface Paging {
   limit?: number;
   offset?: number;
-}
-/**
- * This interface was referenced by `SiemContract`'s JSON-Schema
- * via the `definition` "TimeWindow".
- */
-export interface TimeWindow {
-  end: string;
-  start: string;
 }
 /**
  * This interface was referenced by `SiemContract`'s JSON-Schema
@@ -394,7 +490,7 @@ export interface CaseRef {
 export interface CatalogResponse {
   as_of: string;
   /**
-   * @maxItems 20
+   * @maxItems 64
    */
   indexes: IndexCatalog[];
 }
@@ -403,11 +499,12 @@ export interface CatalogResponse {
  * via the `definition` "IndexCatalog".
  */
 export interface IndexCatalog {
+  category?: "events" | "findings" | "entities" | "threat_intel";
   /**
    * @maxItems 300
    */
   columns: ColumnMeta[];
-  index_name: "http_activity" | "api_activity" | "authentication" | "audit_event" | "network_activity";
+  index_name: string;
   label: string;
   time_field: string;
 }
@@ -470,7 +567,7 @@ export interface DecisionResponse {
  * via the `definition` "EntityProfileRequest".
  */
 export interface EntityProfileRequest {
-  type: "ip" | "domain" | "url" | "hash" | "email" | "host" | "user" | "session" | "arn";
+  type: "ip" | "domain" | "url" | "hash" | "email" | "path" | "host" | "user" | "session" | "arn";
   value: string;
   window?: TimeWindow | null;
 }
@@ -509,7 +606,7 @@ export interface EntityProfileResponse {
    * @maxItems 20
    */
   sources?: Bucket[];
-  type: "ip" | "domain" | "url" | "hash" | "email" | "host" | "user" | "session" | "arn";
+  type: "ip" | "domain" | "url" | "hash" | "email" | "path" | "host" | "user" | "session" | "arn";
   value: string;
 }
 /**
@@ -551,7 +648,7 @@ export interface IndicatorMatch {
   /**
    * None when the indicator could not be read, so its type is not known
    */
-  type?: ("ip" | "domain" | "url" | "hash" | "email") | null;
+  type?: ("ip" | "domain" | "url" | "hash" | "email" | "path" | "stix") | null;
   valid_from?: string | null;
   valid_until?: string | null;
   value: string;
@@ -601,7 +698,7 @@ export interface FacetsRequest {
    * @maxItems 20
    */
   filters?: FilterClause[];
-  index_name: "http_activity" | "api_activity" | "authentication" | "audit_event" | "network_activity";
+  index_name: string;
   top_n?: number;
   window: TimeWindow;
 }
@@ -615,7 +712,7 @@ export interface FacetsResponse {
    * @maxItems 12
    */
   facets: FacetResult[];
-  index_name: "http_activity" | "api_activity" | "authentication" | "audit_event" | "network_activity";
+  index_name: string;
   /**
    * e.g. 'counted over the first 100,000 rows read'
    *
@@ -676,6 +773,15 @@ export interface FindSimilarResponse {
 export interface SimilarHit {
   distance: number;
   group_id: string;
+  origin_account?: string | null;
+  /**
+   * @maxItems 20
+   */
+  origin_environments?: string[];
+  /**
+   * @maxItems 20
+   */
+  origin_sources?: string[];
   severity: "info" | "low" | "medium" | "high" | "critical";
   title: string;
 }
@@ -831,7 +937,7 @@ export interface QuerySpec {
   filters?: FilterClause[];
   grain?: ("1m" | "5m" | "1h") | null;
   hops?: number;
-  index_name: "http_activity" | "api_activity" | "authentication" | "audit_event" | "network_activity";
+  index_name: string;
   seed?: EntitySeed | null;
   sort?: SortSpec | null;
   window: TimeWindow;
@@ -912,6 +1018,20 @@ export interface Neighbor {
   title: string;
 }
 /**
+ * One place a sampled request came from: the account (or source system), the feed that logged it, the deployment label
+ * and the host it was addressed to. ``None`` means the record did not say.
+ *
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "OriginBucket".
+ */
+export interface OriginBucket {
+  account?: string | null;
+  count: number;
+  environment?: string | null;
+  host?: string | null;
+  source?: string | null;
+}
+/**
  * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "OverviewRequest".
  */
@@ -964,6 +1084,10 @@ export interface OverviewTotals {
    * None when the audit source has no data at all (unmeasured, not zero)
    */
   audit?: number | null;
+  /**
+   * Events in the window across every event index
+   */
+  events?: number | null;
   /**
    * Alert groups of tier ioc that overlap the window: alerts that matched an indicator
    */
@@ -1063,7 +1187,7 @@ export interface RowsRequest {
    * @maxItems 20
    */
   filters?: FilterClause[];
-  index_name: "http_activity" | "api_activity" | "authentication" | "audit_event" | "network_activity";
+  index_name: string;
   paging?: Paging;
   sort?: SortSpec | null;
   window: TimeWindow;
@@ -1075,7 +1199,7 @@ export interface RowsRequest {
 export interface RowsResponse {
   as_of: string;
   columns: string[];
-  index_name: "http_activity" | "api_activity" | "authentication" | "audit_event" | "network_activity";
+  index_name: string;
   /**
    * @maxItems 5000
    */
@@ -1190,7 +1314,7 @@ export interface TimelineRequest {
    * @maxItems 3
    */
   group_by?: string[];
-  index_name?: "http_activity" | "api_activity" | "authentication" | "audit_event" | "network_activity";
+  index_name?: string;
   window: TimeWindow;
 }
 /**
@@ -1268,7 +1392,7 @@ export interface WatchlistEntry {
   confidence?: number;
   expires_at?: string | null;
   note?: string;
-  type: "ip" | "domain" | "url" | "hash" | "email";
+  type: "ip" | "domain" | "url" | "hash" | "email" | "path" | "stix";
   value: string;
 }
 /**
@@ -1344,6 +1468,12 @@ export interface WhyEvidence {
    * @maxItems 8
    */
   not_measured?: string[];
+  /**
+   * Where the SAMPLED requests came from (account, feed, deployment label, host), most first
+   *
+   * @maxItems 10
+   */
+  origins?: OriginBucket[];
   /**
    * @maxItems 5
    */

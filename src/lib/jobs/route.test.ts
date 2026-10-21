@@ -210,6 +210,19 @@ describe('task submission policy (prepareTask)', () => {
   });
 });
 
+describe('a Fence token with no email (the usual case for some identity providers)', () => {
+  const deps = {
+    loginStatus: async () => ({ status: 'issued', userContext: { name: 'ann@example.org', email: null, display_name: 'Ann Smith' } }),
+    accessToken: () => 't', resources: async () => ['/p/jobs'], routeConfig: async () => ({ routes: { '/Jobs': { authz: ['/p/jobs'] } } }), production: true,
+  } as never;
+  it('is let in by the Fence username with the Dagu identity order', async () => {
+    expect(await authorize('c', deps, '/Jobs', ['name', 'email', 'username'])).toMatchObject({ ok: true, user: 'ann@example.org' });
+  });
+  it('was refused before: email-or-username only finds nobody', async () => {
+    expect(await authorize('c', deps, '/Jobs', ['email', 'username'])).toMatchObject({ ok: false, status: 401 });
+  });
+});
+
 describe('authorize (real logic) for the Jobs keys', () => {
   const deps = (granted: string[], routes: Record<string, unknown>) => ({
     loginStatus: vi.fn(async () => ({ status: 'issued', userContext: { name: 'Ann' } })),

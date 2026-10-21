@@ -15,6 +15,10 @@ interface LaunchDag {
   dag_name: string;
   /** param name -> value, every value already passed checkParam and the strict charset for DAG params */
   params: Record<string, string>;
+  /** operator-defined profile the catalog entry asked for (what the job pods run as); the runner checks it against its own table */
+  profile?: string;
+  /** values the job pod receives as environment variables, entered by the user for this run only (`secret` params). They are never in `params`, the command, a label or a log. */
+  secret_env?: Array<{ name: string; value: string }>;
 }
 export interface LaunchSpec {
   name: string;

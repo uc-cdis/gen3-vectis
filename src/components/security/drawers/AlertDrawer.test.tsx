@@ -20,18 +20,27 @@ const pick = (label: string) => screen.getAllByLabelText(label).find((e) => e.ta
 const ai = (o: object) => () => o;
 
 describe('AlertDrawer', () => {
-  it('shows the header, key facts, evidence as text, and techniques', async () => {
+  it('shows the header, key facts and techniques, and no evidence pointer', async () => {
     mount('g-progression-a');
     const dialog = await screen.findByRole('dialog');
     expect(await within(dialog).findByText('Recon followed by successful exploitation from one address')).toBeInTheDocument();
     expect(within(dialog).getByText('Critical')).toBeInTheDocument();
     expect(within(dialog).getAllByText('actor-progression').length).toBeGreaterThan(0);
     expect(within(dialog).getByRole('table', { name: 'Key facts' })).toBeInTheDocument();
-    const ev = within(dialog).getByTestId('evidence-uri');
-    expect(ev).toHaveTextContent('drs://vectis-tenant1/raw/waf/g-progression-a');
-    expect(ev.closest('a')).toBeNull();
-    expect(within(dialog).getByRole('button', { name: 'Copy the evidence location' })).toBeInTheDocument();
+    // evidence_uri is drs://<bucket>/<key>, not a DRS id, so it is hidden for now.
+    expect(within(dialog).queryByTestId('evidence-uri')).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: 'Copy the evidence location' })).toBeNull();
     expect(within(dialog).getAllByRole('group', { name: 'Techniques' })[0]).toHaveTextContent('T1190');
+  });
+
+  it('says where the alert came from: account, environment, feed and host, and the same for the sampled requests', async () => {
+    mount('g-arg-injection');
+    const dialog = await screen.findByRole('dialog');
+    expect((await within(dialog).findAllByText('Where it came from')).length).toBeGreaterThan(0);
+    expect(await within(dialog).findAllByText(/\(\d{12}\)|gdc_f5|Data commons F5/)).not.toHaveLength(0);
+    const evidence = await within(dialog).findByRole('table', { name: 'Where the requests came from' });
+    expect(within(evidence).getByText('Production platform (111122223333)')).toBeInTheDocument();
+    expect(within(evidence).getAllByText('portal.example.org').length).toBeGreaterThan(0);
   });
 
   it('shows the plain-language verdict in the sticky summary at the top of the drawer', async () => {
@@ -43,6 +52,17 @@ describe('AlertDrawer', () => {
     const dialog = screen.getByRole('dialog');
     const all = [...dialog.querySelectorAll('[data-testid="alert-summary"], [data-testid="why-indicator"]')].map((n) => n.getAttribute('data-testid'));
     expect(all).toEqual(['alert-summary', 'why-indicator']);
+  });
+
+  it('states the verdict once: the explanation below does not repeat the summary', async () => {
+    mount('g-ioc-match');
+    const summary = await screen.findByTestId('alert-summary');
+    await waitFor(() => expect(within(summary).getByTestId('summary-verdict')).toBeInTheDocument());
+    const text = within(summary).getByTestId('summary-verdict').textContent ?? '';
+    const dialog = screen.getByRole('dialog');
+    await waitFor(() => expect(within(dialog).getByTestId('why-indicator')).toBeInTheDocument());
+    expect(within(dialog).queryByTestId('why-verdict')).toBeNull();
+    expect((dialog.textContent ?? '').split(text).length - 1).toBe(1);
   });
 
   it('does not raise the alarm for an indicator-only alert that was allowed', async () => {
@@ -196,9 +216,21 @@ describe('AlertDrawer', () => {
       await screen.findByRole('button', { name: 'Record disposition' });
       await userEvent.click(pick('Disposition'));
       await userEvent.click(await screen.findByRole('option', { name: 'True positive', hidden: true }));
+      // the service refuses a closing disposition without a reason (422), so the button waits for one
+      expect(screen.getByRole('button', { name: 'Record disposition' })).toBeDisabled();
+      await userEvent.type(screen.getByLabelText(/Comment/), 'Confirmed scanner');
       await userEvent.click(screen.getByRole('button', { name: 'Record disposition' }));
       await waitFor(() => expect(t.callsTo('decision')).toHaveLength(1));
-      expect(t.callsTo('decision')[0]![1].body).toMatchObject({ group_id: 'g-env-200', disposition: 'true_positive' });
+      expect(t.callsTo('decision')[0]![1].body).toMatchObject({ group_id: 'g-env-200', disposition: 'true_positive', comment: 'Confirmed scanner' });
+    });
+
+    it('lets an unknown disposition through without a comment', async () => {
+      const t = mount('g-env-200');
+      await screen.findByRole('button', { name: 'Record disposition' });
+      await userEvent.click(pick('Disposition'));
+      await userEvent.click(await screen.findByRole('option', { name: 'Unknown', hidden: true }));
+      await userEvent.click(screen.getByRole('button', { name: 'Record disposition' }));
+      await waitFor(() => expect(t.callsTo('decision')).toHaveLength(1));
     });
 
     it('validates the watchlist entry, then submits it', async () => {

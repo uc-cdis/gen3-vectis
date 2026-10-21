@@ -1,17 +1,18 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { cloneDeep } from 'lodash';
-import { Alert, Badge, Button, Code, Group, List, Modal, Select, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core';
+import { Alert, Badge, Button, Code, Group, List, Modal, PasswordInput, Select, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core';
 import { compileJob } from '@/lib/jobs/jobdef/compile';
 import { checkParam } from '@/lib/jobs/jobdef/params';
 import { usesUserBucket } from '@/lib/jobs/jobdef/templates';
 import type { CatalogDef, JobParam } from '@/lib/jobs/jobdef/types';
 import { isDagDef } from '@/lib/jobs/jobdef/types';
-import { checkDagParam } from '@/lib/jobs/dagu/params';
+import { checkDagParam, checkSecretValue } from '@/lib/jobs/dagu/params';
 import { sanitizeText } from '@/lib/safe-text';
 import type { SubmitResult } from '@/lib/jobs/api';
 import { JobsApiError } from '@/lib/jobs/api';
 import { useJobsApi, useJobsInvalidate, useJobsQuery } from '@/lib/jobs/api/hooks';
 import { argvText, resourcesText } from './model';
+import RunChoices, { useRunChoices } from './RunChoices';
 
 type Values = Record<string, string | boolean>;
 
@@ -23,7 +24,7 @@ function initialValues(params: readonly JobParam[]): Values {
 /** null = fine. Empty optional values are omitted (the job's default applies). */
 export function paramError(p: JobParam, v: string | boolean | undefined, dag = false): string | null {
   if (v === undefined || v === '') return p.required ? 'This field is required.' : null;
-  const c = dag ? checkDagParam(p, v) : checkParam(p, v); // a workflow job also gets the strict "safe in a shell" check
+  const c = p.type === 'secret' ? checkSecretValue(p, v) : dag ? checkDagParam(p, v) : checkParam(p, v); // a workflow job also gets the strict "safe in a shell" check
   return c.ok ? null : c.error.replace(/^[^:]*:\s*/, '').replace(/^./, (x) => x.toUpperCase()) + (c.error.endsWith('.') ? '' : '.');
 }
 
@@ -36,6 +37,13 @@ export function paramsToSend(params: readonly JobParam[], v: Values): Record<str
     out[p.name] = p.type === 'integer' || p.type === 'number' ? Number(x) : p.type === 'boolean' ? x === true || x === 'true' : String(x);
   }
   return out;
+}
+
+/** The parameters as they may be shown on screen: a secret is never displayed. */
+export function paramsToShow(params: readonly JobParam[], v: Values): Record<string, string | number | boolean> {
+  const sent = paramsToSend(params, v);
+  for (const p of params) if (p.type === 'secret' && p.name in sent) sent[p.name] = '••••••••';
+  return sent;
 }
 
 /** The message shown for a failed submit. Server text is shown as plain text only. */
@@ -51,6 +59,20 @@ const ParamField = ({ p, value, error, onChange, onBlur }: { p: JobParam; value:
   const common = { label: p.label, description: p.description, required: p.required, error, onBlur, 'data-param': p.name } as const;
   if (p.type === 'boolean') return <Switch label={p.label} description={p.description} checked={value === true} onChange={(e) => onChange(e.currentTarget.checked)} />;
   if (p.type === 'enum') return <Select {...common} data={p.values ?? []} value={typeof value === 'string' && value ? value : null} onChange={(v) => onChange(v ?? '')} allowDeselect={!p.required} />;
+  if (p.type === 'secret') {
+    return (
+      <PasswordInput
+        {...common}
+        description={[p.description, 'Used for this run only: it is passed to the job as an environment variable, is not shown on the run page and is not kept in the catalog.'].filter(Boolean).join(' · ')}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(e) => onChange(e.currentTarget.value)}
+        autoComplete="new-password"
+        spellCheck={false}
+        data-1p-ignore
+        data-lpignore="true"
+      />
+    );
+  }
   const numeric = p.type === 'integer' || p.type === 'number';
   const hint = [p.min !== undefined ? `min ${p.min}` : null, p.max !== undefined ? `max ${p.max}` : null].filter(Boolean).join(', ');
   return (
@@ -93,6 +115,7 @@ const RunDialog = ({ job, repo, sha, onClose, onSubmitted }: Props) => {
   const inFlight = useRef(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const pick = useRunChoices();
 
   const dag = isDagDef(job);
   const needsBucket = !dag && usesUserBucket(job);
@@ -115,7 +138,7 @@ const RunDialog = ({ job, repo, sha, onClose, onSubmitted }: Props) => {
     setPending(true);
     setFailure(null);
     try {
-      const r = await api.submitJob({ job: job.id, params: paramsToSend(params, values) });
+      const r = await api.submitJob({ job: job.id, params: paramsToSend(params, values), ...(dag ? pick.choices : {}) });
       setWarnings(r.warnings);
       await invalidate('runs');
       onSubmitted(r);
@@ -130,6 +153,7 @@ const RunDialog = ({ job, repo, sha, onClose, onSubmitted }: Props) => {
   return (
     <Modal opened onClose={onClose} size="xl" title={<Text fw={700}>Run: {job.name}</Text>} closeOnClickOutside={!pending} closeOnEscape={!pending} returnFocus>
       <form onSubmit={(e) => { e.preventDefault(); void submit(); }} noValidate aria-label={`Run ${job.name}`}>
+        {dag ? <RunChoices title={pick.title} group={pick.group} onTitle={pick.setTitle} onGroup={pick.setGroup} disabled={pending} /> : null}
         <SimpleGrid cols={{ base: 1, md: params.length ? 2 : 1 }} spacing="lg">
           {params.length ? (
             <Stack gap="sm">
@@ -156,8 +180,8 @@ const RunDialog = ({ job, repo, sha, onClose, onSubmitted }: Props) => {
             {dag && !invalid ? (
               <>
                 <Group gap="xs"><Badge variant="light" color="grape" radius="sm">{`Workflow · ${job.engine}`}</Badge><Text size="sm">{job.graph?.length ?? 0} steps</Text></Group>
-                <Text size="sm">Parameters sent: {Object.keys(paramsToSend(params, values)).length ? <Code>{JSON.stringify(paramsToSend(params, values))}</Code> : 'none'}</Text>
-                <Text size="xs" c="dimmed">The workflow runs on the workflow server exactly as written in the catalog; only these parameter values are yours. The run is tagged with your identity and only you can see it.</Text>
+                <Text size="sm">Parameters sent: {Object.keys(paramsToShow(params, values)).length ? <Code>{JSON.stringify(paramsToShow(params, values))}</Code> : 'none'}</Text>
+                <Text size="xs" c="dimmed">The workflow runs on the workflow server exactly as written in the catalog; only these parameter values are yours. {pick.group ? `The ${pick.group} group owns the run: every member can see it and its results.` : 'The run is tagged with your identity and only you can see it.'}</Text>
               </>
             ) : null}
             {!dag && !compiled ? <Text size="sm" c="dimmed">Fix the highlighted fields to see exactly what will run.</Text> : null}

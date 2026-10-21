@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Accordion, Alert, Badge, Button, Code, Drawer, Group, Modal, Stack, Table, Tabs, Text, Title } from '@mantine/core';
+import { Accordion, ActionIcon, Alert, Badge, Button, Code, Drawer, Group, Modal, Stack, Table, Tabs, Text, TextInput, Title, Tooltip } from '@mantine/core';
+import { IconPencil } from '@tabler/icons-react';
 import type { Run } from '@/lib/jobs/model';
 import { JobsApiError } from '@/lib/jobs/api';
 import { useJobsApi, useJobsInvalidate, useJobsQuery } from '@/lib/jobs/api/hooks';
@@ -8,8 +9,10 @@ import Time from '@/lib/vectis-kit/ui/Time';
 import { formatBytes, formatDuration } from '@/lib/vectis-kit/ui/format';
 import { EmptyState, LoadingState, Panel } from '@/lib/vectis-kit/ui/primitives';
 import { CopyIcon } from '@/lib/vectis-kit/ui/primitives';
-import { ErrorState, StateBadge, TextBlock } from './common';
+import { ErrorState, OwnerBadges, StateBadge, TextBlock } from './common';
+import { TITLE_MAX } from './RunChoices';
 import { FlowDiagram } from './FlowDiagram';
+import ResultsPanel from './ResultsPanel';
 import { flowFromRun } from './flow';
 import type { PollPhase } from './model';
 import { DRAWER_POLL, isCancellable, isTerminal, lastLines, resourcesText } from './model';
@@ -148,7 +151,7 @@ const Body = ({ t, onCancel }: { t: Run; onCancel: () => void }) => {
           <Accordion.Panel>{sys.length ? <TextBlock label="System logs" text={sys.join('\n')} /> : <Text size="sm" c="dimmed">No system logs.</Text>}</Accordion.Panel>
         </Accordion.Item>
       </Accordion>
-      {isCancellable(t.state) ? <Group><Button color="red" variant="light" onClick={onCancel}>Cancel run</Button></Group> : null}
+      {isCancellable(t.state) && !t.archived ? <Group><Button color="red" variant="light" onClick={onCancel}>Cancel run</Button></Group> : null}
     </Stack>
   );
 };
@@ -175,12 +178,39 @@ const CancelDialog = ({ t, onClose, onDone }: { t: Run; onClose: () => void; onD
   );
 };
 
+/** Give the run a name, or clear it. Anyone who may see the run may name it (a group's run: any member). */
+const RenameDialog = ({ t, onClose, onDone }: { t: Run; onClose: () => void; onDone: () => void }) => {
+  const api = useJobsApi();
+  const [value, setValue] = useState(t.title ?? '');
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const save = async () => {
+    setPending(true); setError(null);
+    try { await api.renameRun(t.id, value.trim()); onDone(); } catch (e) { setError(e instanceof JobsApiError && e.status >= 400 && e.status < 500 ? e.message : 'The name could not be saved. Try again in a moment.'); } finally { setPending(false); }
+  };
+  return (
+    <Modal opened onClose={onClose} title={<Text fw={700}>Name this run</Text>} closeOnClickOutside={!pending} size="sm">
+      <form onSubmit={(e) => { e.preventDefault(); void save(); }}>
+        <Stack gap="sm">
+          <TextInput label="Name" description="Shown in the Runs list. Leave it empty to remove the name." value={value} onChange={(e) => setValue(e.currentTarget.value)} maxLength={TITLE_MAX} autoFocus data-autofocus />
+          {error ? <Alert color="red" role="alert">{error}</Alert> : null}
+          <Group justify="flex-end">
+            <Button variant="default" onClick={onClose} disabled={pending}>Cancel</Button>
+            <Button type="submit" loading={pending}>Save</Button>
+          </Group>
+        </Stack>
+      </form>
+    </Modal>
+  );
+};
+
 const RunDrawer = ({ id, onClose, schedule = DRAWER_POLL }: { id: string; onClose: () => void; schedule?: readonly PollPhase[] }) => {
   const invalidate = useJobsInvalidate();
   const q = useJobsQuery<Run>('run', [id, 'full'], (a) => a.getRun(id, 'full'), {
-    poll: { phases: schedule, active: (d) => !!d && !isTerminal(d.state) }, // this run only; stops once it finishes or the drawer closes
+    poll: { phases: schedule, active: (d) => !!d && !isTerminal(d.state) && !d.archived }, // this run only; stops once it finishes, is archived or the drawer closes
   });
   const [confirm, setConfirm] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const t = q.data;
   return (
     <Drawer
@@ -188,9 +218,12 @@ const RunDrawer = ({ id, onClose, schedule = DRAWER_POLL }: { id: string; onClos
       title={(
         <Stack gap={2} aria-label={`Run ${id}`}>
           <Group gap="xs">
-            <Title order={4} component="span" style={{ overflowWrap: 'anywhere' }}>{t ? t.name || t.id : 'Run'}</Title>
+            <Title order={4} component="span" style={{ overflowWrap: 'anywhere' }}>{t ? t.title || t.name || t.id : 'Run'}</Title>
             {t ? <StateBadge run={t} /> : null}
+            {t ? <OwnerBadges run={t} /> : null}
+            {t?.title ? <Code>{t.name}</Code> : null}
             {t?.job ? <Code>{t.job}</Code> : null}
+            {t ? <Tooltip label={t.title ? 'Rename this run' : 'Name this run'} withArrow><ActionIcon variant="subtle" aria-label="Name this run" onClick={() => setRenaming(true)}><IconPencil size={16} /></ActionIcon></Tooltip> : null}
           </Group>
           <Group gap={4}><Text size="xs" c="dimmed">Run id</Text><Code>{id}</Code><CopyIcon value={id} what="run id" /></Group>
         </Stack>
@@ -206,9 +239,16 @@ const RunDrawer = ({ id, onClose, schedule = DRAWER_POLL }: { id: string; onClos
                 <Group justify="space-between"><Text size="sm">Paused: refresh to resume</Text><Button size="xs" variant="default" onClick={() => void q.refresh()}>Refresh</Button></Group>
               </Alert>
             ) : null}
+            {t.archived ? (
+              <Alert color="gray" title="The workflow server no longer has this run" data-testid="archived-note">
+                <Text size="sm">What is shown was saved by Vectis: the run's state when it was last seen ({t.state === 'unknown' ? 'it was still unfinished' : t.state}) and its results below. The step logs are not kept here.</Text>
+              </Alert>
+            ) : null}
             <Body t={t} onCancel={() => setConfirm(true)} />
+            <ResultsPanel run={t} />
           </Stack>
         )}
+      {t && renaming ? <RenameDialog t={t} onClose={() => setRenaming(false)} onDone={() => { setRenaming(false); void q.refresh(); void invalidate('runs'); }} /> : null}
       {t && confirm ? <CancelDialog t={t} onClose={() => setConfirm(false)} onDone={() => { setConfirm(false); void q.refresh(); void invalidate('runs'); }} /> : null}
     </Drawer>
   );

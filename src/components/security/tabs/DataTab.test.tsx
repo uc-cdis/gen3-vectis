@@ -54,6 +54,53 @@ describe('DataTab', () => {
     await waitFor(() => expect(screen.queryByTestId('filter-chip')).toBeNull());
   });
 
+  it('the copied Python is the query the grid is showing: same index, window, filters, columns and sort', async () => {
+    const seen: { body: { index_name: string; window: { start: string; end: string }; filters: { field: string; value: unknown }[]; columns: string[]; sort?: { field: string } } }[] = [];
+    const api = wrap((name, input) => { if (name === 'rows') seen.push(input as never); return undefined; });
+    const written: string[] = [];
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText: async (s: string) => { written.push(s); } } });
+    try {
+      renderSecurity(<DataTab />, { url: '/Security?tab=data', api });
+      await waitFor(() => screen.getByTestId('grid-mock'));
+      const copyPython = async () => {
+        written.length = 0;
+        await userEvent.click(screen.getByRole('button', { name: 'Use this query elsewhere' }));
+        // hidden: true because the dropdown is still mid-transition (inline display) when the data page is this busy.
+        const items = await screen.findAllByRole('menuitem', { hidden: true });
+        await userEvent.click(items.find((e) => (e.textContent ?? '').startsWith('Copy as Python'))!);
+        await waitFor(() => expect(written).toHaveLength(1));
+        // Let the dropdown finish closing, or the next click on its button would close it instead of opening it.
+        await waitFor(() => expect(screen.queryAllByRole('menuitem', { hidden: true })).toHaveLength(0));
+        return written[0]!;
+      };
+
+      // Unfiltered: the code carries the window but no value filter. (rule_action is also a default column, so look for the value.)
+      const before = await copyPython();
+      expect(before).not.toContain('"BLOCK"');
+      expect(before).toContain('"rule_action"');
+
+      // Filtered in the UI: the next request, and the copied code, both carry it.
+      await userEvent.click(screen.getByRole('checkbox', { name: /^BLOCK/ }));
+      await waitFor(() => expect(screen.getAllByTestId('filter-chip')).toHaveLength(1));
+      await waitFor(() => expect(JSON.stringify(seen.at(-1))).toContain('"op":"eq","value":"BLOCK"'));
+      const body = seen.at(-1)!.body;
+      const code = await copyPython();
+      expect(code).toContain(`INDEX = "${body.index_name}"`);
+      expect(code).toContain(body.window.start);
+      expect(code).toContain(body.window.end);
+      expect(code).toMatch(/"=": \{\s*"rule_action": "BLOCK",?\s*\}/);
+      for (const c of body.columns) expect(code).toContain(`"${c}"`);
+      expect(code).toContain(body.sort ? `SORT_FIELD, SORT_ASCENDING = "${body.sort.field}"` : 'SORT_FIELD, SORT_ASCENDING = None');
+
+      // Remove the chip: the code goes back to unfiltered.
+      await userEvent.click(screen.getByRole('button', { name: /Remove filter: WAF action is BLOCK/ }));
+      await waitFor(() => expect(screen.queryByTestId('filter-chip')).toBeNull());
+      expect(await copyPython()).not.toContain('"BLOCK"');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('marks approximate counts with ~', async () => {
     renderSecurity(<DataTab />, { url: '/Security?tab=data' });
     await waitFor(() => expect(screen.getAllByText('~99').length).toBeGreaterThan(0));
@@ -78,6 +125,31 @@ describe('DataTab', () => {
     expect(within(group).getAllByText('PII').length).toBeGreaterThan(0);
   });
 
+  it('does not offer the DRS pointer columns, and never asks for them', async () => {
+    const base = createFixtureApi(0);
+    const rowBodies: { columns: string[] }[] = [];
+    const api = wrap((name, input) => {
+      if (name === 'rows') rowBodies.push((input as { body: { columns: string[] } }).body);
+      if (name !== 'catalog') return undefined;
+      return (base.call('catalog') as unknown as Promise<{ indexes: { columns: Record<string, unknown>[] }[] }>).then((c) => {
+        for (const [n, label] of [['evidence_uri', 'Evidence URI'], ['object_id', 'Object ID']] as const) {
+          c.indexes[0]!.columns.push({ name: n, label, type: 'string', description: '', enum_values: null, pii: false, default_visible: true, filterable: true, sortable: true });
+        }
+        return c;
+      });
+    });
+    renderSecurity(<DataTab />, { url: '/Security?tab=data', api });
+    await waitFor(() => expect(screen.getByTestId('grid-mock')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('tab', { name: /Columns/ }));
+    const group = screen.getByRole('group', { name: 'Columns' });
+    expect(within(group).getAllByRole('checkbox').length).toBeGreaterThan(3);
+    expect(within(group).queryByText('Evidence URI')).toBeNull();
+    expect(within(group).queryByText('Object ID')).toBeNull();
+    expect(rowBodies.length).toBeGreaterThan(0);
+    for (const b of rowBodies) expect(b.columns).not.toEqual(expect.arrayContaining(['evidence_uri']));
+    for (const b of rowBodies) expect(b.columns).not.toEqual(expect.arrayContaining(['object_id']));
+  });
+
   it('applying a saved view sets index, columns and filters', async () => {
     const view = {
       id: 'v1', title: 'Blocked only', kind: 'data', scope: 'shared',
@@ -90,7 +162,7 @@ describe('DataTab', () => {
     await userEvent.click(screen.getByRole('tab', { name: /Views/ }));
     await userEvent.click(await screen.findByRole('button', { name: /Blocked only/ }));
     await waitFor(() => expect(screen.getByTestId('filter-chip')).toHaveTextContent('WAF action is BLOCK'));
-    await waitFor(() => expect(seen.at(-1)?.body).toMatchObject({ index_name: 'http_activity', columns: ['src_ip', 'rule_action'] }));
+    await waitFor(() => expect(seen.at(-1)?.body).toMatchObject({ index_name: 'http_activity', columns: ['src_ip', 'source', 'rule_action'] }));
   });
 
   it('refuses to run a query with more than 20 filters and says why', async () => {

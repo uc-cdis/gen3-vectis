@@ -13,7 +13,7 @@ import { getPerspectiveClient } from './perspectiveRuntime';
 // After the runtime, so the Gen3 theme is declared later than Perspective's own themes.css.
 import styles from '@/styles/siem-perspective-theme.module.css';
 import type { PerspectiveGridProps } from './PerspectiveGrid';
-import { sanitizeLayout, toColumnar } from './tableModel';
+import { nextTableName, sanitizeLayout, settingsOpen, toColumnar } from './tableModel';
 
 /** `name` is the Perspective table the viewer shows. Each response gets a fresh name; the previous table is deleted. */
 type State = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'ready'; client: Client; name: string };
@@ -42,7 +42,6 @@ const PerspectiveGridInner = ({ columns, rows, meta, layout, sort, onSortChange,
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [attempt, setAttempt] = useState(0);
   const current = useRef<{ client: Client; name: string } | null>(null);
-  const seq = useRef(0);
   const schemaKey = columns.join('\u0000');
   const layoutKey = JSON.stringify(layout ?? null);
   const [userConfig, setUserConfig] = useState<ViewerConfigUpdate>({});
@@ -61,7 +60,7 @@ const PerspectiveGridInner = ({ columns, rows, meta, layout, sort, onSortChange,
       try {
         const client = await getPerspectiveClient();
         const { schema, data } = toColumnar(columns, rows, meta);
-        const name = `rows-${(seq.current += 1)}`;
+        const name = nextTableName();
         const table = await client.table(schema, { name });
         await table.update(data);
         if (cancelled) { void table.delete({ lazy: true }); return; }
@@ -127,6 +126,7 @@ const PerspectiveGridInner = ({ columns, rows, meta, layout, sort, onSortChange,
         onConfigUpdate={(c) => {
           const rest = { ...c };
           delete rest.table; // the table name is ours to set, never the user's
+          setOptions((open) => settingsOpen(c, open)); // follow the sidebar, or the next update closes it under the user
           setUserConfig(rest);
           const first = Array.isArray(c.sort) ? (c.sort[0] as unknown[] | undefined) : undefined;
           const next: SortSpec | null = first && typeof first[0] === 'string' && dirOf(first[1]) ? { field: first[0], dir: dirOf(first[1])! } : null;

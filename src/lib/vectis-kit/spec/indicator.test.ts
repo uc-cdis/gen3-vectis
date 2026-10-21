@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyIndicator, guessEntityType, isIpAddress, matchesIocType } from './indicator';
+import { classifyIndicator, entityTypeOf, guessEntityType, isIpAddress, matchesIocType, parseStixLookup } from './indicator';
 
 describe('isIpAddress', () => {
   it.each(['192.0.2.44', '0.0.0.0', '255.255.255.255', '2001:db8::1', '::1', '::', 'fe80::1:2', '::ffff:192.0.2.1', '2001:db8:0:0:0:0:0:1'])('accepts %s', (v) => expect(isIpAddress(v)).toBe(true));
@@ -37,4 +37,30 @@ describe('matchesIocType', () => {
     expect(matchesIocType('url', 'ftp://x.test/')).toBe(false);
     expect(matchesIocType('url', 'javascript:alert(1)')).toBe(false);
   });
+});
+
+describe('URI paths and STIX patterns', () => {
+  it.each(['/.env', '/wp-login.php', '/api/v1/users/42', '/'])('classifies %s as a path', (v) => expect(classifyIndicator(v)).toBe('path'));
+  it.each(['/a b', '/a?x=1', '/a#f', 'env', '/é'])('does not accept %s as a path', (v) => expect(matchesIocType('path', v)).toBe(false));
+  it.each(["[ipv4-addr:value = '8.8.4.4']", "[domain-name:value = 'a.example.com' OR domain-name:value = 'b.example.com']", "[file:hashes.'SHA-256' = 'ab']"])(
+    'classifies %s as a STIX pattern', (v) => expect(classifyIndicator(v)).toBe('stix'));
+  it.each(['[]', '[x]', 'ipv4-addr:value = 1', '[a b:c = 1]'])('does not accept %s as a STIX pattern', (v) => expect(matchesIocType('stix', v)).toBe(false));
+  it('a pattern is not an entity, and displays as the nearest entity type', () => {
+    expect(entityTypeOf('stix')).toBeNull();
+    expect(entityTypeOf('path')).toBe('path');
+    expect(guessEntityType("[ipv4-addr:value = '8.8.4.4']")).toBe('domain');
+    expect(guessEntityType('/.env')).toBe('path');
+  });
+  it('looks up the entity a single comparison names', () => {
+    expect(parseStixLookup("[ipv4-addr:value = '8.8.4.4']")).toEqual({ type: 'ip', value: '8.8.4.4' });
+    expect(parseStixLookup("[ domain-name:value = 'evil.example.com' ]")).toEqual({ type: 'domain', value: 'evil.example.com' });
+    expect(parseStixLookup("[url:value = 'https://a.example.com/x']")).toEqual({ type: 'url', value: 'https://a.example.com/x' });
+    expect(parseStixLookup("[x-http-request:uri_path = '/.env']")).toEqual({ type: 'path', value: '/.env' });
+    expect(parseStixLookup("[file:hashes.'SHA-256' = 'abc']")).toEqual({ type: 'hash', value: 'abc' });
+    expect(parseStixLookup("[file:hashes.SHA1 = 'abc']")).toEqual({ type: 'hash', value: 'abc' });
+  });
+  it.each([
+    "[ipv4-addr:value = '1.1.1.1' OR ipv4-addr:value = '2.2.2.2']", "[ipv4-addr:value = '1.1.1.1'] AND [domain-name:value = 'a.example.com']",
+    "[process:name = 'cmd.exe']", "ipv4-addr:value = '1.1.1.1'", "[ipv4-addr:value != '1.1.1.1']", "[ipv4-addr:value = '']", "[ipv4-addr:value = 'a\\'b']",
+  ])('refuses %s', (v) => expect(parseStixLookup(v)).toHaveProperty('error'));
 });

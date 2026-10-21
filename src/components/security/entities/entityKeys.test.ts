@@ -44,3 +44,17 @@ describe('validateEntityInput', () => {
     expect('error' in r && r.error).toMatch(msg);
   });
 });
+
+describe('entity search accepts URI paths and STIX patterns', () => {
+  it('looks up a URI path', () => {
+    expect(validateEntityInput('path', '/.env')).toEqual({ seed: { type: 'path', value: '/.env' } });
+    expect(validateEntityInput('path', '.env')).toHaveProperty('error');
+    expect(validateEntityInput('path', '/a?b=1')).toHaveProperty('error');
+  });
+  it('turns a STIX pattern into the entity it names, and checks that entity as if it had been typed', () => {
+    expect(validateEntityInput('stix', "[domain-name:value = 'evil.example.com']")).toEqual({ seed: { type: 'domain', value: 'evil.example.com' } });
+    expect(validateEntityInput('stix', "[ipv4-addr:value = '8.8.4.4']")).toEqual({ seed: { type: 'ip', value: '8.8.4.4' } });
+    expect(validateEntityInput('stix', "[ipv4-addr:value = '999.1.1.1']")).toHaveProperty('error');
+    expect(validateEntityInput('stix', "[process:name = 'x']")).toHaveProperty('error');
+  });
+});

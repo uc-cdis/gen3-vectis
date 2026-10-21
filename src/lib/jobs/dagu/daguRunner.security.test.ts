@@ -117,10 +117,10 @@ describe('logs are bounded, on demand, and under one deadline', () => {
   });
 });
 
-describe('identity for Dagu is email or username, never the display name', () => {
-  it('JOBS_RUNNER=dagu drops name from the identity order; TES keeps it', () => {
-    expect(identityOrder({ JOBS_RUNNER: 'dagu' })).toEqual(['email', 'username']);
-    expect(identityOrder({ JOBS_RUNNER: ' dagu ' })).toEqual(['email', 'username']);
+describe('identity for Dagu is the Fence username, then email, never the display name', () => {
+  it('JOBS_RUNNER=dagu puts the Fence username first; TES keeps email first', () => {
+    expect(identityOrder({ JOBS_RUNNER: 'dagu' })).toEqual(['name', 'email', 'username']);
+    expect(identityOrder({ JOBS_RUNNER: ' dagu ' })).toEqual(['name', 'email', 'username']);
     expect(identityOrder({})).toEqual(['email', 'username', 'name']);
     expect(identityOrder({ JOBS_RUNNER: 'tes' })).toEqual(['email', 'username', 'name']);
   });

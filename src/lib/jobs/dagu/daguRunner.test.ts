@@ -1,10 +1,13 @@
 /* oxlint-disable jest/valid-expect -- vitest's expect(value, message) labels a failure inside a loop; the jest rule does not know it */
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { parse } from 'yaml';
 import type { LaunchSpec } from '../launch';
 import { RunnerError } from '../runner';
 import { getRunner } from '../select';
-import { createDaguRunner, ownerHash } from './daguRunner';
+import { createDaguRunner, kubernetesBlock, ownerHash } from './daguRunner';
 import { createFakeDagu } from '@/lib/jobs/testing/fakeDagu';
 import { DAG_FANOUT } from '../testing/definitions';
 
@@ -420,5 +423,83 @@ describe('untrusted responses', () => {
     const l = await runner().list({}, alice);
     expect(l.runs.map((r) => r.id)).toEqual(['ok.good']);
     expect(l.next_page_token).toBeNull();
+  });
+});
+
+describe('Kubernetes steps are placed by the operator', () => {
+  const K8S_DEF = 'name: kjob\nsteps:\n  - id: s1\n    action: k8s.run\n    with:\n      image: quay.io/cdis/tool:1\n      command: echo hi\n';
+  const k8sEnv = { DAGU_ALLOWED_EXECUTORS: 'kubernetes,command,http,jq', JOBS_ALLOWED_IMAGE_PREFIXES: 'quay.io/cdis/', DAGU_K8S_NAMESPACE: 'dagu-jobs', DAGU_K8S_SERVICE_ACCOUNT: 'dagu-runner' };
+  it('adds the namespace, service account and limits from the server environment', async () => {
+    env = { ...env, ...k8sEnv };
+    await runner().submit(spec({ definition: K8S_DEF, dag_name: 'kjob', params: {} }), alice);
+    const sent = parse((fake.calls[0].body as { spec: string }).spec) as { kubernetes: Record<string, unknown> };
+    expect(sent.kubernetes).toEqual({ namespace: 'dagu-jobs', service_account: 'dagu-runner', resources: { requests: { cpu: '100m', memory: '128Mi' }, limits: { cpu: '2', memory: '4Gi' } } });
+  });
+  it('adds nothing to a definition without Kubernetes steps', async () => {
+    env = { ...env, ...k8sEnv };
+    await runner().submit(spec(), alice);
+    expect(parse((fake.calls[0].body as { spec: string }).spec)).not.toHaveProperty('kubernetes');
+  });
+  it('refuses a Kubernetes job when the server has no namespace or service account configured', async () => {
+    env = { ...env, ...k8sEnv, DAGU_K8S_NAMESPACE: undefined };
+    const e = await failure(runner().submit(spec({ definition: K8S_DEF, dag_name: 'kjob', params: {} }), alice));
+    expect(e.status).toBe(503);
+    expect(fake.calls).toHaveLength(0);
+  });
+  it('rejects a malformed namespace, service account or limit instead of passing it on', () => {
+    for (const bad of [{ DAGU_K8S_NAMESPACE: 'Kube System' }, { DAGU_K8S_SERVICE_ACCOUNT: '../x' }, { DAGU_K8S_CPU_LIMIT: '2; rm' }, { DAGU_K8S_MEMORY_LIMIT: '4 Gi' }]) {
+      expect(() => kubernetesBlock({ ...k8sEnv, ...bad })).toThrow();
+    }
+  });
+});
+
+describe('service-account mode: the owner label comes from the gate, the portal holds no key', () => {
+  const GATE_KEY = 'g'.repeat(40);
+  const tokenFile = (() => { const f = join(mkdtempSync(join(tmpdir(), 'sa-')), 'token'); writeFileSync(f, SECRET); return f; })();
+  let asked: Array<{ url: string; user: string | null; auth: string | null }>;
+  beforeEach(() => {
+    env = { NODE_ENV: 'test', DAGU_URL: 'http://dagu.test:8080', DAGU_HTTP_HOSTS: 'dagu.test', DAGU_AUTH: 'serviceaccount', DAGU_SA_TOKEN_FILE: tokenFile, DAGU_ALLOWED_EXECUTORS: 'command,http,jq' };
+    asked = [];
+    vi.stubGlobal('fetch', async (input: string | URL | Request, init: RequestInit = {}) => {
+      const url = String(input);
+      if (url.endsWith('/gate/owner')) {
+        const h = new Headers(init.headers);
+        asked.push({ url, user: h.get('x-vectis-user'), auth: h.get('authorization') });
+        const user = decodeURIComponent(h.get('x-vectis-user') ?? '');
+        return new Response(JSON.stringify({ owner: ownerHash(user, GATE_KEY) }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      return fake.fetch(input, init);
+    });
+  });
+  it('labels a run with the owner the gate made, and asks the gate with the pod identity and the percent-encoded user', async () => {
+    await runner().submit(spec(), { user: 'ünïcode@example.org', token: 'x' });
+    const b = fake.calls[0].body as { labels: string[] };
+    expect(b.labels).toContain(`vectis.owner=${ownerHash('ünïcode@example.org', GATE_KEY)}`);
+    expect(asked[0]).toMatchObject({ url: 'http://dagu.test:8080/gate/owner', user: encodeURIComponent('ünïcode@example.org'), auth: `Bearer ${SECRET}` });
+  });
+  it('keeps two users apart, and asks the gate once per user (cached)', async () => {
+    const r = runner();
+    const a = await r.submit(spec(), alice);
+    await r.submit(spec(), alice);
+    await expect(r.get(a.id, bob)).rejects.toMatchObject({ status: 404 });
+    expect((await r.list({}, bob)).runs).toHaveLength(0);
+    expect((await r.list({}, alice)).runs).toHaveLength(2);
+    expect(asked.map((x) => decodeURIComponent(x.user ?? '')).sort()).toEqual(['alice@example.org', 'bob@example.org']);
+  });
+  it('fails closed when the gate gives nothing usable', async () => {
+    vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ owner: 'not-a-label' }), { status: 200 }));
+    expect((await failure(runner().submit(spec(), alice))).status).toBe(502);
+    vi.stubGlobal('fetch', async () => new Response('no', { status: 403 }));
+    expect((await failure(runner().list({}, alice))).status).toBe(502);
+  });
+  it('without a key and outside service-account mode, it is not configured', async () => {
+    env = { ...ENV, JOBS_OWNER_HMAC_KEY: undefined };
+    expect((await failure(runner().submit(spec(), alice))).status).toBe(503);
+  });
+  it('a configured key still wins (the portal makes the label itself) and the gate is never asked', async () => {
+    env = { ...env, JOBS_OWNER_HMAC_KEY: KEY };
+    await runner().submit(spec(), alice);
+    expect(asked).toHaveLength(0);
+    expect((fake.calls[0].body as { labels: string[] }).labels).toContain(`vectis.owner=${ownerHash('alice@example.org', KEY)}`);
   });
 });

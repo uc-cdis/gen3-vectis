@@ -3,7 +3,10 @@ import { isDagDef } from '../jobdef/types';
 import { isDagEntryData, parseDagEntry, parseJobDef, peekEntry, MAX_JOBDEF_BYTES } from '../jobdef/parse';
 import { lintDaguDefinition } from '../dagu/lint';
 import { sanitizeLabel, sanitizeUntrusted } from '@/lib/safe-text';
+import { clusterBase, podToken } from '../cluster';
+import { isProduction } from '../portal';
 import { githubSource, MAX_FILES } from './github';
+import { serviceSource } from './service';
 import { readCatalogConfig, type CatalogSource } from './source';
 
 export interface Catalog {
@@ -15,6 +18,8 @@ export interface Catalog {
   /** `native` is the engine's own definition text for a `kind: dag` entry. SERVER-SIDE ONLY: publicCatalog() removes it. */
   jobs: Array<{ def: CatalogDef; file: string; native?: { text: string; dag_name: string } }>;
   errors: Array<{ file: string; errors: string[] }>;
+  /** true when the source could not be read and this is the last copy that was (see MAX_STALE_MS) */
+  stale?: boolean;
 }
 const EMPTY_CATALOG: Catalog = { configured: false, repo: null, ref: null, sha: null, fetched_at: null, jobs: [], errors: [] };
 export class CatalogError extends Error {}
@@ -23,10 +28,22 @@ const CACHE_MS = 60_000;
 const FAIL_MS = 15_000; // failures are cached briefly so a broken source does not burn the GitHub rate limit
 const cache = new Map<string, { at: number; value: Catalog }>();
 const failures = new Map<string, number>();
-export const clearCatalogCache = () => { cache.clear(); failures.clear(); };
+// The last catalog that loaded, kept past CACHE_MS so a source outage does not remove the Jobs page. It is a real, pinned commit that was
+// published earlier; the limit bounds how long a definition withdrawn at the source could still be started.
+const MAX_STALE_MS = 6 * 60 * 60_000;
+const lastGood = new Map<string, { at: number; value: Catalog }>();
+export const clearCatalogCache = () => { cache.clear(); failures.clear(); lastGood.clear(); };
 
 /** Build the active source from env, or null if none is configured. Throws CatalogError on bad/ambiguous config. */
 export function activeSource(env: Record<string, string | undefined> = process.env, fetchImpl?: typeof fetch): CatalogSource | null {
+  // The catalog service (JOBS_CATALOG_URL) wins: the portal then needs no GitHub token. Its label is only for display.
+  const serviceUrl = env.JOBS_CATALOG_URL?.trim();
+  if (serviceUrl) {
+    const base = clusterBase(serviceUrl, env, isProduction(env));
+    if (!base || !podToken(env)) throw new CatalogError('Catalog is misconfigured.');
+    const label = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/.test(env.TES_CATALOG_REPO?.trim() ?? '') ? (env.TES_CATALOG_REPO as string).trim() : 'catalog';
+    return serviceSource({ base, repo: label }, () => podToken(env), fetchImpl);
+  }
   const cfg = readCatalogConfig(env);
   if (cfg.kind === 'none') return null;
   if (cfg.kind === 'error') throw new CatalogError(cfg.message);
@@ -48,10 +65,15 @@ export async function loadCatalog(source: CatalogSource | null, env: Record<stri
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.value;
 
+  const fallback = (): Catalog => {
+    const old = lastGood.get(key);
+    if (old && Date.now() - old.at < MAX_STALE_MS) return { ...old.value, stale: true };
+    throw new CatalogError('The catalog source could not be read.');
+  };
   const failedAt = failures.get(key);
-  if (failedAt !== undefined && Date.now() - failedAt < FAIL_MS) throw new CatalogError('The catalog source could not be read.');
+  if (failedAt !== undefined && Date.now() - failedAt < FAIL_MS) return fallback();
   let listing;
-  try { listing = await source.list(); } catch { failures.set(key, Date.now()); throw new CatalogError('The catalog source could not be read.'); }
+  try { listing = await source.list(); } catch { failures.set(key, Date.now()); return fallback(); }
   failures.delete(key);
   const jobs: Catalog['jobs'] = [];
   const errors: Catalog['errors'] = [];
@@ -67,7 +89,7 @@ export async function loadCatalog(source: CatalogSource | null, env: Record<stri
     if (!entry.ok) return entry;
     let native: string;
     try { native = await source.readDefinition(listing.version, entry.def.definition); } catch { return { ok: false, errors: ['the native definition file could not be read from the catalog'] }; }
-    const lint = lintDaguDefinition(native, { env, catalogParams: (entry.def.params ?? []).map((p) => p.name), fallbackName: entry.def.id });
+    const lint = lintDaguDefinition(native, { env, catalogParams: (entry.def.params ?? []).filter((p) => p.type !== 'secret').map((p) => p.name), fallbackName: entry.def.id });
     if (!lint.ok) return { ok: false, errors: lint.errors.map((e) => `${entry.def.definition}: ${e}`) };
     return { ok: true, def: { ...entry.def, graph: lint.info.steps }, native: { text: native, dag_name: lint.info.name ?? entry.def.id } };
   };
@@ -85,6 +107,7 @@ export async function loadCatalog(source: CatalogSource | null, env: Record<stri
   }
   const value: Catalog = { configured: true, repo: source.repo, ref: source.ref, sha: listing.version, fetched_at: new Date().toISOString(), jobs, errors };
   cache.set(key, { at: Date.now(), value });
+  lastGood.set(key, { at: Date.now(), value });
   return value;
 }
 

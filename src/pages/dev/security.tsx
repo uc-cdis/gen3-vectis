@@ -22,11 +22,18 @@ const DevSecurity = ({ headerProps, footerProps }: NavPageLayoutProps) => {
   // with it. A static import here would put the fixture data into the production bundle.
   // ?scenario=healthy serves fixtures with nothing quarantined.
   const healthy = query.scenario === 'healthy';
+  // ?api=local reads a local siem-app service started with scripts/dev_real_data.py.
+  const local = query.api === 'local';
   const api = React.useMemo<SiemApi | undefined>(
-    () => (process.env.NODE_ENV === 'production'
-      ? undefined
-      : (require('@/lib/vectis-kit/api/fixtureApi') as { createFixtureApi: typeof createFixtureApi }).createFixtureApi(60, healthy ? { scenario: 'healthy' } : {})),
-    [healthy],
+    () => {
+      if (process.env.NODE_ENV === 'production') return undefined;
+      if (local) {
+        const { createLiveApi } = require('@/lib/vectis-kit/api/client') as { createLiveApi: typeof import('@/lib/vectis-kit/api/client').createLiveApi };
+        return createLiveApi((input, init) => fetch(String(input).replace('/api/siem/', 'http://127.0.0.1:8011/siem/'), { ...init, credentials: 'omit' }));
+      }
+      return (require('@/lib/vectis-kit/api/fixtureApi') as { createFixtureApi: typeof createFixtureApi }).createFixtureApi(60, healthy ? { scenario: 'healthy' } : {});
+    },
+    [healthy, local],
   );
   return (
     <NavPageLayout {...{ headerProps, footerProps }} headerMetadata={{ title: 'Vectis Security (dev)', content: 'Development fixtures', key: 'vectis-security-dev' }}>

@@ -1,3 +1,4 @@
+import { withOrigin } from '@/lib/vectis-kit/data-table/origin';
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { ActionIcon, Badge, Button, Grid, Group, MultiSelect, Select, Stack, Text } from '@mantine/core';
@@ -11,9 +12,10 @@ import { EmptyState, Panel, QueryBoundary } from '@/lib/vectis-kit/ui/primitives
 import { formatNumber, formatTime } from '@/lib/vectis-kit/ui/format';
 import { useSecurity } from '../context';
 import { FindSimilar } from '../hunt/FindSimilar';
+import { ActivityHeatmap } from '../hunt/ActivityHeatmap';
 import { RowsTable } from '../hunt/RowsTable';
 import { SavedHunts } from '../hunt/SavedHunts';
-import { COLUMN_NAME, EMPTY_VIEW, GRAINS, MAX_GROUP_BY, MAX_ROWS, applySpec, defaultColumns, groupableColumns, huntIndexes, readDeepLink, specFromView, writeDeepLink } from '../hunt/huntModel';
+import { ALL_EVENTS, COLUMN_NAME, EMPTY_VIEW, GRAINS, MAX_GROUP_BY, MAX_ROWS, applySpec, defaultColumns, defaultGroupBy, groupableColumns, huntIndexes, readDeepLink, specFromView, writeDeepLink } from '../hunt/huntModel';
 import type { ViewState } from '../hunt/huntModel';
 import { isIpAddress } from '@/lib/vectis-kit/spec/indicator';
 
@@ -25,11 +27,12 @@ const HuntWorkspace = ({ catalog }: { catalog: CatalogResponse }) => {
   const indexes = huntIndexes(catalog);
   // Index, grain and the brushed range live in the URL so a hunt can be shared as a link.
   const link = readDeepLink(router.query);
-  const index: IndexCatalog = indexes.find((i) => i.index_name === link.index) ?? (indexes[0] as IndexCatalog);
+  // Start from All events when the catalog has it.
+  const index: IndexCatalog = indexes.find((i) => i.index_name === link.index) ?? indexes.find((i) => i.index_name === ALL_EVENTS) ?? (indexes[0] as IndexCatalog);
   const grain = link.grain ?? DEFAULT_GRAIN;
   const range = link.range;
 
-  const [view, setView] = useState<ViewState>(EMPTY_VIEW);
+  const [view, setView] = useState<ViewState>(() => ({ ...EMPTY_VIEW, groupBy: defaultGroupBy(index.index_name) }));
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
 
   const navigate = (patch: Parameters<typeof writeDeepLink>[1]) => {
@@ -42,7 +45,7 @@ const HuntWorkspace = ({ catalog }: { catalog: CatalogResponse }) => {
     body: { window: chartWindow, grain, index_name: index.index_name, ...(groupBy.length ? { group_by: groupBy } : {}), ...(view.filters.length ? { filters: view.filters } : {}) },
   });
 
-  const columns = (view.columns ?? defaultColumns(index)).filter((c) => index.columns.some((m) => m.name === c));
+  const columns = withOrigin((view.columns ?? defaultColumns(index)).filter((c) => index.columns.some((m) => m.name === c)), index.columns);
   const rowsQuery = useSiemQuery('rows', range ? {
     body: {
       window: range, index_name: index.index_name, columns,
@@ -57,7 +60,7 @@ const HuntWorkspace = ({ catalog }: { catalog: CatalogResponse }) => {
   const changeIndex = (name: string | null) => {
     const next = indexes.find((i) => i.index_name === name);
     if (!next) return;
-    setView(EMPTY_VIEW); setSelectedRow(null);
+    setView({ ...EMPTY_VIEW, groupBy: defaultGroupBy(next.index_name) }); setSelectedRow(null);
     navigate({ index: next.index_name, range: null });
   };
 
@@ -97,12 +100,16 @@ const HuntWorkspace = ({ catalog }: { catalog: CatalogResponse }) => {
               <QueryBoundary query={timeline} isEmpty={(d) => d.points.length === 0} empty={<EmptyState title="No rollup data in this window" hint="Nothing was recorded for this index in the selected range." />}>
                 {(d) => (
                   <>
-                    <RollupChart points={d.points} grain={d.grain} label={`${index.label} events over time`} onRangeSelect={onRange} height={320} />
+                    <RollupChart points={d.points} grain={d.grain} label={`${index.label} events over time`} onRangeSelect={onRange} height={320} stacked={groupBy.length > 0} />
                     <Text size="xs" c="dimmed">Read from {d.source === 'rollup' ? 'precomputed rollups' : 'raw events'}, as of {formatTime(d.as_of)}. Drag on the chart to select a time range.</Text>
                   </>
                 )}
               </QueryBoundary>
             </Stack>
+          </Panel>
+
+          <Panel title="Activity heat map">
+            <ActivityHeatmap indexName={index.index_name} columns={index.columns} window={chartWindow} filters={view.filters} />
           </Panel>
 
           <Panel
@@ -140,7 +147,7 @@ const HuntWorkspace = ({ catalog }: { catalog: CatalogResponse }) => {
       <Grid.Col span={{ base: 12, lg: 4 }}>
         <Stack gap="md">
           <FindSimilar key={seed ? `row:${seed.n}` : `ctx:${JSON.stringify(similar)}`} prefill={seed ? { seed } : similar} />
-          <SavedViews onApply={onApplyView} />
+          <SavedViews onApply={onApplyView} applicable={(v) => applySpec(v.spec, catalog) !== null} />
           <SavedHunts currentSpec={currentSpec} onOpen={onOpenHunt} />
         </Stack>
       </Grid.Col>
@@ -159,15 +166,15 @@ const HuntTab = () => {
 };
 export default HuntTab;
 
-/** Saved views: applying one sets the index, columns and window from its spec. */
-export const SavedViews = ({ onApply }: { onApply: (view: SavedView) => void }) => {
+/** Saved views for the hunt. `applicable` hides views for indexes Hunt does not read (those are on the Data page). */
+export const SavedViews = ({ onApply, applicable }: { onApply: (view: SavedView) => void; applicable?: (view: SavedView) => boolean }) => {
   const q = useSiemQuery('views', {});
   return (
     <Panel title="Saved views">
-      <QueryBoundary query={q} isEmpty={(d) => d.views.length === 0} empty={<EmptyState title="No saved views yet" />} rows={3}>
+      <QueryBoundary query={q} isEmpty={(d) => d.views.filter((v) => !applicable || applicable(v)).length === 0} empty={<EmptyState title="No saved views yet" />} rows={3}>
         {(d) => (
           <Stack gap="sm" component="ul" m={0} p={0} style={{ listStyle: 'none' }}>
-            {d.views.map((v) => (
+            {d.views.filter((v) => !applicable || applicable(v)).map((v) => (
               <li key={v.id}>
                 <Group justify="space-between" wrap="nowrap" align="flex-start">
                   <div>

@@ -66,8 +66,44 @@
     "/DataDictionary": {
       "loginRequired": true
     },
-    "*": {
+    "/": {
       "loginRequired": false
+    },
+    "/Login": {
+      "loginRequired": false
+    },
+    "/403": {
+      "loginRequired": false
+    },
+    "/404": {
+      "loginRequired": false
+    },
+    "/Jobs/profile/aws-audit": {
+      "loginRequired": true,
+      "authz": [
+        "/programs/vectis/projects/jobs-aws-audit"
+      ]
+    },
+    "/Jobs/profile/as-user": {
+      "loginRequired": true,
+      "authz": [
+        "/programs/vectis/projects/jobs-run"
+      ]
+    },
+    "/Jobs/profile/notebook": {
+      "loginRequired": true,
+      "authz": [
+        "/programs/vectis/projects/jobs-run"
+      ]
+    },
+    "*": {
+      "loginRequired": true
+    },
+    "/Jobs/group/soc": {
+      "loginRequired": true,
+      "authz": [
+        "/programs/vectis/projects/jobs-group-soc"
+      ]
     }
   }
 }

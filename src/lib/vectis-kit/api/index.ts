@@ -16,5 +16,5 @@ export function createApi(): SiemApi {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return (require('./fixtureApi') as { createFixtureApi: typeof createFixtureApi }).createFixtureApi();
   }
-  return createLiveApi();
+  return createLiveApi(undefined, { graphViaGateway: true, rowsViaGateway: true });
 }

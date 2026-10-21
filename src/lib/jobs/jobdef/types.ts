@@ -1,6 +1,6 @@
 import type { LaunchSpec } from '../launch';
 /** Catalog job definition (YAML file in the catalog). Runner-neutral: compiles to one LaunchSpec, which a runner maps to its own job. */
-type ParamType = 'string' | 'integer' | 'number' | 'boolean' | 'enum' | 's3_url' | 'http_url';
+type ParamType = 'string' | 'integer' | 'number' | 'boolean' | 'enum' | 's3_url' | 'http_url' | 'secret';
 type ParamValue = string | number | boolean;
 export interface JobParam {
   name: string;
@@ -15,6 +15,8 @@ export interface JobParam {
   max?: number;
   max_length?: number;
   allow_leading_dash?: boolean;
+  /** `secret` params only (workflow jobs): the environment variable the job pod receives the value in. The value is never a parameter. */
+  env?: string;
 }
 interface JobInput { name: string; description?: string; url: string; path: string; type?: 'FILE' | 'DIRECTORY' }
 interface JobOutput { name: string; description?: string; url: string; path: string; path_prefix?: string; type?: 'FILE' | 'DIRECTORY' }
@@ -58,6 +60,8 @@ export interface DagJobDef {
   description?: string;
   tags?: string[];
   definition: string;
+  /** what the job runs AS (a service account, optionally the user's own Gen3 token): an operator-defined profile name (dagu/profiles.ts) */
+  profile?: string;
   params?: JobParam[];
   owner?: string;
   /** filled by the catalog loader from the linted native file (not part of the YAML): the graph for display */

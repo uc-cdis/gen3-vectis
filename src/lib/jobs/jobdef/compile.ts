@@ -3,7 +3,7 @@ import { hasDotDot, URL_SAFE_SEGMENT } from '../urls';
 import { toTesTask } from '../tes/adapter';
 import { validateTaskSubmission } from '../tes/validate';
 import type { CompileContext, CompileResult, DagJobDef, JobDef, JobParam } from './types';
-import { checkDagParam } from '../dagu/params';
+import { checkDagParam, checkSecretValue } from '../dagu/params';
 import { BUILTIN_USER_BUCKET, isWholeToken, tokenRe } from './templates';
 import { checkParam } from './params';
 import { lintTask, secretRefsIn } from './lint';
@@ -120,8 +120,16 @@ export function compileDagJob(def: DagJobDef, native: { text: string; dag_name: 
   const supplied = paramValues && typeof paramValues === 'object' && !Array.isArray(paramValues) ? paramValues : {};
   for (const k of Object.keys(supplied)) if (!params.has(k)) errs.push(`unknown parameter "${k.slice(0, 40)}"`);
   const values: Record<string, string> = {};
+  const secretEnv: Array<{ name: string; value: string }> = [];
   for (const p of params.values()) {
     const given = Object.prototype.hasOwnProperty.call(supplied, p.name) ? supplied[p.name] : undefined;
+    if (p.type === 'secret') {
+      // typed by the user for this run: never a parameter (those are saved with the run and shown on its page), only a pod environment variable
+      if (given === undefined || given === null || given === '') { if (p.required) errs.push(`${p.name}: is required`); continue; }
+      const c = checkSecretValue(p, given);
+      if (c.ok && p.env) secretEnv.push({ name: p.env, value: c.value }); else if (!c.ok) errs.push(c.error);
+      continue;
+    }
     const raw = given === undefined || given === null ? p.default : given;
     if (raw === undefined) { if (p.required) errs.push(`${p.name}: is required`); continue; }
     const c = checkDagParam(p, raw);
@@ -133,9 +141,9 @@ export function compileDagJob(def: DagJobDef, native: { text: string; dag_name: 
     spec: {
       name: def.name,
       ...(def.description ? { description: def.description } : {}),
-      dag: { engine: def.engine, definition: native.text, dag_name: native.dag_name, params: values },
+      dag: { engine: def.engine, definition: native.text, dag_name: native.dag_name, params: values, ...(def.profile ? { profile: def.profile } : {}), ...(secretEnv.length ? { secret_env: secretEnv } : {}) },
       steps: [], inputs: [], outputs: [],
-      tags: { 'vectis.job': def.id, 'vectis.catalog_sha': ctx.sha, 'vectis.catalog_repo': ctx.repo },
+      tags: { 'vectis.job': def.id, 'vectis.catalog_sha': ctx.sha, 'vectis.catalog_repo': ctx.repo, ...(def.profile ? { 'vectis.profile': def.profile } : {}) },
       secrets: [],
       warnings: [],
     },

@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Alert, Anchor, Badge, Group, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core';
+import React, { useMemo, useState } from 'react';
+import { Alert, Anchor, Badge, Group, Slider, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core';
 import type { Dictionary } from '@/lib/dictionary/ddv2';
 import { vocabularyModel } from '@/lib/dictionary/ddv2';
 import type { VocabGraph } from '@/lib/dictionary/ddv2';
@@ -124,12 +124,31 @@ export const RelationshipsView = ({ dictionary, label, onLabel, onOpenEntity }: 
   );
 };
 
+const SPACING_MIN = 1;
+const SPACING_MAX = 10;
+const SPACING_DEFAULT = 4;
+
 const Graph = ({ g, selected, onLabel, layout, repulsion, caption, height }: {
   g: VocabGraph; selected: string | null; onLabel: (l: string | null) => void; layout: 'force' | 'circular'; repulsion?: number; caption: string; height: number;
-}) => (
-  <EntityGraph
-    nodes={g.nodes} edges={g.edges} lens={LENS} selectedId={selected} height={height} label={caption}
-    layout={layout} repulsion={repulsion} dashedEdgeTypes={g.open} edgeLabels={false} legend={layout !== 'circular'}
-    onNodeClick={(n) => { if (!n.id.startsWith('open:')) onLabel(n.id); }}
-  />
-);
+}) => {
+  // Spreads the force layout so hub labels do not overlap; the ring layout does not need it.
+  const [spacing, setSpacing] = useState(SPACING_DEFAULT);
+  const force = layout === 'force';
+  return (
+    <>
+      {force ? (
+        <Group gap="sm" mb={6} align="center" wrap="nowrap" data-testid="graph-spacing">
+          <Text size="xs" c="dimmed" aria-hidden style={{ whiteSpace: 'nowrap' }}>Spread labels out</Text>
+          <Slider w={220} size="sm" min={SPACING_MIN} max={SPACING_MAX} step={1} value={spacing} onChange={setSpacing}
+            thumbLabel="Spread labels out" label={null} />
+        </Group>
+      ) : null}
+      <EntityGraph
+        nodes={g.nodes} edges={g.edges} lens={LENS} selectedId={selected} height={height} label={caption}
+        layout={layout} dashedEdgeTypes={g.open} edgeLabels={false} legend={layout !== 'circular'}
+        {...(force ? { repulsion: (repulsion ?? 900) * (0.4 + spacing * 0.35), edgeLength: [50 + spacing * 25, 120 + spacing * 45] as [number, number] } : {})}
+        onNodeClick={(n) => { if (!n.id.startsWith('open:')) onLabel(n.id); }}
+      />
+    </>
+  );
+};

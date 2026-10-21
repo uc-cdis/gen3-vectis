@@ -15,7 +15,7 @@ const PARAMS_SCHEMA = {
           name: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,63}$' },
           label: { type: 'string', minLength: 1, maxLength: 128 },
           description: text(1024),
-          type: { enum: ['string', 'integer', 'number', 'boolean', 'enum', 's3_url', 'http_url'] },
+          type: { enum: ['string', 'integer', 'number', 'boolean', 'enum', 's3_url', 'http_url', 'secret'] },
           required: { type: 'boolean' },
           default: { oneOf: [text(4096), { type: 'number' }, { type: 'boolean' }] },
           values: { type: 'array', minItems: 1, maxItems: 64, uniqueItems: true, items: text(128) },
@@ -24,6 +24,7 @@ const PARAMS_SCHEMA = {
           max: { type: 'number' },
           max_length: { type: 'integer', minimum: 1, maximum: 4096 },
           allow_leading_dash: { type: 'boolean' },
+          env: { type: 'string', pattern: '^[A-Z][A-Z0-9_]{0,63}$' },
         },
       },
     } as const;
@@ -95,6 +96,7 @@ const DAGDEF_SCHEMA = {
     tags: { type: 'array', maxItems: 16, uniqueItems: true, items: { type: 'string', pattern: '^[a-z0-9][a-z0-9_.-]{0,31}$' } },
     // path of the native file relative to the catalog directory, in the SAME commit; a yaml file, no '..', no leading '/'
     definition: { type: 'string', pattern: '^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}(/[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}){0,3}\\.ya?ml$' },
+    profile: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,31}$' },
     params: PARAMS_SCHEMA,
     owner: { type: 'string', pattern: '^[A-Za-z0-9 _.@/-]{1,128}$' },
   },

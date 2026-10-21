@@ -8,7 +8,6 @@ export class SpecError extends Error {
   }
 }
 
-const INDEX_NAMES = ['http_activity', 'api_activity', 'authentication', 'audit_event', 'network_activity'] as const;
 const MAX_SPEC_COLUMNS = 60;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/;
 
@@ -18,7 +17,7 @@ const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})
  */
 export function cleanSpec(spec: QuerySpec): QuerySpec {
   if (!spec || typeof spec !== 'object') throw new SpecError('There is no query to render.');
-  if (!(INDEX_NAMES as readonly string[]).includes(spec.index_name)) throw new SpecError('The index name is not valid.');
+  if (typeof spec.index_name !== 'string' || !COLUMN_NAME.test(spec.index_name)) throw new SpecError('The index name is not valid.');
   const w = spec.window;
   if (!w || typeof w.start !== 'string' || typeof w.end !== 'string' || !ISO.test(w.start) || !ISO.test(w.end)) {
     throw new SpecError('The time window is not valid.');

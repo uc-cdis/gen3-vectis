@@ -3,7 +3,7 @@ import type { ColumnMeta, FilterClause } from '../spec';
 import {
   MAX_FILTERS, MAX_IN_VALUES, clauseChips, enumSelection, removeClauseAt, setBoolean, setEnumSelection, setRange, setText, validateClauses,
 } from './filters';
-import { sanitizeLayout, toColumnar } from './tableModel';
+import { nextTableName, sanitizeLayout, settingsOpen, toColumnar } from './tableModel';
 
 const eq = (i: number): FilterClause => ({ field: 'country', op: 'eq', value: String(i) });
 
@@ -97,5 +97,24 @@ describe('sanitizeLayout chart settings', () => {
   it('drops any other expression, unknown columns and unknown aggregates', () => {
     const out = sanitizeLayout({ expressions: { x: 'fetch("http://evil")', y: `bucket("nope", 'h')` }, group_by: ['x'], aggregates: { status: 'drop table', ghost: 'sum' } }, cols);
     expect(out).toEqual({});
+  });
+});
+
+describe('nextTableName', () => {
+  it('never repeats a name, so two grids sharing one Perspective client cannot collide', () => {
+    const names = Array.from({ length: 50 }, () => nextTableName());
+    expect(new Set(names).size).toBe(50);
+    expect(names.every((n) => /^rows-\d+$/.test(n))).toBe(true);
+  });
+});
+
+describe('settingsOpen', () => {
+  it('follows what the viewer says, so a filter edit does not close the sidebar the person is using', () => {
+    expect(settingsOpen({ settings: true }, false)).toBe(true);
+    expect(settingsOpen({ settings: false }, true)).toBe(false);
+  });
+  it('keeps the current state when an update does not say', () => {
+    expect(settingsOpen({}, true)).toBe(true);
+    expect(settingsOpen({ settings: 'yes' }, false)).toBe(false);
   });
 });

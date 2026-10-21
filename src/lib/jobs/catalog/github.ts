@@ -2,11 +2,11 @@ import { readCapped } from '@/lib/upstream';
 import type { CatalogListing, CatalogSource } from './source';
 
 export const MAX_FILES = 200;
-const MAX_FILE_BYTES = 64 * 1024;
+export const MAX_FILE_BYTES = 64 * 1024;
 const TIMEOUT_MS = 10_000;
-const SHA = /^[0-9a-f]{40}$/;
-const FILE = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}\.ya?ml$/;
-const DEF_PATH = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}(\/[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}){0,3}\.ya?ml$/;
+export const SHA = /^[0-9a-f]{40}$/;
+export const FILE = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}\.ya?ml$/;
+export const DEF_PATH = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}(\/[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}){0,3}\.ya?ml$/;
 const API = 'https://api.github.com';
 
 /** GitHub REST implementation. The token is only ever placed in the Authorization header of requests to api.github.com. */

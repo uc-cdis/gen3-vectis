@@ -261,3 +261,32 @@ describe('Create case', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });
+
+describe('Cases status filter', () => {
+  const list: CaseList = { total: 4, cases: [mk('c-open', 'low'), mk('c-prog', 'low', { status: 'in_progress' }), mk('c-res', 'low', { status: 'resolved' }), mk('c-old', 'low', { status: 'closed' })] };
+  const names = () => within(screen.getByRole('table', { name: 'Cases' })).getAllByRole('row').slice(1).map((r) => within(r).getByRole('button').textContent);
+
+  it('hides closed cases until the Closed chip is switched on, and shows how many there are', async () => {
+    mount(wrap({ cases: () => list }));
+    await screen.findByText('Case c-open');
+    expect(names().sort()).toEqual(['Case c-open', 'Case c-prog', 'Case c-res']);
+    expect(screen.queryByText('Case c-old')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Closed (1)' }));
+    await waitFor(() => expect(names()).toContain('Case c-old'));
+  });
+
+  it('can narrow to one status', async () => {
+    mount(wrap({ cases: () => list }));
+    await screen.findByText('Case c-open');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'In progress (1)' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Resolved (1)' }));
+    await waitFor(() => expect(names()).toEqual(['Case c-open']));
+  });
+
+  it('says so when the filter hides every case, and points at the filter', async () => {
+    mount(wrap({ cases: () => ({ total: 1, cases: [mk('c-old', 'low', { status: 'closed' })] }) }));
+    expect(await screen.findByText(/No cases match the filter/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Closed (1)' }));
+    expect(await screen.findByText('Case c-old')).toBeInTheDocument();
+  });
+});

@@ -68,7 +68,21 @@
           "disposition": null,
           "noise": false,
           "case_id": "case-0001",
-          "etag": null
+          "etag": null,
+          "origin_account": "111122223333",
+          "origin_accounts": [
+            "111122223333"
+          ],
+          "origin_environments": [
+            "prod"
+          ],
+          "origin_sources": [
+            "revproxy",
+            "waf"
+          ],
+          "origin_hosts": [
+            "portal.example.org"
+          ]
         },
         {
           "group_id": "g-ntseq-exfil",
@@ -115,7 +129,21 @@
           "disposition": null,
           "noise": false,
           "case_id": "case-0001",
-          "etag": null
+          "etag": null,
+          "origin_account": "444455556666",
+          "origin_accounts": [
+            "444455556666"
+          ],
+          "origin_environments": [
+            "staging"
+          ],
+          "origin_sources": [
+            "waf"
+          ],
+          "origin_hosts": [
+            "staging.example.org",
+            "api.example.org"
+          ]
         },
         {
           "group_id": "g-arg-injection",
@@ -162,7 +190,18 @@
           "disposition": null,
           "noise": false,
           "case_id": "case-0001",
-          "etag": null
+          "etag": null,
+          "origin_account": "gdc_f5",
+          "origin_accounts": [
+            "gdc_f5"
+          ],
+          "origin_environments": [],
+          "origin_sources": [
+            "f5"
+          ],
+          "origin_hosts": [
+            "data.example.org"
+          ]
         },
         {
           "group_id": "g-path-traversal",
@@ -210,7 +249,21 @@
           "disposition": null,
           "noise": false,
           "case_id": "case-0001",
-          "etag": null
+          "etag": null,
+          "origin_account": "111122223333",
+          "origin_accounts": [
+            "111122223333"
+          ],
+          "origin_environments": [
+            "prod"
+          ],
+          "origin_sources": [
+            "revproxy",
+            "waf"
+          ],
+          "origin_hosts": [
+            "portal.example.org"
+          ]
         },
         {
           "group_id": "g-router-dropper",
@@ -258,7 +311,21 @@
           "disposition": null,
           "noise": false,
           "case_id": null,
-          "etag": null
+          "etag": null,
+          "origin_account": "444455556666",
+          "origin_accounts": [
+            "444455556666"
+          ],
+          "origin_environments": [
+            "staging"
+          ],
+          "origin_sources": [
+            "waf"
+          ],
+          "origin_hosts": [
+            "staging.example.org",
+            "api.example.org"
+          ]
         },
         {
           "group_id": "g-env-200",
@@ -305,7 +372,18 @@
           "disposition": null,
           "noise": false,
           "case_id": null,
-          "etag": null
+          "etag": null,
+          "origin_account": "gdc_f5",
+          "origin_accounts": [
+            "gdc_f5"
+          ],
+          "origin_environments": [],
+          "origin_sources": [
+            "f5"
+          ],
+          "origin_hosts": [
+            "data.example.org"
+          ]
         },
         {
           "group_id": "g-env-blocked",
@@ -347,7 +425,21 @@
           "disposition": "benign",
           "noise": true,
           "case_id": null,
-          "etag": null
+          "etag": null,
+          "origin_account": "111122223333",
+          "origin_accounts": [
+            "111122223333"
+          ],
+          "origin_environments": [
+            "prod"
+          ],
+          "origin_sources": [
+            "revproxy",
+            "waf"
+          ],
+          "origin_hosts": [
+            "portal.example.org"
+          ]
         },
         {
           "group_id": "g-cs-sensitive",
@@ -389,7 +481,21 @@
           "disposition": null,
           "noise": false,
           "case_id": null,
-          "etag": null
+          "etag": null,
+          "origin_account": "444455556666",
+          "origin_accounts": [
+            "444455556666"
+          ],
+          "origin_environments": [
+            "staging"
+          ],
+          "origin_sources": [
+            "waf"
+          ],
+          "origin_hosts": [
+            "staging.example.org",
+            "api.example.org"
+          ]
         },
         {
           "group_id": "g-crs-942",
@@ -431,7 +537,18 @@
           "disposition": null,
           "noise": false,
           "case_id": null,
-          "etag": null
+          "etag": null,
+          "origin_account": "gdc_f5",
+          "origin_accounts": [
+            "gdc_f5"
+          ],
+          "origin_environments": [],
+          "origin_sources": [
+            "f5"
+          ],
+          "origin_hosts": [
+            "data.example.org"
+          ]
         },
         {
           "group_id": "g-ioc-match",
@@ -480,7 +597,21 @@
           "disposition": null,
           "noise": false,
           "case_id": null,
-          "etag": null
+          "etag": null,
+          "origin_account": "111122223333",
+          "origin_accounts": [
+            "111122223333"
+          ],
+          "origin_environments": [
+            "prod"
+          ],
+          "origin_sources": [
+            "revproxy",
+            "waf"
+          ],
+          "origin_hosts": [
+            "portal.example.org"
+          ]
         },
         {
           "group_id": "g-novel-1",
@@ -522,7 +653,21 @@
           "disposition": null,
           "noise": false,
           "case_id": null,
-          "etag": null
+          "etag": null,
+          "origin_account": "444455556666",
+          "origin_accounts": [
+            "444455556666"
+          ],
+          "origin_environments": [
+            "staging"
+          ],
+          "origin_sources": [
+            "waf"
+          ],
+          "origin_hosts": [
+            "staging.example.org",
+            "api.example.org"
+          ]
         },
         {
           "group_id": "g-drift-1",
@@ -562,7 +707,18 @@
           "disposition": null,
           "noise": false,
           "case_id": null,
-          "etag": null
+          "etag": null,
+          "origin_account": "gdc_f5",
+          "origin_accounts": [
+            "gdc_f5"
+          ],
+          "origin_environments": [],
+          "origin_sources": [
+            "f5"
+          ],
+          "origin_hosts": [
+            "data.example.org"
+          ]
         }
       ],
       "total": 12,
@@ -828,7 +984,8 @@
               "filterable": true,
               "sortable": true
             }
-          ]
+          ],
+          "category": "events"
         },
         {
           "index_name": "api_activity",
@@ -909,7 +1066,8 @@
               "filterable": true,
               "sortable": true
             }
-          ]
+          ],
+          "category": "events"
         },
         {
           "index_name": "network_activity",
@@ -973,6 +1131,252 @@
               "default_visible": true,
               "filterable": true,
               "sortable": true
+            }
+          ],
+          "category": "events"
+        },
+        {
+          "index_name": "all_events",
+          "label": "All events",
+          "time_field": "event_time",
+          "columns": [
+            {
+              "name": "event_time",
+              "label": "Time",
+              "type": "timestamp",
+              "description": "When the event happened",
+              "enum_values": null,
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "index_name",
+              "label": "Index",
+              "type": "enum",
+              "description": "Which index the event came from",
+              "enum_values": [
+                "http_activity",
+                "api_activity",
+                "network_activity"
+              ],
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "source",
+              "label": "Source",
+              "type": "string",
+              "description": "Which feed the event came from",
+              "enum_values": null,
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "src_ip",
+              "label": "Source IP",
+              "type": "ip",
+              "description": "Source IP address",
+              "enum_values": null,
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "outcome",
+              "label": "Outcome",
+              "type": "enum",
+              "description": "What the control did with it",
+              "enum_values": [
+                "allow",
+                "block",
+                "error",
+                "unknown"
+              ],
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "severity",
+              "label": "Severity",
+              "type": "enum",
+              "description": "How serious the event is",
+              "enum_values": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "activity",
+              "label": "Activity",
+              "type": "string",
+              "description": "What kind of activity it was",
+              "enum_values": null,
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "status_code",
+              "label": "Status code",
+              "type": "integer",
+              "description": "Response or error status",
+              "enum_values": null,
+              "pii": false,
+              "default_visible": false,
+              "filterable": true,
+              "sortable": true
+            }
+          ],
+          "category": "events"
+        },
+        {
+          "index_name": "ip_address",
+          "label": "IP address",
+          "category": "entities",
+          "time_field": "event_time",
+          "columns": [
+            {
+              "name": "event_time",
+              "label": "Event time",
+              "type": "timestamp",
+              "description": "",
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "src_ip",
+              "label": "Source IP",
+              "type": "ip",
+              "description": "",
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "country",
+              "label": "Country",
+              "type": "string",
+              "description": "",
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "asn",
+              "label": "ASN",
+              "type": "string",
+              "description": "",
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "is_internal",
+              "label": "Is internal",
+              "type": "boolean",
+              "description": "",
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "total_risk",
+              "label": "Total risk",
+              "type": "float",
+              "description": "",
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            }
+          ]
+        },
+        {
+          "index_name": "indicator",
+          "label": "Indicator",
+          "category": "threat_intel",
+          "time_field": "event_time",
+          "columns": [
+            {
+              "name": "event_time",
+              "label": "Event time",
+              "type": "timestamp",
+              "description": "",
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "label",
+              "label": "Object type",
+              "type": "string",
+              "description": "",
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "source_feed",
+              "label": "Source feed",
+              "type": "string",
+              "description": "",
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true
+            },
+            {
+              "name": "intel_tier",
+              "label": "Intel tier",
+              "type": "enum",
+              "description": "",
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true,
+              "enum_values": [
+                "tier1",
+                "tier2"
+              ]
+            },
+            {
+              "name": "tlp",
+              "label": "Tlp",
+              "type": "enum",
+              "description": "",
+              "pii": false,
+              "default_visible": true,
+              "filterable": true,
+              "sortable": true,
+              "enum_values": [
+                "clear",
+                "green",
+                "amber",
+                "red"
+              ]
             }
           ]
         }
@@ -1487,7 +1891,21 @@
           "disposition": null,
           "noise": false,
           "case_id": null,
-          "etag": null
+          "etag": null,
+          "origin_account": "111122223333",
+          "origin_accounts": [
+            "111122223333"
+          ],
+          "origin_environments": [
+            "prod"
+          ],
+          "origin_sources": [
+            "revproxy",
+            "waf"
+          ],
+          "origin_hosts": [
+            "portal.example.org"
+          ]
         }
       ],
       "structural": [
@@ -2034,6 +2452,7 @@
     },
     "overview.response": {
       "totals": {
+        "events": 88532,
         "waf": 88412,
         "audit": 3120,
         "threat": 2031,
@@ -5287,7 +5706,14 @@
           "group_id": "g-arg-injection",
           "distance": 0.41,
           "title": "Option injection in a parameter value",
-          "severity": "high"
+          "severity": "high",
+          "origin_account": "444455556666",
+          "origin_environments": [
+            "staging"
+          ],
+          "origin_sources": [
+            "waf"
+          ]
         }
       ],
       "measured": true
@@ -7798,6 +8224,101 @@
           "layout": {
             "plugin": "Datagrid"
           }
+        },
+        {
+          "id": "risky-addresses",
+          "title": "Risky addresses",
+          "description": "IP addresses by country and network.",
+          "kind": "data",
+          "scope": "shared",
+          "owner": null,
+          "is_default": true,
+          "spec": {
+            "window": {
+              "start": "2026-10-08T18:00:00Z",
+              "end": "2026-10-09T18:00:00Z"
+            },
+            "filters": [],
+            "index_name": "ip_address",
+            "columns": [
+              "src_ip",
+              "country",
+              "asn"
+            ],
+            "sort": null,
+            "grain": null,
+            "seed": null,
+            "hops": 2
+          },
+          "layout": {
+            "charts": [
+              {
+                "kind": "treemap",
+                "group_by": [
+                  "country",
+                  "asn"
+                ],
+                "title": "Country and network",
+                "top_n": 15
+              },
+              {
+                "kind": "heatmap",
+                "group_by": [
+                  "country",
+                  "is_internal"
+                ],
+                "title": "Country by internal or external",
+                "top_n": 15
+              }
+            ]
+          }
+        },
+        {
+          "id": "threat-intel-landscape",
+          "title": "Threat intel landscape",
+          "description": "What the feeds hold.",
+          "kind": "data",
+          "scope": "shared",
+          "owner": null,
+          "is_default": true,
+          "spec": {
+            "window": {
+              "start": "2026-10-08T18:00:00Z",
+              "end": "2026-10-09T18:00:00Z"
+            },
+            "filters": [],
+            "index_name": "indicator",
+            "columns": [
+              "label",
+              "source_feed"
+            ],
+            "sort": null,
+            "grain": null,
+            "seed": null,
+            "hops": 2
+          },
+          "layout": {
+            "charts": [
+              {
+                "kind": "sunburst",
+                "group_by": [
+                  "intel_tier",
+                  "tlp"
+                ],
+                "title": "Tier and sharing level",
+                "top_n": 15
+              },
+              {
+                "kind": "bar",
+                "group_by": [
+                  "source_feed",
+                  "tlp"
+                ],
+                "title": "Feeds",
+                "top_n": 15
+              }
+            ]
+          }
         }
       ]
     },
@@ -7901,7 +8422,23 @@
           "data volume"
         ],
         "first_seen": "2026-10-09T15:00:00Z",
-        "last_seen": "2026-10-09T17:00:00Z"
+        "last_seen": "2026-10-09T17:00:00Z",
+        "origins": [
+          {
+            "account": "111122223333",
+            "source": "revproxy",
+            "environment": "prod",
+            "host": "portal.example.org",
+            "count": 13
+          },
+          {
+            "account": "444455556666",
+            "source": "waf",
+            "environment": "staging",
+            "host": "staging.example.org",
+            "count": 1
+          }
+        ]
       }
     },
     "why.g-crs-942": {
@@ -7976,7 +8513,23 @@
           "data volume"
         ],
         "first_seen": "2026-10-09T15:00:00Z",
-        "last_seen": "2026-10-09T17:00:00Z"
+        "last_seen": "2026-10-09T17:00:00Z",
+        "origins": [
+          {
+            "account": "111122223333",
+            "source": "revproxy",
+            "environment": "prod",
+            "host": "portal.example.org",
+            "count": 11
+          },
+          {
+            "account": "444455556666",
+            "source": "waf",
+            "environment": "staging",
+            "host": "staging.example.org",
+            "count": 1
+          }
+        ]
       }
     },
     "why.g-cs-sensitive": {
@@ -8046,7 +8599,23 @@
           "data volume"
         ],
         "first_seen": "2026-10-09T15:00:00Z",
-        "last_seen": "2026-10-09T17:00:00Z"
+        "last_seen": "2026-10-09T17:00:00Z",
+        "origins": [
+          {
+            "account": "111122223333",
+            "source": "revproxy",
+            "environment": "prod",
+            "host": "portal.example.org",
+            "count": 19
+          },
+          {
+            "account": "444455556666",
+            "source": "waf",
+            "environment": "staging",
+            "host": "staging.example.org",
+            "count": 1
+          }
+        ]
       }
     },
     "why.g-drift-1": {
@@ -8086,7 +8655,16 @@
           "data volume"
         ],
         "first_seen": "2026-10-09T15:00:00Z",
-        "last_seen": "2026-10-09T17:00:00Z"
+        "last_seen": "2026-10-09T17:00:00Z",
+        "origins": [
+          {
+            "account": "111122223333",
+            "source": "waf",
+            "environment": "prod",
+            "host": "portal.example.org",
+            "count": 0
+          }
+        ]
       }
     },
     "why.g-env-200": {
@@ -8166,7 +8744,23 @@
           "data volume"
         ],
         "first_seen": "2026-10-09T15:00:00Z",
-        "last_seen": "2026-10-09T17:00:00Z"
+        "last_seen": "2026-10-09T17:00:00Z",
+        "origins": [
+          {
+            "account": "111122223333",
+            "source": "revproxy",
+            "environment": "prod",
+            "host": "portal.example.org",
+            "count": 1
+          },
+          {
+            "account": "444455556666",
+            "source": "waf",
+            "environment": "staging",
+            "host": "staging.example.org",
+            "count": 1
+          }
+        ]
       }
     },
     "why.g-env-blocked": {
@@ -8242,7 +8836,23 @@
           "data volume"
         ],
         "first_seen": "2026-10-09T15:00:00Z",
-        "last_seen": "2026-10-09T17:00:00Z"
+        "last_seen": "2026-10-09T17:00:00Z",
+        "origins": [
+          {
+            "account": "111122223333",
+            "source": "revproxy",
+            "environment": "prod",
+            "host": "portal.example.org",
+            "count": 19
+          },
+          {
+            "account": "444455556666",
+            "source": "waf",
+            "environment": "staging",
+            "host": "staging.example.org",
+            "count": 1
+          }
+        ]
       }
     },
     "why.g-ioc-match": {
@@ -8331,7 +8941,23 @@
           "data volume"
         ],
         "first_seen": "2026-10-09T15:00:00Z",
-        "last_seen": "2026-10-09T17:00:00Z"
+        "last_seen": "2026-10-09T17:00:00Z",
+        "origins": [
+          {
+            "account": "111122223333",
+            "source": "revproxy",
+            "environment": "prod",
+            "host": "portal.example.org",
+            "count": 19
+          },
+          {
+            "account": "444455556666",
+            "source": "waf",
+            "environment": "staging",
+            "host": "staging.example.org",
+            "count": 1
+          }
+        ]
       }
     },
     "why.g-novel-1": {
@@ -8413,7 +9039,16 @@
           "data volume"
         ],
         "first_seen": "2026-10-09T15:00:00Z",
-        "last_seen": "2026-10-09T17:00:00Z"
+        "last_seen": "2026-10-09T17:00:00Z",
+        "origins": [
+          {
+            "account": "111122223333",
+            "source": "waf",
+            "environment": "prod",
+            "host": "portal.example.org",
+            "count": 0
+          }
+        ]
       }
     },
     "why.g-ntseq-exfil": {
@@ -8507,7 +9142,23 @@
           "data volume"
         ],
         "first_seen": "2026-10-09T09:00:00Z",
-        "last_seen": "2026-10-09T13:00:00Z"
+        "last_seen": "2026-10-09T13:00:00Z",
+        "origins": [
+          {
+            "account": "111122223333",
+            "source": "revproxy",
+            "environment": "prod",
+            "host": "portal.example.org",
+            "count": 1
+          },
+          {
+            "account": "444455556666",
+            "source": "waf",
+            "environment": "staging",
+            "host": "staging.example.org",
+            "count": 1
+          }
+        ]
       }
     },
     "why.g-path-traversal": {
@@ -8587,7 +9238,23 @@
           "data volume"
         ],
         "first_seen": "2026-10-09T15:00:00Z",
-        "last_seen": "2026-10-09T17:00:00Z"
+        "last_seen": "2026-10-09T17:00:00Z",
+        "origins": [
+          {
+            "account": "111122223333",
+            "source": "revproxy",
+            "environment": "prod",
+            "host": "portal.example.org",
+            "count": 5
+          },
+          {
+            "account": "444455556666",
+            "source": "waf",
+            "environment": "staging",
+            "host": "staging.example.org",
+            "count": 1
+          }
+        ]
       }
     },
     "why.g-progression-a": {
@@ -8719,7 +9386,23 @@
           "data volume"
         ],
         "first_seen": "2026-10-07T06:00:00Z",
-        "last_seen": "2026-10-09T16:00:00Z"
+        "last_seen": "2026-10-09T16:00:00Z",
+        "origins": [
+          {
+            "account": "111122223333",
+            "source": "revproxy",
+            "environment": "prod",
+            "host": "portal.example.org",
+            "count": 8
+          },
+          {
+            "account": "444455556666",
+            "source": "waf",
+            "environment": "staging",
+            "host": "staging.example.org",
+            "count": 1
+          }
+        ]
       }
     },
     "why.g-router-dropper": {
@@ -8800,7 +9483,150 @@
           "data volume"
         ],
         "first_seen": "2026-10-08T12:00:00Z",
-        "last_seen": "2026-10-08T12:00:00Z"
+        "last_seen": "2026-10-08T12:00:00Z",
+        "origins": [
+          {
+            "account": "111122223333",
+            "source": "revproxy",
+            "environment": "prod",
+            "host": "portal.example.org",
+            "count": 2
+          },
+          {
+            "account": "444455556666",
+            "source": "waf",
+            "environment": "staging",
+            "host": "staging.example.org",
+            "count": 1
+          }
+        ]
+      }
+    },
+    "aggregate.response": {
+      "index_name": "all_events",
+      "group_by": [
+        "src_ip",
+        "outcome"
+      ],
+      "rows": [
+        {
+          "values": [
+            "203.0.113.50",
+            "block"
+          ],
+          "count": 60
+        },
+        {
+          "values": [
+            "203.0.113.50",
+            "allow"
+          ],
+          "count": 40
+        },
+        {
+          "values": [
+            "203.0.113.50",
+            "error"
+          ],
+          "count": 4
+        },
+        {
+          "values": [
+            "198.51.100.77",
+            "block"
+          ],
+          "count": 52
+        },
+        {
+          "values": [
+            "198.51.100.77",
+            "allow"
+          ],
+          "count": 33
+        },
+        {
+          "values": [
+            "198.51.100.77",
+            "error"
+          ],
+          "count": 5
+        },
+        {
+          "values": [
+            "192.0.2.44",
+            "block"
+          ],
+          "count": 44
+        },
+        {
+          "values": [
+            "192.0.2.44",
+            "allow"
+          ],
+          "count": 26
+        },
+        {
+          "values": [
+            "192.0.2.44",
+            "error"
+          ],
+          "count": 6
+        },
+        {
+          "values": [
+            "198.51.100.200",
+            "block"
+          ],
+          "count": 36
+        },
+        {
+          "values": [
+            "198.51.100.200",
+            "allow"
+          ],
+          "count": 19
+        },
+        {
+          "values": [
+            "203.0.113.9",
+            "block"
+          ],
+          "count": 28
+        },
+        {
+          "values": [
+            "203.0.113.9",
+            "allow"
+          ],
+          "count": 12
+        },
+        {
+          "values": [
+            "192.0.2.10",
+            "block"
+          ],
+          "count": 20
+        },
+        {
+          "values": [
+            "192.0.2.10",
+            "allow"
+          ],
+          "count": 5
+        }
+      ],
+      "total": 630,
+      "truncated": true,
+      "as_of": "2026-10-09T18:00:00+00:00",
+      "notes": [
+        "only the 15 most frequent values of the first column and 12 of the second are shown"
+      ]
+    },
+    "accounts.names": {
+      "accounts": {
+        "111122223333": "Production platform",
+        "444455556666": "Staging platform",
+        "gdc_f5": "Data commons F5"
       }
     }
   }

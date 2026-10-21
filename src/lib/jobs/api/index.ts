@@ -1,2 +1,2 @@
 export { JobsApiError } from './client';
-export type { JobsApi, RunsQuery, SubmitResult, CatalogResponse } from './client';
+export type { JobsApi, RunsQuery, RunsScope, SubmitResult, SubmitChoices, CatalogResponse, ResultFile } from './client';

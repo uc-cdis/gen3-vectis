@@ -82,7 +82,8 @@ const CasesSummary = () => {
 
 const NO_DATA = 'No data has been ingested for this source. This is not zero.';
 const TILES: { key: keyof OverviewTotals; label: string; hint?: string; unmeasured: string; tab: TabId; opens: string }[] = [
-  { key: 'waf', label: 'WAF events', unmeasured: NO_DATA, tab: 'data', opens: 'Data' },
+  { key: 'events', label: 'Events, all sources', hint: 'Web, API, sign-in, network and detections', unmeasured: NO_DATA, tab: 'data', opens: 'Data' },
+  { key: 'waf', label: 'Web requests', hint: 'WAF, reverse proxy and F5 logs. A request two feeds both log counts twice.', unmeasured: NO_DATA, tab: 'data', opens: 'Data' },
   { key: 'audit', label: 'Audit events', unmeasured: NO_DATA, tab: 'data', opens: 'Data' },
   { key: 'threat', label: 'Indicators loaded', hint: 'Current intel indicators, not windowed', unmeasured: 'The indicator table could not be read. This is not zero.', tab: 'intel', opens: 'Intel' },
   { key: 'ioc_alerts', label: 'Alerts matching indicators', hint: 'Alert groups in this window', unmeasured: 'Alert groups could not be counted. This is not zero.', tab: 'intel', opens: 'Intel' },
@@ -95,7 +96,7 @@ const KpiTiles = ({ query }: { query: ReturnType<typeof useSiemQuery<'overview'>
   return (
     <QueryBoundary query={query} rows={2}>
       {({ totals }) => (
-        <SimpleGrid cols={{ base: 2, md: 3, lg: 5 }} component="section" aria-label="Key figures">
+        <SimpleGrid cols={{ base: 2, md: 3, lg: 6 }} component="section" aria-label="Key figures">
           {TILES.map((t) => {
             const v = totals[t.key];
             const measured = v !== null && v !== undefined;
@@ -234,10 +235,10 @@ const GRAIN_FOR_RANGE: Record<RangeId, Grain> = { '1h': '1m', '24h': '5m', '7d':
 const TrendPanel = ({ window }: { window: TimeWindow }) => {
   const { range } = useSecurity();
   const grain = GRAIN_FOR_RANGE[range];
-  const q = useSiemQuery('timeline', { body: { window, grain } });
+  const q = useSiemQuery('timeline', { body: { window, grain, index_name: 'all_events' } });
   return (
     <Panel title="Activity over time">
-      <QueryBoundary query={q} isEmpty={(d) => d.points.length === 0} empty={<EmptyState title="No rollup data in this window" hint="Nothing has been recorded for the selected range." />}>
+      <QueryBoundary query={q} isEmpty={(d) => d.points.length === 0} empty={<EmptyState title="No events in this window" hint="Nothing has been recorded for the selected range." />}>
         {(d) => <RollupChart points={d.points} grain={d.grain} label="Events over time" zoom height={300} />}
       </QueryBoundary>
     </Panel>

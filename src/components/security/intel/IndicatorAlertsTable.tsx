@@ -10,15 +10,17 @@ import { EmptyState, EntityLink, Panel, QueryBoundary, SeverityBadge } from '@/l
 import { validNodeId } from '../entities/entityKeys';
 import { relativeTime } from '@/lib/vectis-kit/ui/format';
 import type { IndicatorMatch } from '@/lib/vectis-kit/spec';
+import { entityTypeOf } from '@/lib/vectis-kit/spec/indicator';
 
 const MAX_RESOLVE = 50;
 
 /** One matched indicator: the VALUE first (what an analyst recognises), the intel id and feed second. */
 const MatchedValue = ({ id, match, resolving }: { id: string; match: IndicatorMatch | undefined; resolving: boolean }) => {
-  if (match?.type) {
+  const entityType = entityTypeOf(match?.type);
+  if (match && entityType) {
     return (
       <Stack gap={0} align="flex-start" data-testid="matched-value">
-        <EntityLink type={match.type} value={match.value}>{safeText(match.value, 80)}</EntityLink>
+        <EntityLink type={entityType} value={match.value}>{safeText(match.value, 80)}</EntityLink>
         <Text size="xs" c="dimmed" ff="monospace" style={{ overflowWrap: 'anywhere' }}>
           {match.source ? `${safeText(match.source, 40)} · ` : ''}{match.indicator_id ? safeText(match.indicator_id, 60) : 'matched value'}
         </Text>

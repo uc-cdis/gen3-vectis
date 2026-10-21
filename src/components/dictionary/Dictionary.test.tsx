@@ -122,6 +122,9 @@ describe('the Dictionary page', () => {
     expect((intel.option as { series: Array<{ data: unknown[] }> }).series[0]!.data).toHaveLength(4);
     expect(lastGraphChart()).toBeTruthy();
     expect(screen.getByTestId('open-only-cluster')).toHaveTextContent('Observation also has declared edges');
+    // The force-laid-out graph can be spread out; the ring graph has no overlap, so only the force one has the control.
+    expect(screen.getAllByTestId('graph-spacing')).toHaveLength(1);
+    expect(screen.getByRole('slider', { name: 'Spread labels out' })).toBeInTheDocument();
     expect(screen.getByTestId('isolated-labels')).toHaveTextContent('ServiceLog');
     expect(screen.getByTestId('isolated-labels')).toHaveTextContent('declares no edge type or open edge family');
     expect(screen.getAllByTestId('label-row')).toHaveLength(9);

@@ -5,7 +5,8 @@ import type {
 } from '../spec';
 import { SEVERITY_COLOR, SEVERITY_LABEL } from '../spec';
 import { Unmeasured } from '@/lib/vectis-kit/ui/primitives';
-import { guessEntityType } from '@/lib/vectis-kit/spec/indicator';
+import { accountText, useAccountNames } from '@/lib/vectis-kit/ui/origin';
+import { IOC_LABEL, guessEntityType } from '@/lib/vectis-kit/spec/indicator';
 import { formatBytes, formatNumber, formatTime, relativeTime } from '@/lib/vectis-kit/ui/format';
 
 /** How an entity value is shown. The console passes <EntityLink>; the default is plain monospace text. */
@@ -148,7 +149,6 @@ export function NoveltySection({ s, ctx }: { s: WhyNovelty; ctx: SectionContext 
   );
 }
 
-const TYPE_LABEL: Record<NonNullable<IndicatorMatch['type']>, string> = { ip: 'IP address', domain: 'Domain', url: 'URL', hash: 'File hash', email: 'Email address' };
 const NOT_RECORDED = <Text span size="sm" c="dimmed" fs="italic" data-testid="not-recorded">Not recorded</Text>;
 
 const dateOnly = (iso: string) => <Text span size="sm" title={formatTime(iso)}>{formatTime(iso)} <Text span size="xs" c="dimmed">({relativeTime(iso)})</Text></Text>;
@@ -159,7 +159,7 @@ function IndicatorCard({ m, ctx }: { m: IndicatorMatch; ctx: SectionContext }) {
   return (
     <Stack gap={6} data-testid="indicator-match">
       <Group gap="xs" align="center">
-        <Text size="xs" c="dimmed" tt="uppercase" fw={600}>{known ? TYPE_LABEL[m.type as NonNullable<IndicatorMatch['type']>] : 'Indicator'}</Text>
+        <Text size="xs" c="dimmed" tt="uppercase" fw={600}>{known ? IOC_LABEL[m.type as NonNullable<IndicatorMatch['type']>] : 'Indicator'}</Text>
         {known ? <Text span fw={700} size="lg" data-testid="indicator-value">{ctx.renderEntity(m.type as EntityType, m.value)}</Text>
           : <Text span fw={600} size="md" ff="monospace" data-testid="indicator-value">{m.value}</Text>}
         {m.revoked ? <Badge size="sm" color="gray" radius="sm">Revoked</Badge> : null}
@@ -194,6 +194,32 @@ export function IndicatorSection({ s, ctx }: { s: WhyIndicator; ctx: SectionCont
 const ACTION_COLOR: Record<string, string> = { ALLOW: 'gray', BLOCK: 'blue', COUNT: 'gray' };
 
 /** What the group's own events show. Paths and rules come from the sampled events; what could not be measured is said so. */
+/** Which account, deployment, feed and host the sampled requests came from. A request that did not say is its own row. */
+function OriginTable({ origins }: { origins: NonNullable<WhyEvidence['origins']> }) {
+  const names = useAccountNames();
+  return (
+    <div data-testid="evidence-origins">
+      <Text size="xs" c="dimmed" fw={600} mb={2}>Where it came from</Text>
+      <Table withRowBorders fz="sm" aria-label="Where the requests came from">
+        <Table.Thead>
+          <Table.Tr><Table.Th>Account</Table.Th><Table.Th>Environment</Table.Th><Table.Th>Feed</Table.Th><Table.Th>Host</Table.Th><Table.Th ta="right">Requests</Table.Th></Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {origins.map((o) => (
+            <Table.Tr key={`${o.account ?? ''}|${o.source ?? ''}|${o.environment ?? ''}|${o.host ?? ''}`}>
+              <Table.Td style={{ overflowWrap: 'anywhere' }}>{o.account ? accountText(o.account, names) : <Text span size="sm" c="dimmed" fs="italic">not recorded</Text>}</Table.Td>
+              <Table.Td>{o.environment ?? '—'}</Table.Td>
+              <Table.Td>{o.source ?? '—'}</Table.Td>
+              <Table.Td style={{ overflowWrap: 'anywhere' }}><Text span ff="monospace" size="sm">{o.host ?? '—'}</Text></Table.Td>
+              <Table.Td ta="right">{formatNumber(o.count)}</Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+    </div>
+  );
+}
+
 export function EvidenceSection({ e }: { e: WhyEvidence }) {
   const partial = e.events_sampled < e.events_total;
   const paths = e.top_paths ?? [];
@@ -206,6 +232,7 @@ export function EvidenceSection({ e }: { e: WhyEvidence }) {
         {e.blocked != null ? <Badge variant="light" color="gray" radius="sm" data-testid="evidence-blocked">{formatNumber(e.blocked)} blocked</Badge> : null}
         <Text size="xs" c="dimmed">{partial ? `Paths and rules are from ${formatNumber(e.events_sampled)} sampled events.` : `All ${formatNumber(e.events_sampled)} events were read.`}</Text>
       </Group>
+      {(e.origins ?? []).length ? <OriginTable origins={e.origins ?? []} /> : null}
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         <div>
           <Text size="xs" c="dimmed" fw={600} mb={2}>Requested paths</Text>

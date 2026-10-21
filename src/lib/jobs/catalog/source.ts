@@ -2,7 +2,7 @@
 interface CatalogFile { name: string; size: number }
 export interface CatalogListing { version: string; files: CatalogFile[]; truncated: boolean }
 export interface CatalogSource {
-  kind: 'github';
+  kind: 'github' | 'service';
   /** Label shown to users and recorded in vectis.catalog_repo: owner/name for GitHub. */
   repo: string;
   ref: string;

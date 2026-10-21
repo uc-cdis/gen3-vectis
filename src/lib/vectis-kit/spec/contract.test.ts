@@ -9,12 +9,12 @@ const MODEL: Array<[RegExp, string]> = [
   [/^alerts\.response$/, 'AlertsResponse'], [/^overview\.response$/, 'OverviewResponse'],
   [/^timeline\.response$/, 'TimelineResponse'], [/^triage\.response$/, 'TriageResponse'],
   [/^cases\.list$/, 'CaseList'], [/^catalog\.response$/, 'CatalogResponse'], [/^rows\.response$/, 'RowsResponse'],
-  [/^facets\.response$/, 'FacetsResponse'], [/^entity\.profile$/, 'EntityProfileResponse'],
+  [/^facets\.response$/, 'FacetsResponse'], [/^aggregate\.response$/, 'AggregateResponse'], [/^entity\.profile$/, 'EntityProfileResponse'],
   [/^graph\.response$/, 'GraphTraverseResponse'], [/^similar\.response$/, 'SimilarResponse'],
   [/^find-similar\.response$/, 'FindSimilarResponse'], [/^health\./, 'HealthResponse'],
   [/^quarantine\./, 'QuarantineResponse'], [/^indicators\.resolve$/, 'IndicatorResolveResponse'], [/^coverage\.response$/, 'CoverageResponse'],
   [/^views\.list$/, 'SavedViewList'], [/^hunts\.list$/, 'HuntList'], [/^ai\./, 'AiSummaryResponse'],
-  [/^watchlist\.response$/, 'WatchlistResponse'], [/^why\./, 'WhyResponse'],
+  [/^watchlist\.response$/, 'WatchlistResponse'], [/^accounts\.names$/, 'AccountNames'], [/^why\./, 'WhyResponse'],
 ];
 
 const ajv = new Ajv2020({ strict: false, allErrors: true });

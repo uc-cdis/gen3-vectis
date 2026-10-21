@@ -77,6 +77,18 @@ describe('AlertsTab', () => {
     expect(screen.getAllByText('Control did not stop it').length).toBeGreaterThan(0);
   });
 
+  it('names the account, environment and feed of every alert, with the account name when the platform has one', async () => {
+    mount();
+    await screen.findByText(/Recon followed/);
+    expect(screen.getByRole('columnheader', { name: /Account \/ environment/ })).toBeInTheDocument();
+    expect((await screen.findAllByText('Production platform (111122223333)')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Staging platform (444455556666)').length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText('Environment prod').length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText('Feed waf').length).toBeGreaterThan(0);
+    // an alert is never shown without saying where it came from: no row is left without an account line
+    for (const row of dataRows()) expect(within(row).getByTestId('origin-tags')).toBeInTheDocument();
+  });
+
   it('opens the alert when a row is clicked', async () => {
     mount();
     const cell = await screen.findByText(/Option injection in a parameter value/);
@@ -142,43 +154,15 @@ describe('AlertsTab', () => {
     expect(screen.getByTestId('bulk-count')).toBeInTheDocument(); // selection is kept so they can retry
   });
 
-  describe('keyboard', () => {
-    it('j and k move, x selects, Enter opens', async () => {
-      mount();
-      await screen.findByText(/Recon followed/);
-      fireEvent.keyDown(document.body, { key: 'j' });
-      expect(dataRows()[0]).toHaveAttribute('data-active', 'true');
-      fireEvent.keyDown(document.body, { key: 'j' });
-      expect(dataRows()[1]).toHaveAttribute('data-active', 'true');
-      fireEvent.keyDown(document.body, { key: 'k' });
-      expect(dataRows()[0]).toHaveAttribute('data-active', 'true');
-      fireEvent.keyDown(document.body, { key: 'x' });
-      expect(screen.getByTestId('bulk-count')).toHaveTextContent('1 selected');
-      fireEvent.keyDown(document.body, { key: 'x' });
-      expect(screen.queryByTestId('bulk-count')).toBeNull();
-      fireEvent.keyDown(document.body, { key: 'Enter' });
-      await waitFor(() => expect(getMockQuery().alert).toBeTruthy());
-    });
-
-    it('ignores shortcuts while typing in an input', async () => {
-      mount();
-      await screen.findByText(/Recon followed/);
-      await userEvent.click(screen.getAllByRole('checkbox', { name: /^Select alert/ })[0]!);
-      const input = screen.getByRole('textbox', { name: 'Assign to' });
-      await userEvent.type(input, 'jkx?');
-      expect(input).toHaveValue('jkx?');
-      expect(dataRows().some((r) => r.getAttribute('data-active') === 'true')).toBe(false);
-      expect(screen.getByTestId('bulk-count')).toHaveTextContent('1 selected');
-      expect(screen.queryByRole('dialog')).toBeNull();
-    });
-
-    it('? shows the shortcuts', async () => {
-      mount();
-      await screen.findByText(/Recon followed/);
-      fireEvent.keyDown(document.body, { key: '?' });
-      const dlg = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
-      expect(within(dlg).getByText('Open the highlighted alert')).toBeInTheDocument();
-    });
+  it('has no single-key page shortcuts: j, k, x, ? and Enter on the page do nothing', async () => {
+    mount();
+    await screen.findByText(/Recon followed/);
+    for (const key of ['j', 'k', 'x', '?', 'Enter']) fireEvent.keyDown(document.body, { key });
+    expect(dataRows().some((r) => r.getAttribute('data-active') === 'true')).toBe(false);
+    expect(screen.queryByTestId('bulk-count')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('button', { name: /keyboard shortcuts/i })).toBeNull();
+    expect(getMockQuery().alert).toBeFalsy();
   });
 
   it('says so when the result is truncated', async () => {

@@ -10,8 +10,10 @@ import RunDialog from './RunDialog';
 import RunDrawer from './RunDrawer';
 import type { PollPhase } from './model';
 import RunsTab from './RunsTab';
+import WtsConnect from './WtsConnect';
+import YamlTab from './YamlTab';
 
-const TABS = [{ id: 'catalog', label: 'Catalog' }, { id: 'runs', label: 'Runs' }] as const;
+const TABS = [{ id: 'catalog', label: 'Catalog' }, { id: 'runs', label: 'Runs' }, { id: 'yaml', label: 'Run YAML' }] as const;
 type TabId = (typeof TABS)[number]['id'];
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
@@ -30,7 +32,7 @@ const Inner = ({ runsSchedule, drawerSchedule }: { runsSchedule?: readonly PollP
   const runId = (() => { const r = first(q.run); return isRunId(r) ? r : null; })();
   const jobId = first(q.job) ?? null;
   const asked = first(q.tab);
-  const tab: TabId = asked === 'runs' || runId ? 'runs' : 'catalog';
+  const tab: TabId = asked === 'yaml' && !runId ? 'yaml' : asked === 'runs' || runId ? 'runs' : 'catalog';
   const [running, setRunning] = useState<string | null>(null); // job whose run dialog is open
   const catalog = useCatalog();
 
@@ -48,13 +50,16 @@ const Inner = ({ runsSchedule, drawerSchedule }: { runsSchedule?: readonly PollP
     <div className="w-full px-6 py-4" data-testid="jobs-shell">
       <Group align="baseline" gap="sm" mb="xs"><Title order={2}>Jobs</Title></Group>
       <ModeBanner />
+      <WtsConnect />
       <Tabs value={tab} onChange={(v) => v && push({ tab: v, run: undefined, job: undefined })} keepMounted={false}>
         <Tabs.List mb="md" aria-label="Jobs sections">{TABS.map((t) => <Tabs.Tab key={t.id} value={t.id}>{t.label}</Tabs.Tab>)}</Tabs.List>
         <Tabs.Panel value={tab}>
           <PanelErrorBoundary>
             {tab === 'catalog'
-              ? <CatalogTab onRun={setRunning} onDetails={(id) => push({ job: id })} />
-              : <RunsTab onOpen={(id) => push({ run: id })} schedule={runsSchedule} />}
+              ? <CatalogTab onRun={setRunning} onDetails={(id) => push({ job: id })} onOpenRuns={() => push({ tab: 'runs', run: undefined, job: undefined })} />
+              : tab === 'yaml'
+                ? <YamlTab onSubmitted={(id) => push({ tab: 'runs', run: id, job: undefined })} />
+                : <RunsTab onOpen={(id) => push({ run: id })} schedule={runsSchedule} />}
           </PanelErrorBoundary>
         </Tabs.Panel>
       </Tabs>

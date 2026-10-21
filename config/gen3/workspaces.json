@@ -32,7 +32,7 @@
   "tierConfiguration": {
     "free": {
       "dataAndTools": {
-        "enabled": false
+        "width": 300
       },
       "toolbar": {
         "tierLabel": "lite"
@@ -40,7 +40,7 @@
     },
     "remote": {
       "dataAndTools": {
-        "enabled": false
+        "width": 300
       },
       "toolbar": {
         "tierLabel": "remote"

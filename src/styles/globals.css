@@ -17,3 +17,26 @@
 }
 
 @tailwind variants;
+
+/* Landing page. The framework draws the hero with next/image `fill`, which takes its box's shape and stretches the picture
+   more the wider the screen is; keep the picture's own proportions (1963 x 1267) and cap its width. The gray quote band
+   grows to meet the footer on tall screens instead of leaving a white gap above it. */
+div.relative:has(> img[alt="Vectis secure data platform"]) {
+  height: auto;
+  aspect-ratio: 1963 / 1267;
+  width: min(100%, 650px);
+  margin-inline: auto;
+}
+img[alt="Vectis secure data platform"] {
+  object-fit: contain;
+}
+div.w-full.bg-base-max:has(> div.bg-secondary-lightest) {
+  display: flex;
+  flex-direction: column;
+}
+div.w-full.bg-base-max > div.bg-secondary-lightest {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}

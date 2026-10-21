@@ -1,0 +1,43 @@
+# Released wheels for the in-browser (free) JupyterLite: gen3 and everything it needs that Pyodide does not provide.
+# Hash-pinned; install with: pip download -r gen3-wheels.lock --require-hashes --no-deps --only-binary=:all: --python-version 314 --platform any
+# gen3 4.28.x does not depend on authutils (5.0.0 does, and needs cryptography>=50, which Pyodide cannot provide).
+aiofiles==25.1.0 \
+    --hash=sha256:abe311e527c862958650f9438e859c1fa7568a141b22abcd015e120e86a85695
+backoff==2.2.1 \
+    --hash=sha256:63579f9a0628e06278f7e47b7d7d5b6ce20dc65c5e96a6f3ca99a6adca0396e8
+cdislogging==1.2.0 \
+    --hash=sha256:3596addc972c3e65c738231381244089f84466e9c6e2662e096ad53154018f54
+dataclasses-json==0.5.9 \
+    --hash=sha256:1280542631df1c375b7bc92e5b86d39e06c44760d7e3571a537b3b8acabf2f0c
+dictionaryutils==4.0.0 \
+    --hash=sha256:a6d1b2af957ffd2c66df42a1398fee1bd30b0268df82d9630236ed23286500a0
+drsclient==0.4.0 \
+    --hash=sha256:34e5f18b060894cf1402929a84ef96f1c3a80ad07447443dbb575a9324366dff
+gen3==4.28.5 \
+    --hash=sha256:f313a2319103b250dc408ec127b48dbcbcbaadcbfe61a59b8ed74664d19025e5
+gen3dictionary==3.0.0 \
+    --hash=sha256:5da0dcd78d7c86aaaa9b85810a4e816daa7748d66064b6f67ad96167341780ab
+gen3users==1.1.1 \
+    --hash=sha256:5a38ba90c8cef5f7c4ed6ae2f1f1d733524d48b1b2c60e66db8537e36194faab
+humanfriendly==10.0 \
+    --hash=sha256:1697e1a8a8f550fd43c2865cd84542fc175a61dcb779b6fee18cf6b6ccba1477
+importlib-metadata==8.9.0 \
+    --hash=sha256:e0f761b6ea91ced3b0844c14c9d955224d538105921f8e6754c00f6ca79fba7f
+jsonschema==4.23.0 \
+    --hash=sha256:fbadb6f8b144a8f8cf9f0b89ba94501d143e50411a1278633f56a7acf7fd5566
+marshmallow==3.26.2 \
+    --hash=sha256:013fa8a3c4c276c24d26d84ce934dc964e2aa794345a0f8c7e5a7191482c8a73
+marshmallow-enum==1.5.1 \
+    --hash=sha256:57161ab3dbfde4f57adeb12090f39592e992b9c86d206d02f6bd03ebec60f072
+mypy-extensions==1.1.0 \
+    --hash=sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505
+pypfb==0.6.2 \
+    --hash=sha256:ec0e7a4abb401d79d8f04a95bc4025ad3643abd2f2dfe5f7f766e256d8d243c3
+python-json-logger==4.2.0 \
+    --hash=sha256:158a52126fcd6869e09574d2b66272666f3dc8f468c62637ef9a1fa883719cb9
+typing-inspect==0.9.0 \
+    --hash=sha256:9ee6fc59062311ef8547596ab6b955e1b8aa46242d854bfc78f4f6b0eff35f9f
+xmltodict==0.13.0 \
+    --hash=sha256:aa89e8fd76320154a40d19a0df04a4695fb9dc5ba977cbb68ab3e4eb225e7852
+zipp==4.1.1 \
+    --hash=sha256:8979f52d874162f485ff2981e3891f3a3317b7a3dd43ff1e1775b9304f307a9c

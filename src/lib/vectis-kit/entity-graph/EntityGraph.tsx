@@ -31,6 +31,7 @@ interface EntityGraphProps {
   edgeLabels?: boolean;
   legend?: boolean;
   repulsion?: number;
+  edgeLength?: [number, number];
 }
 
 type ChartHandle = NonNullable<ReactEChartsProps['ref']>['current'];
@@ -60,7 +61,7 @@ function readPositions(chart: unknown): Pos {
  * knowledge is in the lens. Includes a legend by node kind, edge labels, search and highlight, PNG export,
  * and a table of nodes and edges as the text alternative.
  */
-export const EntityGraph = ({ nodes, edges, lens, truncated, selectedId, height = 460, label = 'Entity graph', onNodeClick, onEdgeClick, onExpand, layout, dashedEdgeTypes, edgeLabels, legend, repulsion }: EntityGraphProps) => {
+export const EntityGraph = ({ nodes, edges, lens, truncated, selectedId, height = 460, label = 'Entity graph', onNodeClick, onEdgeClick, onExpand, layout, dashedEdgeTypes, edgeLabels, legend, repulsion, edgeLength }: EntityGraphProps) => {
   const chartRef = useRef<ChartHandle>(null);
   const [query, setQuery] = useState('');
   const [asTable, setAsTable] = useState(false);
@@ -75,8 +76,8 @@ export const EntityGraph = ({ nodes, edges, lens, truncated, selectedId, height 
     // Reading the ref during render is deliberate: the option must start from the layout as it is right now,
     // and a state update here would redraw on every layout frame.
     // oxlint-disable-next-line react/refs
-    () => buildGraphOption({ nodes, edges }, { lens, highlight, selectedId, positions: positionsRef.current, layout, dashedEdgeTypes, edgeLabels, legend, repulsion }),
-    [nodes, edges, lens, highlight, selectedId, layout, dashedEdgeTypes, edgeLabels, legend, repulsion],
+    () => buildGraphOption({ nodes, edges }, { lens, highlight, selectedId, positions: positionsRef.current, layout, dashedEdgeTypes, edgeLabels, legend, repulsion, edgeLength }),
+    [nodes, edges, lens, highlight, selectedId, layout, dashedEdgeTypes, edgeLabels, legend, repulsion, edgeLength],
   );
 
   // ReactECharts binds its event handlers once, so the handlers read the latest props through a ref.

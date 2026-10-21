@@ -16,6 +16,7 @@ export const ROUTES = {
   timeline: { method: 'POST', path: 'timeline' },
   rows: { method: 'POST', path: 'rows' },
   facets: { method: 'POST', path: 'facets' },
+  aggregate: { method: 'POST', path: 'aggregate' },
   alerts: { method: 'POST', path: 'alerts' },
   alertGet: { method: 'GET', path: 'alerts/:id' },
   alertWhy: { method: 'GET', path: 'alerts/:id/why' },
@@ -35,6 +36,7 @@ export const ROUTES = {
   watchlist: { method: 'POST', path: 'watchlist' },
   coverage: { method: 'GET', path: 'coverage' },
   views: { method: 'GET', path: 'views' },
+  accounts: { method: 'GET', path: 'accounts' },
   hunts: { method: 'GET', path: 'hunts' },
   huntCreate: { method: 'POST', path: 'hunts' },
   huntPatch: { method: 'PATCH', path: 'hunts/:id' },
@@ -54,6 +56,7 @@ export interface ApiMap {
   timeline: [C.TimelineRequest, C.TimelineResponse];
   rows: [C.RowsRequest, C.RowsResponse];
   facets: [C.FacetsRequest, C.FacetsResponse];
+  aggregate: [C.AggregateRequest, C.AggregateResponse];
   alerts: [C.AlertsRequest, C.AlertsResponse];
   alertGet: [NoBody, C.AlertGroup];
   alertWhy: [NoBody, C.WhyResponse];
@@ -73,6 +76,7 @@ export interface ApiMap {
   watchlist: [C.WatchlistRequest, C.WatchlistResponse];
   coverage: [NoBody, C.CoverageResponse];
   views: [NoBody, C.SavedViewList];
+  accounts: [NoBody, C.AccountNames];
   hunts: [NoBody, C.HuntList];
   huntCreate: [C.HuntCreate, C.Hunt];
   huntPatch: [C.HuntPatch, C.Hunt];

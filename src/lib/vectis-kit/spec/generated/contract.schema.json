@@ -1,5 +1,156 @@
 {
   "$defs": {
+    "AccountNames": {
+      "additionalProperties": false,
+      "description": "Friendly names for account ids and source systems; an id with no entry is shown as itself.",
+      "properties": {
+        "accounts": {
+          "maxProperties": 500,
+          "patternProperties": {
+            "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "propertyNames": {
+            "maxLength": 128
+          },
+          "type": "object"
+        }
+      },
+      "title": "AccountNames",
+      "type": "object"
+    },
+    "AggregateRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "filters": {
+          "items": {
+            "$ref": "#/$defs/FilterClause"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "group_by": {
+          "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 1,
+          "type": "array"
+        },
+        "index_name": {
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "type": "string"
+        },
+        "top_n": {
+          "default": 15,
+          "description": "Values of the first column kept, by total count",
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "window": {
+          "$ref": "#/$defs/TimeWindow"
+        }
+      },
+      "required": [
+        "window",
+        "index_name",
+        "group_by"
+      ],
+      "title": "AggregateRequest",
+      "type": "object"
+    },
+    "AggregateResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "group_by": {
+          "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "index_name": {
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/AggregateRow"
+          },
+          "maxItems": 5000,
+          "type": "array"
+        },
+        "total": {
+          "description": "Events counted in the window, including values not returned",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "truncated": {
+          "description": "True when values beyond the top ones were left out",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "index_name",
+        "group_by",
+        "rows",
+        "total",
+        "truncated",
+        "as_of"
+      ],
+      "title": "AggregateResponse",
+      "type": "object"
+    },
+    "AggregateRow": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "values": {
+          "description": "One value per group_by column, in order",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 2,
+          "type": "array"
+        }
+      },
+      "required": [
+        "values",
+        "count"
+      ],
+      "title": "AggregateRow",
+      "type": "object"
+    },
     "AiSummaryResponse": {
       "additionalProperties": false,
       "description": "The AI analyst slot. The producer is behind the AI gateway and arrives later; the UI renders every state.",
@@ -312,6 +463,50 @@
           "minimum": 1,
           "type": "integer"
         },
+        "origin_account": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "origin_accounts": {
+          "items": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "origin_environments": {
+          "items": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "origin_hosts": {
+          "items": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "origin_sources": {
+          "items": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
         "robust_zscore": {
           "anyOf": [
             {
@@ -426,24 +621,24 @@
         }
       },
       "required": [
-        "group_id",
-        "signature_id",
-        "group_date",
-        "tenant_id",
-        "detector_tier",
-        "title",
-        "severity",
-        "severity_score",
-        "occurrence_count",
-        "first_seen",
-        "last_seen",
-        "distinct_src_ips",
-        "distinct_accounts",
-        "distinct_countries",
-        "tenants_affected",
         "allowed_count",
         "blocked_count",
-        "control_worked"
+        "control_worked",
+        "detector_tier",
+        "distinct_accounts",
+        "distinct_countries",
+        "distinct_src_ips",
+        "first_seen",
+        "group_date",
+        "group_id",
+        "last_seen",
+        "occurrence_count",
+        "severity",
+        "severity_score",
+        "signature_id",
+        "tenant_id",
+        "tenants_affected",
+        "title"
       ],
       "title": "AlertGroup",
       "type": "object"
@@ -1110,7 +1305,7 @@
           "items": {
             "$ref": "#/$defs/IndexCatalog"
           },
-          "maxItems": 20,
+          "maxItems": 64,
           "type": "array"
         }
       },
@@ -1337,6 +1532,7 @@
             "url",
             "hash",
             "email",
+            "path",
             "host",
             "user",
             "session",
@@ -1481,6 +1677,7 @@
             "url",
             "hash",
             "email",
+            "path",
             "host",
             "user",
             "session",
@@ -1512,6 +1709,7 @@
             "url",
             "hash",
             "email",
+            "path",
             "host",
             "user",
             "session",
@@ -1667,13 +1865,8 @@
           "type": "array"
         },
         "index_name": {
-          "enum": [
-            "http_activity",
-            "api_activity",
-            "authentication",
-            "audit_event",
-            "network_activity"
-          ],
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
           "type": "string"
         },
         "top_n": {
@@ -1709,13 +1902,8 @@
           "type": "array"
         },
         "index_name": {
-          "enum": [
-            "http_activity",
-            "api_activity",
-            "authentication",
-            "audit_event",
-            "network_activity"
-          ],
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
           "type": "string"
         },
         "notes": {
@@ -2533,6 +2721,16 @@
     "IndexCatalog": {
       "additionalProperties": false,
       "properties": {
+        "category": {
+          "default": "events",
+          "enum": [
+            "events",
+            "findings",
+            "entities",
+            "threat_intel"
+          ],
+          "type": "string"
+        },
         "columns": {
           "items": {
             "$ref": "#/$defs/ColumnMeta"
@@ -2541,13 +2739,8 @@
           "type": "array"
         },
         "index_name": {
-          "enum": [
-            "http_activity",
-            "api_activity",
-            "authentication",
-            "audit_event",
-            "network_activity"
-          ],
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
           "type": "string"
         },
         "label": {
@@ -2681,7 +2874,9 @@
                 "domain",
                 "url",
                 "hash",
-                "email"
+                "email",
+                "path",
+                "stix"
               ],
               "type": "string"
             },
@@ -2811,6 +3006,69 @@
       "title": "Neighbor",
       "type": "object"
     },
+    "OriginBucket": {
+      "additionalProperties": false,
+      "description": "One place a sampled request came from: the account (or source system), the feed that logged it, the deployment label\nand the host it was addressed to. ``None`` means the record did not say.",
+      "properties": {
+        "account": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "host": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "count"
+      ],
+      "title": "OriginBucket",
+      "type": "object"
+    },
     "OverviewRequest": {
       "additionalProperties": false,
       "properties": {
@@ -2926,6 +3184,19 @@
           ],
           "default": null,
           "description": "None when the audit source has no data at all (unmeasured, not zero)"
+        },
+        "events": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Events in the window across every event index"
         },
         "ioc_alerts": {
           "anyOf": [
@@ -3247,13 +3518,8 @@
           "type": "integer"
         },
         "index_name": {
-          "enum": [
-            "http_activity",
-            "api_activity",
-            "authentication",
-            "audit_event",
-            "network_activity"
-          ],
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
           "type": "string"
         },
         "seed": {
@@ -3309,13 +3575,8 @@
           "type": "array"
         },
         "index_name": {
-          "enum": [
-            "http_activity",
-            "api_activity",
-            "authentication",
-            "audit_event",
-            "network_activity"
-          ],
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
           "type": "string"
         },
         "paging": {
@@ -3359,13 +3620,8 @@
           "type": "array"
         },
         "index_name": {
-          "enum": [
-            "http_activity",
-            "api_activity",
-            "authentication",
-            "audit_event",
-            "network_activity"
-          ],
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
           "type": "string"
         },
         "rows": {
@@ -3597,6 +3853,34 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
           "type": "string"
         },
+        "origin_account": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "origin_environments": {
+          "items": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
+        "origin_sources": {
+          "items": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
         "severity": {
           "enum": [
             "info",
@@ -3614,10 +3898,10 @@
         }
       },
       "required": [
-        "group_id",
         "distance",
-        "title",
-        "severity"
+        "group_id",
+        "severity",
+        "title"
       ],
       "title": "SimilarHit",
       "type": "object"
@@ -3837,13 +4121,8 @@
         },
         "index_name": {
           "default": "http_activity",
-          "enum": [
-            "http_activity",
-            "api_activity",
-            "authentication",
-            "audit_event",
-            "network_activity"
-          ],
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
           "type": "string"
         },
         "window": {
@@ -4166,7 +4445,9 @@
             "domain",
             "url",
             "hash",
-            "email"
+            "email",
+            "path",
+            "stix"
           ],
           "type": "string"
         },
@@ -4446,6 +4727,14 @@
           "maxItems": 8,
           "type": "array"
         },
+        "origins": {
+          "description": "Where the SAMPLED requests came from (account, feed, deployment label, host), most first",
+          "items": {
+            "$ref": "#/$defs/OriginBucket"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
         "sensitive_paths": {
           "items": {
             "maxLength": 120,
@@ -4482,10 +4771,10 @@
         }
       },
       "required": [
-        "events_total",
+        "bytes_recorded",
         "events_sampled",
-        "status_recorded",
-        "bytes_recorded"
+        "events_total",
+        "status_recorded"
       ],
       "title": "WhyEvidence",
       "type": "object"
@@ -4853,6 +5142,18 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "properties": {
+    "AccountNames": {
+      "$ref": "#/$defs/AccountNames"
+    },
+    "AggregateRequest": {
+      "$ref": "#/$defs/AggregateRequest"
+    },
+    "AggregateResponse": {
+      "$ref": "#/$defs/AggregateResponse"
+    },
+    "AggregateRow": {
+      "$ref": "#/$defs/AggregateRow"
+    },
     "AiSummaryResponse": {
       "$ref": "#/$defs/AiSummaryResponse"
     },
@@ -4996,6 +5297,9 @@
     },
     "Neighbor": {
       "$ref": "#/$defs/Neighbor"
+    },
+    "OriginBucket": {
+      "$ref": "#/$defs/OriginBucket"
     },
     "OverviewRequest": {
       "$ref": "#/$defs/OverviewRequest"

@@ -42,6 +42,8 @@ export function allowedExecutors(env: Env = process.env): Set<string> {
 }
 
 const NAME = /^[A-Za-z0-9_-]{1,64}$/;
+/** Dagu refuses any other step id (verified against Dagu 2.19.1): a letter first, then letters, digits and _ only. */
+const STEP_ID = /^[a-zA-Z][a-zA-Z0-9_]{0,63}$/;
 const MAX_STEPS = 64;
 const TOP_KEYS = new Set(['name', 'description', 'type', 'labels', 'tags', 'params', 'env', 'consts', 'secrets', 'steps', 'timeout_sec', 'max_active_steps', 'container', 'group']);
 const STEP_KEYS = new Set(['id', 'name', 'description', 'depends', 'action', 'with', 'run', 'command', 'script', 'exec', 'shell', 'shell_args', 'type', 'config', 'env', 'output', 'retry_policy', 'continue_on', 'timeout_sec', 'container']);
@@ -51,6 +53,9 @@ const WITH_KEYS: Record<string, ReadonlySet<string>> = {
   jq: new Set(['filter', 'data', 'input', 'args', 'raw']),
   mail: new Set(['to', 'from', 'subject', 'message']),
   docker: new Set(['image', 'command', 'platform', 'pull', 'auto_remove', 'working_dir']),
+  // k8s.run: only the image and the command. The namespace, service account and resource limits are set by the portal (never by a
+  // definition), and `context` (a kubeconfig choice) and `resources` are not allowed.
+  kubernetes: new Set(['image', 'command']),
 };
 const CONTAINER_KEYS = new Set(['image', 'pull_policy', 'env', 'working_dir', 'platform']);
 const ENV_DENY = /^(PATH|IFS|SHELL|HOME|USER|ENV|BASH_ENV|LD_[A-Z_]*|DYLD_[A-Z_]*|PYTHON[A-Z_]*|NODE_OPTIONS|DAGU_[A-Z_]*)$/i;
@@ -75,7 +80,7 @@ const SHELLS = new Set(['sh', 'bash', '/bin/sh', '/bin/bash']);
 const SHELL_ARGS = new Set(['-e', '-u', '-eu', '-x']);
 const JQ_ENV = /\$ENV\b|\benv\b/;
 
-interface DagInfo { name: string | null; steps: DagStepInfo[]; declaredParams: string[]; /** the parsed document that was linted: what is sent to Dagu is re-serialised from THIS */ doc: Record<string, unknown> }
+interface DagInfo { name: string | null; /** true when a step runs as a Kubernetes Job (k8s.run): the runner then adds the namespace and service account itself */ usesKubernetes: boolean; steps: DagStepInfo[]; declaredParams: string[]; /** the parsed document that was linted: what is sent to Dagu is re-serialised from THIS */ doc: Record<string, unknown> }
 type DagLint = { ok: true; info: DagInfo } | { ok: false; errors: string[] };
 
 /** The executor family of one step, or an error. `inContainer` = a DAG-level or step-level `container:` makes shell steps run in it. */
@@ -129,6 +134,7 @@ function paramAllowed(family: string, rel: string): boolean {
   if (rel.startsWith('env.')) return true;
   if (family === 'command') return /^(run|command|script|exec)(\[\d+\])?$/.test(rel);
   if (family === 'docker') return /^(with\.command(\[\d+\])?|run(\[\d+\])?|command(\[\d+\])?|script)$/.test(rel);
+  if (family === 'kubernetes') return /^with\.command(\[\d+\])?$/.test(rel);
   if (family === 'http') return /^with\.(query|body|headers)(\.|$)/.test(rel) || rel === 'with.url';
   if (family === 'jq') return /^with\.(args|data)(\.|$|\[)/.test(rel);
   if (family === 'mail') return rel === 'with.subject' || rel === 'with.message';
@@ -292,7 +298,7 @@ function lintStepWith(c: Ctx, step: Obj, fam: { family: string; label: string },
     else for (const k of Object.keys(withObj)) if (!wk.has(k)) errs.push(`${at}.with.${k}: not allowed for the "${fam.family}" executor (allowed: ${[...wk].join(', ')})`);
   }
   if (step.with !== undefined && step.config !== undefined) errs.push(`${at}: use "with" or "config", not both`);
-  if (fam.family === 'docker' && (step.action !== undefined || step.type !== undefined)) checkImage(c, isObj(withObj) ? withObj.image : undefined, `${at}.with.image`);
+  if ((fam.family === 'docker' || fam.family === 'kubernetes') && (step.action !== undefined || step.type !== undefined)) checkImage(c, isObj(withObj) ? withObj.image : undefined, `${at}.with.image`);
   if (fam.family === 'http' && isObj(withObj)) {
     lintHttpUrl(withObj.url, declared, secretNames, env, errs, `${at}.with.url`);
     if (typeof withObj.method === 'string' && !/^(GET|POST|PUT|PATCH|DELETE|HEAD)$/i.test(withObj.method)) errs.push(`${at}.with.method: not a plain HTTP method`);
@@ -325,7 +331,7 @@ function lintStep(c: Ctx, step: Obj, i: number): void {
   const id = step.id, nm = step.name;
   if (id !== undefined && nm !== undefined && id !== nm) errs.push(`${at}: give a step an id OR a name, not two different ones`);
   const key = id ?? nm;
-  if (typeof key !== 'string' || !NAME.test(key)) { errs.push(`${at}: needs an id of letters, digits, _ and - (max 64)`); }
+  if (typeof key !== 'string' || !STEP_ID.test(key)) { errs.push(`${at}: needs an id that starts with a letter and has only letters, digits and _ (max 64); "-" is not allowed`); }
   else if (keys.has(key)) errs.push(`${at}: duplicate step id "${key}"`);
   else keys.add(key);
   const inContainer = dagContainer || step.container !== undefined;
@@ -456,5 +462,5 @@ function lintInner(text: unknown, opts: { env?: Env; catalogParams?: readonly st
   lintGraph(c); lintReferences(c); lintSecretFields(c);
   if (c.errs.length) return { ok: false, errors: [...new Set(c.errs)].slice(0, 20) };
   const name = c.doc.name === undefined ? null : c.doc.name;
-  return { ok: true, info: { name: name as string | null, steps: c.infos, declaredParams: c.declared, doc: c.doc } };
+  return { ok: true, info: { name: name as string | null, usesKubernetes: c.stepFamily.includes('kubernetes'), steps: c.infos, declaredParams: c.declared, doc: c.doc } };
 }

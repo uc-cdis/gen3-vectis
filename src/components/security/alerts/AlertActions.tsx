@@ -7,17 +7,17 @@ import { STATUS_LABEL } from '@/lib/vectis-kit/spec';
 import { useSecurity } from '../context';
 import { ErrorState } from '@/lib/vectis-kit/ui/primitives';
 import NoiseReasonModal from './NoiseReasonModal';
+import ResolveReasonModal from './ResolveReasonModal';
 import type { IocType } from '@/lib/vectis-kit/spec/indicator';
 import { LIMITS, validateAssignee, validateComment, validateConfidence, validateIndicator, validateNote } from './validate';
-import { IOC_TYPES } from '@/lib/vectis-kit/spec/indicator';
+import { IOC_LABEL, IOC_TYPES } from '@/lib/vectis-kit/spec/indicator';
 
+// 'noise' is set by Mark as noise. 'resolved' closes a group, so it opens a dialog for the disposition and reason the service requires.
 const SETTABLE: TriageStatus[] = ['new', 'triaged', 'investigating', 'resolved'];
 const DISPOSITIONS = [
   { value: 'true_positive', label: 'True positive' },
   { value: 'false_positive', label: 'False positive' },
   { value: 'benign', label: 'Benign' },
-  { value: 'true_negative', label: 'True negative' },
-  { value: 'false_negative', label: 'False negative' },
   { value: 'unknown', label: 'Unknown' },
 ];
 const PRIORITY: Record<AlertGroup['severity'], NonNullable<CaseCreate['priority']>> = { critical: 'critical', high: 'high', medium: 'medium', low: 'low', info: 'low' };
@@ -50,6 +50,7 @@ const AlertActions = ({ group }: { group: AlertGroup }) => {
   const [assignee, setAssignee] = useState('');
   const [assigneeErr, setAssigneeErr] = useState<string | null>(null);
   const [noiseOpen, setNoiseOpen] = useState(false);
+  const [resolveOpen, setResolveOpen] = useState(false);
   const [disp, setDisp] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   const [caseId, setCaseId] = useState<string | null>(null);
@@ -68,7 +69,7 @@ const AlertActions = ({ group }: { group: AlertGroup }) => {
     <Stack gap="sm">
       <Group align="flex-end" gap="xs" wrap="wrap">
         <Select label="Status" size="xs" w={170} placeholder="Choose status" data={SETTABLE.map((s) => ({ value: s, label: STATUS_LABEL[s] }))} value={status} onChange={setStatus} />
-        <Button size="xs" variant="default" disabled={!status || act.busy} onClick={() => status && void act.run(() => patch({ params, body: { status: status as TriageStatus } }, ['alerts']), `Status set to ${STATUS_LABEL[status as TriageStatus]}.`)}>Set status</Button>
+        <Button size="xs" variant="default" disabled={!status || act.busy} onClick={() => { if (status === 'resolved') setResolveOpen(true); else if (status) void act.run(() => patch({ params, body: { status: status as TriageStatus } }, ['alerts']), `Status set to ${STATUS_LABEL[status as TriageStatus]}.`); }}>Set status</Button>
       </Group>
       <Group align="flex-end" gap="xs" wrap="wrap">
         <TextInput label="Assign to" size="xs" w={220} maxLength={LIMITS.assignee} value={assignee} error={assigneeErr ?? undefined} onChange={(e) => { setAssignee(e.currentTarget.value); setAssigneeErr(null); }} />
@@ -82,9 +83,9 @@ const AlertActions = ({ group }: { group: AlertGroup }) => {
       <Stack gap="xs">
         <Group align="flex-end" gap="xs" wrap="wrap">
           <Select label="Disposition" size="xs" w={200} placeholder="Choose disposition" data={DISPOSITIONS} value={disp} onChange={setDisp} />
-          <Button size="xs" variant="default" disabled={!disp || act.busy || validateComment(comment) !== null} onClick={() => disp && void act.run(() => decide({ body: { group_id: id, disposition: disp as DecisionRequest['disposition'], comment: comment.trim() } }, ['alerts']), 'Disposition recorded.')}>Record disposition</Button>
+          <Button size="xs" variant="default" disabled={!disp || act.busy || validateComment(comment) !== null || (disp !== 'unknown' && comment.trim() === '')} onClick={() => disp && void act.run(() => decide({ body: { group_id: id, disposition: disp as DecisionRequest['disposition'], comment: comment.trim() } }, ['alerts']), 'Disposition recorded.')}>Record disposition</Button>
         </Group>
-        <Textarea label="Comment (optional)" size="xs" rows={2} maxLength={LIMITS.comment} value={comment} error={validateComment(comment) ?? undefined} onChange={(e) => setComment(e.currentTarget.value)} />
+        <Textarea label={disp && disp !== 'unknown' ? 'Comment (required: say why)' : 'Comment (optional)'} size="xs" rows={2} maxLength={LIMITS.comment} value={comment} error={validateComment(comment) ?? undefined} onChange={(e) => setComment(e.currentTarget.value)} />
       </Stack>
 
       {(group.top_sources ?? []).length > 0 ? (
@@ -115,7 +116,7 @@ const AlertActions = ({ group }: { group: AlertGroup }) => {
       <Collapse expanded={wlOpen}>
         <Stack gap="xs" p="xs" aria-label="Add indicator to watchlist" role="group">
           <Group gap="xs" align="flex-start" wrap="wrap">
-            <Select label="Type" size="xs" w={110} allowDeselect={false} data={[...IOC_TYPES]} value={wlType} onChange={(v) => v && setWlType(v as IocType)} />
+            <Select label="Type" size="xs" w={150} allowDeselect={false} data={IOC_TYPES.map((t) => ({ value: t, label: IOC_LABEL[t] }))} value={wlType} onChange={(v) => v && setWlType(v as IocType)} />
             <TextInput label="Value" size="xs" w={260} maxLength={LIMITS.value} value={wlValue} error={wlErrs.value ?? undefined} onChange={(e) => setWlValue(e.currentTarget.value)} />
             <NumberInput label="Confidence" size="xs" w={110} min={0} max={100} allowDecimal={false} value={wlConf} error={wlErrs.conf ?? undefined} onChange={(v) => setWlConf(String(v))} />
           </Group>
@@ -136,6 +137,13 @@ const AlertActions = ({ group }: { group: AlertGroup }) => {
       {act.error ? <ErrorState error={act.error} /> : null}
       {act.done ? <Alert color="green" role="status" py={6}>{act.done}</Alert> : null}
 
+      <ResolveReasonModal
+        opened={resolveOpen}
+        count={1}
+        busy={act.busy}
+        onCancel={() => setResolveOpen(false)}
+        onConfirm={(reason, disposition) => void act.run(() => patch({ params, body: { status: 'resolved', disposition, ...(reason ? { reason } : {}), expected_etag: group.etag ?? undefined } }, ['alerts', 'alertGet']), 'Resolved.').then((ok) => ok && setResolveOpen(false))}
+      />
       <NoiseReasonModal
         opened={noiseOpen}
         count={1}

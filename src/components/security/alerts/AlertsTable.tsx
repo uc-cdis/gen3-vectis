@@ -8,6 +8,7 @@ import { formatNumber } from '@/lib/vectis-kit/ui/format';
 import { EntityLink, SeverityBadge, StatusBadge, TierBadge } from '@/lib/vectis-kit/ui/primitives';
 import Time from '@/lib/vectis-kit/ui/Time';
 import { guessEntityType } from '@/lib/vectis-kit/spec/indicator';
+import { OriginTags } from '@/lib/vectis-kit/ui/origin';
 
 const MAX_INDICATORS_SHOWN = 3;
 
@@ -60,6 +61,15 @@ const columns: MRT_ColumnDef<AlertGroup>[] = [
       );
     },
   },
+  {
+    // Never hidden: which AWS account (or source system), deployment and feed the alert came from.
+    id: 'origin', header: 'Account / environment', size: 190, minSize: 150, enableSorting: false,
+    accessorFn: (g) => g.origin_account ?? g.origin_accounts?.[0] ?? '',
+    Cell: ({ row }) => {
+      const g = row.original;
+      return <OriginTags compact origin={{ account: g.origin_account, accounts: g.origin_accounts, environments: g.origin_environments, sources: g.origin_sources }} />;
+    },
+  },
   { id: 'tier', header: 'Tier', size: 84, enableSorting: false, accessorFn: (g) => g.detector_tier, Cell: ({ row }) => <TierBadge tier={row.original.detector_tier} /> },
   { id: 'rule', header: 'Rule', size: 150, enableSorting: false, accessorFn: (g) => g.rule_id ?? '', Cell: ({ row }) => (row.original.rule_id ? <Text size="xs" ff="monospace">{row.original.rule_id}</Text> : <Text size="xs" c="dimmed">—</Text>) },
   { id: 'first_seen', header: 'First seen', size: 100, enableSorting: false, accessorFn: (g) => g.first_seen, Cell: ({ row }) => <Time iso={row.original.first_seen} /> },
@@ -67,8 +77,17 @@ const columns: MRT_ColumnDef<AlertGroup>[] = [
   { id: 'occurrences', header: 'Events', size: 72, enableSorting: false, accessorFn: (g) => g.occurrence_count, Cell: ({ row }) => <Text size="sm">{formatNumber(row.original.occurrence_count)}</Text> },
   { id: 'sources', header: 'Source IPs', size: 84, enableSorting: false, accessorFn: (g) => g.distinct_src_ips, Cell: ({ row }) => <Text size="sm">{formatNumber(row.original.distinct_src_ips)}</Text> },
   { id: 'control', header: 'Allowed / blocked', size: 172, enableSorting: false, accessorFn: (g) => g.allowed_count, Cell: ({ row }) => <ControlCell g={row.original} /> },
-  { id: 'status', header: 'Status', size: 110, enableSorting: false, accessorFn: (g) => g.status ?? 'new', Cell: ({ row }) => <StatusBadge status={row.original.status ?? 'new'} /> },
-  { id: 'assignee', header: 'Assignee', size: 100, enableSorting: false, accessorFn: (g) => g.assignee ?? '', Cell: ({ row }) => <Text size="sm" c={row.original.assignee ? undefined : 'dimmed'}>{row.original.assignee || '—'}</Text> },
+  { id: 'status', header: 'Status', size: 132, minSize: 120, enableSorting: false, accessorFn: (g) => g.status ?? 'new', Cell: ({ row }) => <StatusBadge status={row.original.status ?? 'new'} /> },
+  {
+    id: 'assignee', header: 'Assignee', size: 170, minSize: 130, enableSorting: false, accessorFn: (g) => g.assignee ?? '',
+    // Long values truncate; the title shows the full value.
+    Cell: ({ row }) => (
+      <Text size="sm" c={row.original.assignee ? undefined : 'dimmed'} title={row.original.assignee ?? undefined}
+        style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {row.original.assignee || '—'}
+      </Text>
+    ),
+  },
   { id: 'case', header: 'Case', size: 90, enableSorting: false, accessorFn: (g) => g.case_id ?? '', Cell: ({ row }) => <Text size="xs" ff="monospace" c={row.original.case_id ? undefined : 'dimmed'}>{row.original.case_id || '—'}</Text> },
 ];
 

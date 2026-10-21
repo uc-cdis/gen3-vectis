@@ -24,24 +24,26 @@ describe('model', () => {
     expect(anyActive([])).toBe(false);
     expect(anyActive(undefined)).toBe(false);
   });
-  it('list schedule: 5s for 2 minutes, 15s to 10 minutes, then stop', () => {
+  it('list schedule: 5s for 2 minutes, 15s to 10 minutes, 30s to 4 hours, then stop', () => {
     expect(nextDelay(RUNS_POLL, 0, 0)).toBe(5000);
     expect(nextDelay(RUNS_POLL, 119_999, 0)).toBe(5000);
     expect(nextDelay(RUNS_POLL, 120_000, 0)).toBe(15_000);
     expect(nextDelay(RUNS_POLL, 599_999, 0)).toBe(15_000);
-    expect(nextDelay(RUNS_POLL, 600_000, 0)).toBeNull();
-    expect(nextDelay(RUNS_POLL, 9_999_999, 0)).toBeNull();
+    expect(nextDelay(RUNS_POLL, 600_000, 0)).toBe(30_000); // a long notebook run keeps updating
+    expect(nextDelay(RUNS_POLL, 14_399_999, 0)).toBe(30_000);
+    expect(nextDelay(RUNS_POLL, 14_400_000, 0)).toBeNull();
   });
-  it('drawer schedule: 3s for 1 minute, 10s to 10 minutes, then stop', () => {
+  it('drawer schedule: 3s for 1 minute, 10s to 10 minutes, 30s to 4 hours, then stop', () => {
     expect(nextDelay(DRAWER_POLL, 59_999, 0)).toBe(3000);
     expect(nextDelay(DRAWER_POLL, 60_000, 0)).toBe(10_000);
-    expect(nextDelay(DRAWER_POLL, 600_000, 0)).toBeNull();
+    expect(nextDelay(DRAWER_POLL, 600_000, 0)).toBe(30_000);
+    expect(nextDelay(DRAWER_POLL, 14_400_000, 0)).toBeNull();
   });
   it('doubles the wait after each failure, up to 60s, and still obeys the ceiling', () => {
     expect([1, 2, 3, 4, 5, 6].map((n) => nextDelay(RUNS_POLL, 0, n))).toEqual([10_000, 20_000, 40_000, 60_000, 60_000, 60_000]);
     expect(nextDelay(RUNS_POLL, 130_000, 1)).toBe(30_000);
     expect(nextDelay(RUNS_POLL, 130_000, 50)).toBe(60_000);
-    expect(nextDelay(RUNS_POLL, 600_000, 3)).toBeNull();
+    expect(nextDelay(RUNS_POLL, 14_400_000, 3)).toBeNull();
     expect(nextDelay(RUNS_POLL, 0, 0)).toBe(5000); // a success resets the count
   });
   it('keeps argument boundaries visible', () => {
