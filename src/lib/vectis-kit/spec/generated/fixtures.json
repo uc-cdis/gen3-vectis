@@ -9628,6 +9628,236 @@
         "444455556666": "Staging platform",
         "gdc_f5": "Data commons F5"
       }
+    },
+    "graph.paths": {
+      "paths": [
+        {
+          "id": "H1",
+          "scenario": "H",
+          "title": "address -> JA4 -> WAF or web ACL input -> AWS account -> load balancer",
+          "start": "IpAddress",
+          "steps": 4,
+          "in_graph": true
+        },
+        {
+          "id": "S1b",
+          "scenario": "S1",
+          "title": "address -> its user agents -> other addresses with the same client string",
+          "start": "IpAddress",
+          "steps": 2,
+          "in_graph": true
+        },
+        {
+          "id": "S1a",
+          "scenario": "S1",
+          "title": "fingerprint -> the addresses that used it -> their other fingerprints",
+          "start": "JA4Fingerprint",
+          "steps": 2,
+          "in_graph": true
+        }
+      ]
+    },
+    "graph.ask": {
+      "path_id": "H1",
+      "title": "address -> JA4 -> WAF or web ACL input -> AWS account -> load balancer",
+      "start_id": "tenant1:IpAddress:203.0.113.50",
+      "steps": [
+        {
+          "index": 0,
+          "relation": "used_fingerprint",
+          "from_label": "IpAddress",
+          "to_label": "JA4Fingerprint",
+          "reached": [
+            {
+              "id": "tenant1:JA4Fingerprint:t13d591000_a33745022dd6_1f22a2ca17c4",
+              "label": "JA4Fingerprint",
+              "name": "t13d591000_a33745022dd6_1f22a2ca17c4",
+              "count": 41
+            },
+            {
+              "id": "tenant1:JA4Fingerprint:t13d1411h2_cbb2034c60b8_e7c2b8d1f9a0",
+              "label": "JA4Fingerprint",
+              "name": null,
+              "count": 3
+            }
+          ],
+          "edges": [
+            {
+              "src_id": "tenant1:IpAddress:203.0.113.50",
+              "dst_id": "tenant1:JA4Fingerprint:t13d591000_a33745022dd6_1f22a2ca17c4",
+              "count": 41
+            },
+            {
+              "src_id": "tenant1:IpAddress:203.0.113.50",
+              "dst_id": "tenant1:JA4Fingerprint:t13d1411h2_cbb2034c60b8_e7c2b8d1f9a0",
+              "count": 3
+            }
+          ],
+          "total": 2,
+          "truncated": false
+        },
+        {
+          "index": 1,
+          "relation": "seen_by",
+          "from_label": "JA4Fingerprint",
+          "to_label": "LogSource",
+          "reached": [
+            {
+              "id": "tenant1:LogSource:waf|111122223333|prod|edge",
+              "label": "LogSource",
+              "name": null,
+              "count": 44
+            }
+          ],
+          "edges": [
+            {
+              "src_id": "tenant1:JA4Fingerprint:t13d591000_a33745022dd6_1f22a2ca17c4",
+              "dst_id": "tenant1:LogSource:waf|111122223333|prod|edge",
+              "count": 41
+            },
+            {
+              "src_id": "tenant1:JA4Fingerprint:t13d1411h2_cbb2034c60b8_e7c2b8d1f9a0",
+              "dst_id": "tenant1:LogSource:waf|111122223333|prod|edge",
+              "count": 3
+            }
+          ],
+          "total": 1,
+          "truncated": false
+        }
+      ],
+      "continues_in_events": false
+    },
+    "graph.match": {
+      "matches": [
+        {
+          "id": "H1",
+          "scenario": "H",
+          "title": "address -> JA4 -> WAF or web ACL input -> AWS account -> load balancer",
+          "start": "IpAddress",
+          "steps": 4,
+          "in_graph": true
+        }
+      ]
+    },
+    "graph.coverage": {
+      "days": 7,
+      "answerable": 2,
+      "missing": 1,
+      "events": 1,
+      "paths": [
+        {
+          "id": "H1",
+          "scenario": "H",
+          "title": "address -> JA4 -> WAF or web ACL input -> AWS account -> load balancer",
+          "start": "IpAddress",
+          "state": "answerable",
+          "first_missing": null,
+          "ends_in_events": false,
+          "steps": [
+            {
+              "relation": "used_fingerprint",
+              "layer": "graph",
+              "edges": 5594
+            },
+            {
+              "relation": "seen_by",
+              "layer": "graph",
+              "edges": 692134
+            }
+          ]
+        },
+        {
+          "id": "S1b",
+          "scenario": "S1",
+          "title": "address -> its user agents -> other addresses with the same client string",
+          "start": "IpAddress",
+          "state": "answerable",
+          "first_missing": null,
+          "ends_in_events": true,
+          "steps": [
+            {
+              "relation": "used_agent",
+              "layer": "graph",
+              "edges": 206062
+            },
+            {
+              "relation": "from_ip",
+              "layer": "events",
+              "edges": null
+            }
+          ]
+        },
+        {
+          "id": "B8",
+          "scenario": "S8",
+          "title": "a compromised host -> its internal address -> where it connected",
+          "start": "Host",
+          "state": "missing",
+          "first_missing": 0,
+          "ends_in_events": false,
+          "steps": [
+            {
+              "relation": "has_address",
+              "layer": "graph",
+              "edges": 0
+            },
+            {
+              "relation": "flowed_to",
+              "layer": "graph",
+              "edges": 28295
+            }
+          ]
+        },
+        {
+          "id": "S1e",
+          "scenario": "S1",
+          "title": "address -> what it asked for, in time order",
+          "start": "IpAddress",
+          "state": "events",
+          "first_missing": null,
+          "ends_in_events": true,
+          "steps": [
+            {
+              "relation": "from_ip",
+              "layer": "events",
+              "edges": null
+            }
+          ]
+        }
+      ]
+    },
+    "overview.events.response": {
+      "events": 88532,
+      "topSourceIps": [
+        {
+          "key": "198.51.100.200",
+          "count": 6100
+        },
+        {
+          "key": "203.0.113.50",
+          "count": 1244
+        },
+        {
+          "key": "192.0.2.10",
+          "count": 980
+        },
+        {
+          "key": "198.51.100.77",
+          "count": 540
+        }
+      ],
+      "topEventSources": [
+        {
+          "key": "waf",
+          "count": 88412
+        },
+        {
+          "key": "cloudtrail",
+          "count": 3120
+        }
+      ],
+      "as_of": "2026-10-09T18:00:00Z",
+      "notes": []
     }
   }
 }

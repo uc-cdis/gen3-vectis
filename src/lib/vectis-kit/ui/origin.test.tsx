@@ -12,3 +12,16 @@ describe('accountText', () => {
     for (const none of [null, undefined, '']) expect(accountText(none, names)).toBe('Account not recorded');
   });
 });
+
+describe('accountText with an account id that is log text', () => {
+  it('treats prototype names as plain ids, never as a name', () => {
+    for (const hostile of ['__proto__', 'constructor', 'toString', 'hasOwnProperty']) {
+      expect(accountText(hostile, {})).toBe(hostile);
+      expect(accountText(hostile, { '111122223333': 'Production platform' })).toBe(hostile);
+    }
+  });
+  it('still uses an own key with that name', () => {
+    expect(accountText('constructor', JSON.parse('{"constructor": "Legacy"}') as Record<string, string>)).toBe('Legacy (constructor)');
+    expect(accountText('__proto__', JSON.parse('{"__proto__": "Odd"}') as Record<string, string>)).toBe('Odd (__proto__)');
+  });
+});

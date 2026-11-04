@@ -28,15 +28,23 @@ export function validateEntityInput(type: string, rawValue: string): { error: st
 }
 
 /**
- * Graph labels per entity type, used ONLY to turn a clicked graph node back into an entity to open. Only `IpAddress`
- * is confirmed (it is the label in the contract fixture); the rest follow the same naming. A wrong guess here is
- * harmless: the entity drawer simply finds nothing. The graph START id is never guessed: the profile carries it.
+ * Which portal entity type a graph node kind opens as, used ONLY to turn a clicked graph node back into an entity.
+ * A constant table: the portal's entity types (ip, domain, hash, host, user, arn ...) are its own vocabulary and the
+ * dictionary does not name them. The kinds are the real ones in vectis_dictionary/commons/vectisprod/graph_contract.json
+ * (`labels`, with `entityLabel` choosing Host over Endpoint). Kinds that stand for no portal entity (Asn, Country,
+ * UserAgent, RequestSignature, LogSource, Finding, Indicator ...) are absent, so they cannot be opened. Principal is
+ * handled in `entityTypeOfGraphKind` because it covers both `user` and `arn`. The graph START id is never guessed: the
+ * profile carries it.
  */
-const GRAPH_LABEL_BY_TYPE: Record<EntityType, string> = {
-  ip: 'IpAddress', domain: 'Domain', url: 'Url', hash: 'FileHash', email: 'EmailAddress', path: 'UriPath',
-  host: 'Host', user: 'User', session: 'Session', arn: 'Arn',
-};
-const TYPE_BY_GRAPH_LABEL = new Map<string, EntityType>(Object.entries(GRAPH_LABEL_BY_TYPE).map(([t, l]) => [l, t as EntityType]));
+const ENTITY_TYPE_BY_GRAPH_KIND: ReadonlyMap<string, EntityType> = new Map<string, EntityType>([
+  ['IpAddress', 'ip'], ['Domain', 'domain'], ['Hash', 'hash'], ['Host', 'host'],
+]);
+
+/** The entity type a graph node of this kind and identity opens as, or null when the kind is not an entity the portal has. */
+export function entityTypeOfGraphKind(kind: string, value: string): EntityType | null {
+  if (kind === 'Principal') return value.startsWith('arn:') ? 'arn' : 'user';
+  return ENTITY_TYPE_BY_GRAPH_KIND.get(kind) ?? null;
+}
 
 // eslint-disable-next-line no-control-regex
 const NODE_ID = /^[^\x00-\x20\x7f]{1,256}$/; // contract.py NodeId
@@ -48,10 +56,10 @@ export function validNodeId(id: string | null | undefined): string | null {
 
 /** The reverse: which entity does a graph node stand for, if it is one of the entity labels. */
 export function seedFromGraphNode(node: GraphNode): EntitySeed | null {
-  const type = TYPE_BY_GRAPH_LABEL.get(node.label);
-  if (!type) return null;
   const parts = node.id.split(':');
+  // A masked identity (`Principal:masked-<digest>`) has no tenant part and is refused here: a mask is never opened as an entity.
   if (parts.length < 3 || parts[1] !== node.label) return null;
   const value = parts.slice(2).join(':');
-  return value && value.length <= MAX_VALUE_LENGTH ? { type, value } : null;
+  const type = entityTypeOfGraphKind(node.label, value);
+  return type && value && value.length <= MAX_VALUE_LENGTH ? { type, value } : null;
 }

@@ -78,7 +78,7 @@ describe('normalizeRun (browser side, defence in depth)', () => {
       outputs: [{ url: 'u', path: 'p', size_bytes: -1 }], tags: { __proto__: 'x', k: { a: 1 } },
     })!;
     expect(r.backend).toBe('unknown'); expect(r.state).toBe('unknown');
-    expect(r.name).toBe('n'); expect(r.backend_state.length).toBeLessThanOrEqual(64);
+    expect(r.name).toBe('n<U+202E><U+001B>'); expect(r.backend_state.length).toBeLessThanOrEqual(64);
     expect(r.steps[0].exit_code).toBeNull(); expect(r.steps[0].stdout.length).toBe(65536); expect(r.steps[0].truncated).toBe(true); expect(r.steps[0].stdout).not.toContain('‮');
     expect(r.outputs[0].size_bytes).toBeNull();
     expect(r.created_at).toBeNull(); expect(r.job).toBeNull();

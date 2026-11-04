@@ -13,6 +13,8 @@ import type { IndicatorMatch } from '@/lib/vectis-kit/spec';
 import { entityTypeOf } from '@/lib/vectis-kit/spec/indicator';
 
 const MAX_RESOLVE = 50;
+/** The service caps indicator values and titles at 256, so they are shown whole (wrapped), not cut. */
+const VALUE_CHARS = 256;
 
 /** One matched indicator: the VALUE first (what an analyst recognises), the intel id and feed second. */
 const MatchedValue = ({ id, match, resolving }: { id: string; match: IndicatorMatch | undefined; resolving: boolean }) => {
@@ -20,7 +22,7 @@ const MatchedValue = ({ id, match, resolving }: { id: string; match: IndicatorMa
   if (match && entityType) {
     return (
       <Stack gap={0} align="flex-start" data-testid="matched-value">
-        <EntityLink type={entityType} value={match.value}>{safeText(match.value, 80)}</EntityLink>
+        <EntityLink type={entityType} value={match.value}><span style={{ overflowWrap: 'anywhere' }}>{safeText(match.value, VALUE_CHARS)}</span></EntityLink>
         <Text size="xs" c="dimmed" ff="monospace" style={{ overflowWrap: 'anywhere' }}>
           {match.source ? `${safeText(match.source, 40)} · ` : ''}{match.indicator_id ? safeText(match.indicator_id, 60) : 'matched value'}
         </Text>
@@ -50,7 +52,7 @@ export const IndicatorAlertsTable = () => {
       id: 'indicators', header: 'Matched value', enableSorting: false, size: 260,
       Cell: ({ row }) => (
         <Stack gap={4}>
-          {(row.original.matched_indicators ?? []).slice(0, 3).map((v) => <MatchedValue key={v} id={v} match={byId.get(v)} resolving={resolving} />)}
+          {(row.original.matched_indicators ?? []).slice(0, 3).map((v, i) => <MatchedValue key={`${v}#${i}`} id={v} match={byId.get(v)} resolving={resolving} />)}
           {(row.original.matched_indicators ?? []).length > 3 ? <Text size="xs" c="dimmed">+{(row.original.matched_indicators ?? []).length - 3} more</Text> : null}
         </Stack>
       ),
@@ -61,8 +63,8 @@ export const IndicatorAlertsTable = () => {
     {
       id: 'alert', header: 'Alert', enableSorting: false,
       Cell: ({ row }) => (
-        <Anchor component="button" type="button" size="sm" onClick={() => openAlert(row.original.group_id)} aria-label={`Open alert ${safeText(row.original.title, 100)}`}>
-          {safeText(row.original.title, 80)}
+        <Anchor component="button" type="button" size="sm" onClick={() => openAlert(row.original.group_id)} aria-label={`Open alert ${safeText(row.original.title, VALUE_CHARS)}`}>
+          {safeText(row.original.title, VALUE_CHARS)}
         </Anchor>
       ),
     },

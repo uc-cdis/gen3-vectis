@@ -20,8 +20,8 @@ interface Fact { label: string; value: React.ReactNode }
 /** Label and value pairs as a description list. Values are React nodes, so callers pass text or <Unmeasured />. */
 export const FactList = ({ facts, label }: { facts: Fact[]; label?: string }) => (
   <Stack gap={4} component="dl" m={0} aria-label={label}>
-    {facts.map((f) => (
-      <Group key={f.label} gap="xs" wrap="nowrap" align="baseline">
+    {facts.map((f, i) => (
+      <Group key={`${f.label}#${i}`} gap="xs" wrap="nowrap" align="baseline">
         <Text component="dt" size="sm" c="dimmed" w={110} style={{ flexShrink: 0 }}>{f.label}</Text>
         <Text component="dd" size="sm" m={0} style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{f.value}</Text>
       </Group>

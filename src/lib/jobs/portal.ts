@@ -40,9 +40,16 @@ export async function allowedJobGroups(cookie: string | undefined): Promise<stri
   try {
     const routes = (await getRouteConfig()).routes ?? {};
     names = Object.keys(routes).filter((k) => k.startsWith(GROUP_ROUTE)).map((k) => k.slice(GROUP_ROUTE.length)).filter((n) => /^[a-z][a-z0-9-]{0,31}$/.test(n)).sort().slice(0, MAX_GROUPS);
-  } catch { return []; }
+  } catch (e) {
+    console.warn('jobs groups: the route configuration could not be read, so no group is offered', e instanceof Error ? e.message : 'unknown error');
+    return [];
+  }
   const checks = await Promise.all(names.map((n) => authorize(cookie, undefined, `${GROUP_ROUTE}${n}`, identityOrder())));
-  return names.filter((_n, i) => checks[i].ok);
+  const allowed = names.filter((_n, i) => checks[i].ok);
+  // Why "Run as" offers only "Just me" is otherwise invisible: no group configured in this build's authz.json, or none the person is a member of.
+  // Group names and counts only: no user, token or Arborist resource is logged.
+  if (allowed.length === 0) console.warn(`jobs groups: ${names.length} configured in authz.json, 0 allowed${names.length ? ` (${names.map((n, i) => `${n}=${checks[i].ok ? 'yes' : `no:${(checks[i] as { status?: number }).status ?? '?'}`}`).join(', ')})` : ''}`);
+  return allowed;
 }
 export const authorizeJobs = (cookie: string | undefined, level: Level): Promise<Access> =>
   authorize(cookie, undefined, level === 'submit' ? JOBS_SUBMIT_KEY : JOBS_READ_KEY, identityOrder());

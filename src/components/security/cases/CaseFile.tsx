@@ -145,8 +145,8 @@ const CaseBody = ({ rec, onReload }: { rec: CaseRecord; onReload: () => void }) 
       <Panel title={`Linked alerts (${rec.group_ids.length})`}>
         {rec.group_ids.length === 0 ? <Text size="sm" c="dimmed">No alerts are linked to this case.</Text> : (
           <Group gap="xs" component="ul" p={0} m={0} style={{ listStyle: 'none' }}>
-            {rec.group_ids.map((g) => (
-              <li key={g}><Anchor component="button" type="button" size="sm" ff="monospace" onClick={() => openAlert(g)} aria-label={`Open alert ${g}`}>{g}</Anchor></li>
+            {rec.group_ids.map((g, i) => (
+              <li key={`${g}#${i}`}><Anchor component="button" type="button" size="sm" ff="monospace" onClick={() => openAlert(g)} aria-label={`Open alert ${g}`}>{g}</Anchor></li>
             ))}
           </Group>
         )}

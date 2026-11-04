@@ -53,7 +53,7 @@ const columns: MRT_ColumnDef<AlertGroup>[] = [
           {g.signature_label ? <Text size="xs" c="dimmed" ff="monospace">{g.signature_label}</Text> : null}
           {shown.length ? (
             <Group gap={6} onClick={(e) => e.stopPropagation()}>
-              {shown.map((v) => <EntityLink key={v} type={guessEntityType(v)} value={v} />)}
+              {shown.map((v, i) => <EntityLink key={`${v}#${i}`} type={guessEntityType(v)} value={v} />)}
               {more > 0 ? <Text size="xs" c="dimmed">+{more} more</Text> : null}
             </Group>
           ) : null}
@@ -70,12 +70,44 @@ const columns: MRT_ColumnDef<AlertGroup>[] = [
       return <OriginTags compact origin={{ account: g.origin_account, accounts: g.origin_accounts, environments: g.origin_environments, sources: g.origin_sources }} />;
     },
   },
+  {
+    // The website the traffic was aimed at: its Host name, or the load balancer when the Host was a raw address.
+    id: 'website', header: 'Website', size: 190, minSize: 130, enableSorting: false,
+    accessorFn: (g) => g.origin_hosts?.join(' ') ?? '',
+    Cell: ({ row }) => {
+      const hosts = row.original.origin_hosts ?? [];
+      if (!hosts.length) return <Text size="xs" c="dimmed">—</Text>;
+      const more = hosts.length - 2;
+      return (
+        <Stack gap={0} title={hosts.join('\n')}>
+          {hosts.slice(0, 2).map((h) => <Text key={h} size="xs" ff="monospace" truncate>{h}</Text>)}
+          {more > 0 ? <Text size="xs" c="dimmed">+{more} more</Text> : null}
+        </Stack>
+      );
+    },
+  },
   { id: 'tier', header: 'Tier', size: 84, enableSorting: false, accessorFn: (g) => g.detector_tier, Cell: ({ row }) => <TierBadge tier={row.original.detector_tier} /> },
   { id: 'rule', header: 'Rule', size: 150, enableSorting: false, accessorFn: (g) => g.rule_id ?? '', Cell: ({ row }) => (row.original.rule_id ? <Text size="xs" ff="monospace">{row.original.rule_id}</Text> : <Text size="xs" c="dimmed">—</Text>) },
   { id: 'first_seen', header: 'First seen', size: 100, enableSorting: false, accessorFn: (g) => g.first_seen, Cell: ({ row }) => <Time iso={row.original.first_seen} /> },
   { id: 'last_seen', header: 'Last seen', size: 92, enableSorting: false, accessorFn: (g) => g.last_seen, Cell: ({ row }) => <Time iso={row.original.last_seen} /> },
   { id: 'occurrences', header: 'Events', size: 72, enableSorting: false, accessorFn: (g) => g.occurrence_count, Cell: ({ row }) => <Text size="sm">{formatNumber(row.original.occurrence_count)}</Text> },
-  { id: 'sources', header: 'Source IPs', size: 84, enableSorting: false, accessorFn: (g) => g.distinct_src_ips, Cell: ({ row }) => <Text size="sm">{formatNumber(row.original.distinct_src_ips)}</Text> },
+  {
+    // Who, not only how many: the addresses the alert names (the count when the alert does not list them).
+    id: 'sources', header: 'Source', size: 150, minSize: 110, enableSorting: false,
+    accessorFn: (g) => g.src_ips?.join(' ') ?? String(g.distinct_src_ips),
+    Cell: ({ row }) => {
+      const g = row.original;
+      const ips = g.src_ips ?? [];
+      if (!ips.length) return <Text size="sm">{formatNumber(g.distinct_src_ips)}</Text>;
+      const more = g.distinct_src_ips - 2;
+      return (
+        <Stack gap={0} title={ips.join('\n')} data-testid="source-cell">
+          {ips.slice(0, 2).map((ip) => <Text key={ip} size="xs" ff="monospace" truncate>{ip}</Text>)}
+          {more > 0 ? <Text size="xs" c="dimmed">+{more} more</Text> : null}
+        </Stack>
+      );
+    },
+  },
   { id: 'control', header: 'Allowed / blocked', size: 172, enableSorting: false, accessorFn: (g) => g.allowed_count, Cell: ({ row }) => <ControlCell g={row.original} /> },
   { id: 'status', header: 'Status', size: 132, minSize: 120, enableSorting: false, accessorFn: (g) => g.status ?? 'new', Cell: ({ row }) => <StatusBadge status={row.original.status ?? 'new'} /> },
   {

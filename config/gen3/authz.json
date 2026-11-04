@@ -45,6 +45,12 @@
         "/programs/vectis/projects/siem"
       ]
     },
+    "/Health": {
+      "loginRequired": true,
+      "authz": [
+        "/programs/vectis/projects/siem_admin"
+      ]
+    },
     "/Jobs": {
       "loginRequired": true,
       "authz": [

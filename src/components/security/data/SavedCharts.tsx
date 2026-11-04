@@ -59,7 +59,15 @@ const ChartCard = ({ chart, indexName, unit, labels, window, filters, wide }: {
 
 const ChartBody = ({ chart, data, unit, labels, title }: { chart: SavedChart; data: AggregateResponse; unit: string; labels: string[]; title: string }) => {
   const unfilled = unfilledDimensions(data.rows, chart.group_by.length).map((i) => labels[i] ?? chart.group_by[i]);
-  if (unfilled.length > 0) {
+  // Called before the early return: a refresh can turn an unfilled chart into a filled one, and hooks must run in the same order every render.
+  const option = useMemo(() => {
+    if (unfilled.length > 0) return null;
+    if (chart.kind === 'heatmap') return buildHeatmapOption(prepareHeatmap(data.rows), { row: labels[0] ?? '', col: labels[1] ?? '' });
+    if (chart.kind === 'treemap') return buildTreemapOption(data.rows, unit);
+    if (chart.kind === 'sunburst') return buildSunburstOption(data.rows, unit);
+    return buildBarOption(data.rows, { row: labels[0] ?? '', col: labels[1] }, unit);
+  }, [chart.kind, data.rows, labels, unit, unfilled.length]);
+  if (unfilled.length > 0 || option === null) {
     return (
       <div data-testid="chart-unfilled" role="note" style={{ padding: '28px 8px' }}>
         <Text size="sm" fw={600}>{unfilled.join(' and ')} {unfilled.length > 1 ? 'have' : 'has'} no values yet</Text>
@@ -69,12 +77,6 @@ const ChartBody = ({ chart, data, unit, labels, title }: { chart: SavedChart; da
       </div>
     );
   }
-  const option = useMemo(() => {
-    if (chart.kind === 'heatmap') return buildHeatmapOption(prepareHeatmap(data.rows), { row: labels[0] ?? '', col: labels[1] ?? '' });
-    if (chart.kind === 'treemap') return buildTreemapOption(data.rows, unit);
-    if (chart.kind === 'sunburst') return buildSunburstOption(data.rows, unit);
-    return buildBarOption(data.rows, { row: labels[0] ?? '', col: labels[1] }, unit);
-  }, [chart.kind, data.rows, labels, unit]);
   const summary = summarizeChart(chart.kind, data.rows, labels, data.total, data.truncated, unit);
   const height = chart.kind === 'bar' ? Math.min(460, Math.max(220, 90 + new Set(data.rows.map((r) => r.values[0])).size * 24)) : 320;
   return (
@@ -89,12 +91,12 @@ const ChartBody = ({ chart, data, unit, labels, title }: { chart: SavedChart; da
         <Table.ScrollContainer minWidth={300} mah={240}>
           <Table striped withTableBorder aria-label={`${title}, data table`}>
             <Table.Thead>
-              <Table.Tr>{labels.map((l) => <Table.Th key={l}>{l}</Table.Th>)}<Table.Th>Count</Table.Th></Table.Tr>
+              <Table.Tr>{labels.map((l, j) => <Table.Th key={`${l}#${j}`}>{l}</Table.Th>)}<Table.Th>Count</Table.Th></Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {data.rows.map((r, i) => (
                 <Table.Tr key={i}>
-                  {labels.map((l, j) => <Table.Td key={l}>{r.values[j] ?? '(none)'}</Table.Td>)}
+                  {labels.map((l, j) => <Table.Td key={`${l}#${j}`}>{r.values[j] ?? '(none)'}</Table.Td>)}
                   <Table.Td>{r.count}</Table.Td>
                 </Table.Tr>
               ))}

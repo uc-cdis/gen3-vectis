@@ -148,3 +148,13 @@ describe('colours', () => {
     for (const s of o.series) expect(s.itemStyle.color).toBe(colorFor(s.name));
   });
 });
+
+describe('colorFor with log text', () => {
+  it('never returns anything but a colour string, even for names on the prototype', () => {
+    for (const v of ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf']) {
+      const c = colorFor(v);
+      expect(typeof c).toBe('string');
+      expect(c).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+});

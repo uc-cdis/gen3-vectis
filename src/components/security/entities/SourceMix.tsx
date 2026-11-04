@@ -6,6 +6,7 @@ import type { Bucket } from '@/lib/vectis-kit/spec';
 import { labelText } from '@/lib/vectis-kit/entity-graph/graphOption';
 import { safeText } from '@/lib/safe-text';
 import { formatNumber } from '@/lib/vectis-kit/ui/format';
+import { ExpandableText } from '@/lib/vectis-kit/ui/ExpandableText';
 
 /** Horizontal bar option for the share of events per source. Pure, so it can be tested without drawing. */
 export function sourceMixOption(sources: readonly Bucket[]): ReactEChartsProps['option'] {
@@ -28,9 +29,9 @@ export const SourceMix = ({ sources }: { sources: readonly Bucket[] }) => {
         <ReactECharts option={sourceMixOption(sources)} theme="gen3" style={{ height: Math.max(80, 36 * Math.min(sources.length, 20)) }} />
       </div>
       <List size="sm" aria-label="Events per source">
-        {sources.map((s) => (
-          <List.Item key={s.key}>
-            <Text span ff="monospace">{safeText(s.key, 60)}</Text>: {formatNumber(s.count)}{total > 0 ? ` (${Math.round((100 * s.count) / total)}%)` : ''}
+        {sources.map((s, i) => (
+          <List.Item key={`${s.key}#${i}`}>
+            <ExpandableText value={s.key} previewChars={60} mono label="source" />: {formatNumber(s.count)}{total > 0 ? ` (${Math.round((100 * s.count) / total)}%)` : ''}
           </List.Item>
         ))}
       </List>

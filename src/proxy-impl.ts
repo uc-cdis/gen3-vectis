@@ -31,8 +31,17 @@ function isLoggedIn(loginStatus: LoginStatus) {
   return loginStatus.status === 'issued';
 }
 
+/**
+ * Development only: the synthetic-fixture pages under /dev (see e2e/ and src/pages/dev) need no login when DEV_PAGES_NO_LOGIN=1.
+ * A production build never takes this branch, whatever the variable says, and those pages answer 404 there anyway.
+ */
+export function isDevPageWithoutLogin(pathname: string, env: Record<string, string | undefined> = process.env): boolean {
+  return env.NODE_ENV !== 'production' && env.DEV_PAGES_NO_LOGIN === '1' && pathname.startsWith('/dev/');
+}
+
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
+  if (isDevPageWithoutLogin(pathname)) return NextResponse.next();
   const { routes: routeConfig } = await getRouteConfig();
   let rule = getRouteRuleForPath(pathname, routeConfig);
 
@@ -41,12 +50,9 @@ export async function proxy(req: NextRequest) {
     rule = getRouteRuleForPath('*', routeConfig);
   }
 
-  // Public route: not listed in Arborist config
-  if (!rule) {
-    return NextResponse.next();
-  }
-
-  const loginRequired = rule.loginRequired ?? true;
+  // Fail closed: a page with no rule (not even the "*" rule) needs a login, like every other page. A page is public only
+  // when authz.json says so with an explicit `"loginRequired": false`.
+  const loginRequired = rule?.loginRequired ?? true;
 
   if (!loginRequired) {
     return NextResponse.next();
@@ -91,7 +97,10 @@ export async function proxy(req: NextRequest) {
     }
 
     forbiddenUrl.pathname = '/403';
-    return NextResponse.rewrite(forbiddenUrl);
+    // The rewritten page renders "Not Authorized" content, but without an explicit status override
+    // NextResponse.rewrite() replies 200: a WAF, uptime check, or log-based alert keyed on 403s would
+    // never see this denial.
+    return NextResponse.rewrite(forbiddenUrl, { status: 403 });
   }
 
   return NextResponse.next();

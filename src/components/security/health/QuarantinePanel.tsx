@@ -7,6 +7,7 @@ import type { QuarantineGroup, QuarantineRecord } from '@/lib/vectis-kit/spec';
 import { formatNumber, formatTime, relativeTime } from '@/lib/vectis-kit/ui/format';
 import { CopyIcon, QueryBoundary, Unmeasured } from '@/lib/vectis-kit/ui/primitives';
 import { HealthTable } from './HealthTable';
+import { ExpandableText } from '@/lib/vectis-kit/ui/ExpandableText';
 
 /** How far back "recent" reaches. The service applies the same default; it is sent explicitly so the two cannot drift silently. */
 export const QUARANTINE_WINDOW_HOURS = 36;
@@ -85,7 +86,7 @@ const GroupCard = ({ g, older, onSelect }: { g: QuarantineGroup; older: boolean;
       <Group justify="space-between" wrap="nowrap" align="flex-start">
         <Stack gap={2} style={{ minWidth: 0 }}>
           <Text size="sm" fw={600} style={{ overflowWrap: 'anywhere' }}>{g.hint}</Text>
-          <Text size="xs" c="dimmed" ff="monospace" style={{ overflowWrap: 'anywhere' }} lineClamp={2} title={g.reason}>{g.reason}</Text>
+          <Text size="xs" c="dimmed" component="div"><ExpandableText value={g.reason} previewChars={160} mono size="xs" label="reason" /></Text>
           <Group gap="sm"><Span g={g} />{g.sample_key ? <Text size="xs" c="dimmed" ff="monospace" style={{ overflowWrap: 'anywhere' }}>e.g. {g.sample_key}</Text> : null}</Group>
         </Stack>
         <Stack gap={4} align="flex-end" style={{ flexShrink: 0 }}>
@@ -105,7 +106,7 @@ const GroupList = ({ older, onSelect }: { older: boolean; onSelect: (r: Quaranti
       {(d) => (
         <Stack gap="xs" aria-label={older ? 'Older quarantine groups' : 'Quarantine groups'}>
           {(d.groups ?? []).length === 0 ? <Text size="sm" c="dimmed">No records.</Text> : null}
-          {(d.groups ?? []).map((g) => <GroupCard key={g.reason} g={g} older={older} onSelect={onSelect} />)}
+          {(d.groups ?? []).map((g, i) => <GroupCard key={`${g.reason}#${i}`} g={g} older={older} onSelect={onSelect} />)}
           {d.truncated ? <Text size="xs" c="yellow.9">Only the newest records were read, so these counts are a lower bound.</Text> : null}
         </Stack>
       )}

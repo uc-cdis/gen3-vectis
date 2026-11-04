@@ -35,7 +35,16 @@ describe('EntityDrawer', () => {
     // source mix has a chart and the same numbers as text
     expect(screen.getByRole('list', { name: 'Events per source' })).toHaveTextContent('waf: 702');
     // the graph is started from the tenant-qualified node id
-    await waitFor(() => expect(api.calls.find((c) => c.name === 'graph')?.body).toEqual({ start_id: 'tenant1:IpAddress:203.0.113.50', max_hops: 2, limit: 200 }));
+    await waitFor(() => expect(api.calls.find((c) => c.name === 'graph')?.body).toEqual({ start_id: 'tenant1:IpAddress:203.0.113.50', max_hops: 1, limit: 100 }));
+  });
+
+  it('the graph can be enlarged to a full-screen view and closed again', async () => {
+    mount(testApi());
+    await userEvent.click(await screen.findByRole('button', { name: 'Enlarge' }));
+    const dialog = await screen.findByRole('dialog', { name: /Graph neighbourhood of/ });
+    expect(within(dialog).getByTestId('entity-graph')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /Graph neighbourhood of/ })).toBeNull());
   });
 
   it('renders unmeasured geo as Unmeasured, not as blank or zero', async () => {
@@ -130,7 +139,7 @@ describe('EntityDrawer', () => {
       first.events!.click!({ dataType: 'node', data: { id: 'tenant1:Asn:AS64500' } });
       await userEvent.click(await screen.findByRole('button', { name: 'Expand neighbours' }));
       await waitFor(() => expect(api.calls.filter((c) => c.name === 'graph')).toHaveLength(2));
-      expect(api.calls.filter((c) => c.name === 'graph')[1]!.body).toEqual({ start_id: 'tenant1:Asn:AS64500', max_hops: 1, limit: 200 });
+      expect(api.calls.filter((c) => c.name === 'graph')[1]!.body).toEqual({ start_id: 'tenant1:Asn:AS64500', max_hops: 1, limit: 100 });
       await waitFor(() => {
         const data = (lastGraphChart().option as { series: Array<{ data: Array<{ id: string }> }> }).series[0]!.data;
         expect(data).toHaveLength(before + 1);

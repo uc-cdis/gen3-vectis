@@ -11,8 +11,8 @@ describe('text helpers', () => {
     expect(truncateText('abc', 4)).toBe('abc');
     expect(Array.from(truncateText('😀'.repeat(10), 5))).toHaveLength(5);
   });
-  it('strips control and bidi characters and stringifies objects', () => {
-    expect(safeText('a\u0000b‮c')).toBe('a b c');
+  it('shows control and bidi characters as visible tokens and stringifies objects', () => {
+    expect(safeText('a\u0000b‮c')).toBe('a<U+0000>b<U+202E>c');
     expect(safeText({ a: 1 })).toBe('{"a":1}');
     expect(safeText(null)).toBe('');
   });

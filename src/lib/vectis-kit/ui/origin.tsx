@@ -15,8 +15,9 @@ export function useAccountNames(): Record<string, string> {
 /** "Production platform (111122223333)", or just the id when it has no name, or a plain statement when there is none. */
 export function accountText(account: string | null | undefined, names: Record<string, string>): string {
   if (!account) return 'Account not recorded';
-  const name = names[account];
-  return name && name !== account ? `${name} (${account})` : account;
+  // an account id is log text: only an OWN key is a name ("__proto__" and "constructor" are not)
+  const name = Object.hasOwn(names, account) ? names[account] : undefined;
+  return typeof name === 'string' && name && name !== account ? `${name} (${account})` : account;
 }
 
 export interface OriginFields {
@@ -37,12 +38,12 @@ export const OriginTags = ({ origin, compact = false }: { origin: OriginFields; 
   return (
     <Stack gap={2} data-testid="origin-tags">
       {accounts.length
-        ? accounts.map((a) => <Text key={a} size="xs" fw={600} title={a}>{accountText(a, names)}</Text>)
+        ? accounts.map((a, i) => <Text key={`${a}#${i}`} size="xs" fw={600} title={a}>{accountText(a, names)}</Text>)
         : <Text size="xs" c="dimmed" fs="italic">{accountText(null, names)}</Text>}
       {environments.length || sources.length ? (
         <Group gap={4}>
-          {environments.map((e) => <Badge key={`e:${e}`} size="xs" radius="sm" variant="light" color="grape" aria-label={`Environment ${e}`}>{e}</Badge>)}
-          {sources.map((s) => <Badge key={`s:${s}`} size="xs" radius="sm" variant="outline" color="gray" aria-label={`Feed ${s}`}>{s}</Badge>)}
+          {environments.map((e, i) => <Badge key={`e:${e}#${i}`} size="xs" radius="sm" variant="light" color="grape" aria-label={`Environment ${e}`}>{e}</Badge>)}
+          {sources.map((s, i) => <Badge key={`s:${s}#${i}`} size="xs" radius="sm" variant="outline" color="gray" aria-label={`Feed ${s}`}>{s}</Badge>)}
         </Group>
       ) : null}
       {hosts.length ? <Text size="xs" c="dimmed" ff="monospace" style={{ overflowWrap: 'anywhere' }}>{hosts.join(', ')}</Text> : null}

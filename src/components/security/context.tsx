@@ -7,8 +7,8 @@ export const TABS = [
   { id: 'alerts', label: 'Alerts' },
   { id: 'cases', label: 'Cases' },
   { id: 'hunt', label: 'Hunt' },
-  { id: 'data', label: 'Data' },
-  { id: 'entities', label: 'Entities' },
+  { id: 'views', label: 'Views' },
+  { id: 'data', label: 'Explore' },
   { id: 'intel', label: 'Intel' },
   { id: 'coverage', label: 'Coverage' },
   { id: 'health', label: 'Health' },
@@ -20,9 +20,12 @@ export const isTabId = (v: unknown): v is TabId => TABS.some((t) => t.id === v);
 export const SECTIONS = {
   '/Security': { title: 'Overview', tabs: ['overview'] },
   '/Alerts': { title: 'Alerts', tabs: ['alerts'] },
-  '/Investigate': { title: 'Investigate', tabs: ['hunt', 'entities', 'data'] },
+  // Hunt: follow one thing. Views: ready-made questions and saved hunts. Explore: the events themselves (table, charts, timeline).
+  '/Investigate': { title: 'Investigate', tabs: ['hunt', 'views', 'data'] },
   '/Cases': { title: 'Cases', tabs: ['cases'] },
-  '/Detection': { title: 'Detection', tabs: ['intel', 'coverage', 'health'] },
+  '/Detection': { title: 'Detection', tabs: ['intel', 'coverage'] },
+  // The pipeline's own state: sources arriving, queues, failures, quarantine. Platform administrators only (authz.json, and the service refuses anyone else).
+  '/Health': { title: 'Health', tabs: ['health'] },
 } as const satisfies Record<string, { title: string; tabs: readonly TabId[] }>;
 export type SectionPath = keyof typeof SECTIONS;
 export const SECTION_PATHS = Object.keys(SECTIONS) as SectionPath[];
@@ -131,7 +134,8 @@ export const SecurityProvider = ({ children, section }: { children: React.ReactN
         if (!section || section.includes(t)) return push({ tab: t, alert: undefined, entity: undefined, case: undefined, similar: undefined, ...extra });
         // Another page: carry only what was asked for, plus the time range, never the drawer state of this page.
         const query: Record<string, string> = {};
-        for (const [k, v] of Object.entries({ range, ...extra })) if (v) query[k] = v;
+        // The page opens on its first tab unless told which one.
+        for (const [k, v] of Object.entries({ range, ...(SECTIONS[pathOfTab(t)].tabs[0] === t ? {} : { tab: t }), ...extra })) if (v) query[k] = v;
         void router.push({ pathname: pathOfTab(t), query });
       },
       openAlert: (id) => push({ alert: id ?? undefined }),

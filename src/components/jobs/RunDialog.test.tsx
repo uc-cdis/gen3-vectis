@@ -124,6 +124,6 @@ describe('submit', () => {
     expect(runBtn()).toBeEnabled(); // can retry
   });
   it('shows server text as plain text', () => {
-    expect(submitMessage(new JobsApiError(422, '<b>bad</b>‮'))).toBe('<b>bad</b>');
+    expect(submitMessage(new JobsApiError(422, '<b>bad</b>‮'))).toBe('<b>bad</b><U+202E>');
   });
 });

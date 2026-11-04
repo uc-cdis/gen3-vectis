@@ -119,7 +119,7 @@ describe('lens', () => {
     expect(displayId('tenant1:IpAddress:203.0.113.50')).toBe('203.0.113.50');
     expect(displayId('tenant1:IpAddress:2001:db8::1')).toBe('2001:db8::1');
     expect(displayId('plain')).toBe('plain');
-    expect(nodeTitle(node('tenant1:Ja4:t13d', 'Ja4'))).toBe('t13d');
+    expect(nodeTitle(node('tenant1:JA4Fingerprint:t13d', 'JA4Fingerprint'))).toBe('t13d');
   });
 });
 

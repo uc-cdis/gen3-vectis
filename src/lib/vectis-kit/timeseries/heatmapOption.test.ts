@@ -79,3 +79,36 @@ describe('summarizeHeatmap', () => {
     expect(summarizeHeatmap(prepareHeatmap([]), { row: 'a', col: 'b' }, 0, false)).toBe('No events in this window.');
   });
 });
+
+describe('prepareHeatmap at scale and with hostile names', () => {
+  it('indexes 50,000 rows in well under a second (no indexOf per cell)', () => {
+    const rows = Array.from({ length: 50_000 }, (_, i) => row(`10.0.${i % 250}.${Math.floor(i / 250) % 250}`, `v${i}`, 1 + (i % 7)));
+    const t0 = Date.now();
+    const g = prepareHeatmap(rows);
+    expect(Date.now() - t0).toBeLessThan(1500);
+    expect(g.cells).toHaveLength(50_000);
+    expect(g.shown).toBe(rows.reduce((n, r) => n + r.count, 0));
+    for (const [c, r, n] of g.cells.slice(0, 500)) {
+      expect(g.colValues[c]).toBeDefined();
+      expect(g.rowValues[r]).toBeDefined();
+      expect(n).toBeGreaterThan(0);
+    }
+  });
+  it('keeps cells in first-seen order and merges repeated pairs', () => {
+    const g = prepareHeatmap([row('a', 'x', 1), row('b', 'y', 5), row('a', 'x', 2)]);
+    expect(g.cells).toEqual([[g.colValues.indexOf('x'), g.rowValues.indexOf('a'), 3], [g.colValues.indexOf('y'), g.rowValues.indexOf('b'), 5]]);
+    expect(g.max).toBe(5);
+  });
+  it('treats __proto__, constructor and a value that looks like JSON as plain names', () => {
+    const g = prepareHeatmap([row('__proto__', 'constructor', 4), row('constructor', '["a","b"]', 3), row('toString', null, 2)]);
+    expect(g.rowValues.sort()).toEqual(['__proto__', 'constructor', 'toString']);
+    expect(g.colValues.sort()).toEqual(['(none)', '["a","b"]', 'constructor']);
+    expect(g.cells).toHaveLength(3);
+    expect(g.shown).toBe(9);
+    expect(() => buildHeatmapOption(g, { row: 'r', col: 'c' })).not.toThrow();
+  });
+  it('survives lone surrogates and a very long value', () => {
+    const g = prepareHeatmap([row('a' + String.fromCharCode(0xd800), 'x'.repeat(1_000_000), 1)]);
+    expect(g.cells).toHaveLength(1);
+  });
+});

@@ -166,11 +166,73 @@ describe('WhyPanel', () => {
     expect(screen.getByText('javascript:alert(1)').closest('a')).toBeNull();
   });
 
+  it('shows every repeated value once per occurrence, with no duplicate-key warning, when log text is the same twice', async () => {
+    const { vi } = await import('vitest');
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      show([{ kind: 'graph', title: 'Graph', measured: true, shared: [{ id: 'n1', label: 'dup', type: 'ip' }, { id: 'n1', label: 'dup', type: 'ip' }] as never, techniques: ['T1190', 'T1190', 'nonsense', 'nonsense'] }]);
+      expect(screen.getAllByText('nonsense')).toHaveLength(2);
+      expect(screen.getAllByText('T1190')).toHaveLength(2);
+      const messages = spy.mock.calls.map((c) => String(c[0]) + String(c[1] ?? ''));
+      expect(messages.filter((m) => /same key|unique "key"/.test(m))).toEqual([]);
+    } finally { spy.mockRestore(); }
+  });
+
   it('says so for an unknown section kind and for no sections', () => {
     const { unmount } = show([{ kind: 'mystery', title: 'Odd', measured: true } as unknown as WhySection]);
     expect(screen.getByText(/not supported by this version/)).toBeInTheDocument();
     unmount();
     show([]);
     expect(screen.getByText('No explanation was recorded for this alert.')).toBeInTheDocument();
+  });
+});
+
+describe('WhyPanel: who sent it and what they sent', () => {
+  const actor = {
+    ip: '203.0.113.9', country: 'US', network: 'AS64500 Example Hosting Ltd', requests: 10, endpoints: 9, user_agent: 'Mozilla/5.0 (X11)',
+    statuses: [{ key: '2xx', count: 1 }], first_seen: '2026-10-30', last_seen: '2026-11-03', events_total: 40, targets: 7,
+    related_alerts: [{ group_id: 'g-other', title: 'Probing of sensitive paths', severity: 'medium' as const, day: '2026-11-01' }],
+  };
+
+  it('names the sender, whose network it is, how long it has been known and what else fired on it', async () => {
+    const opened: string[] = [];
+    renderSecurity(<WhyPanel sections={[]} actors={[actor]} onOpenAlert={(id) => opened.push(id)} />);
+    const panel = screen.getByTestId('why-actors');
+    expect(within(panel).getByText('203.0.113.9')).toBeInTheDocument();
+    expect(within(panel).getByTestId('actor-network')).toHaveTextContent('AS64500 Example Hosting Ltd');
+    expect(within(panel).getByTestId('actor-activity')).toHaveTextContent('10 requests to 9 paths; responses 2xx: 1');
+    expect(within(panel).getByTestId('actor-history')).toHaveTextContent('In our logs 2026-10-30 to 2026-11-03: 40 events to 7 distinct targets.');
+    const related = within(panel).getByTestId('actor-related');
+    expect(within(related).getByText('Medium')).toBeInTheDocument();
+    within(related).getByRole('button', { name: 'Probing of sensitive paths' }).click();
+    expect(opened).toEqual(['g-other']);
+  });
+
+  it('says so when no network or response status was recorded, rather than leaving a blank', () => {
+    renderSecurity(<WhyPanel sections={[]} actors={[{ ip: '203.0.113.9', requests: 1, endpoints: 1 }]} />);
+    const panel = screen.getByTestId('why-actors');
+    expect(within(panel).getByText('network not recorded')).toBeInTheDocument();
+    expect(within(panel).getByTestId('actor-activity')).toHaveTextContent('no response status recorded');
+    expect(within(panel).queryByTestId('actor-history')).toBeNull();
+    expect(within(panel).queryByTestId('actor-related')).toBeNull();
+  });
+
+  it('shows the sampled requests as data, with a dash where the source records no status', () => {
+    renderSecurity(<WhyPanel sections={[]} requests={[
+      { t: '2026-11-03T08:18:59Z', method: 'GET', path: '/c/abc', status: null as unknown as undefined, host: 'k8s-bdcatprod', user_agent: 'Mozilla/5.0' },
+      { t: '2026-11-03T08:19:00Z', method: 'GET', path: '/index.html', status: 404, bytes: 135, host: 'portal.example.org' },
+    ]} />);
+    const panel = screen.getByTestId('why-requests');
+    expect(within(panel).getByText('Untrusted data')).toBeInTheDocument();
+    const rows = within(panel).getAllByRole('row').slice(1);
+    expect(rows[0]).toHaveTextContent('GET /c/abc');
+    expect(rows[0]).toHaveTextContent('—');
+    expect(rows[1]).toHaveTextContent('404');
+  });
+
+  it('shows nothing extra for an alert that stored no evidence', () => {
+    renderSecurity(<WhyPanel sections={[]} verdict="Known-bad address 203.0.113.9 requested /." />);
+    expect(screen.queryByTestId('why-actors')).toBeNull();
+    expect(screen.queryByTestId('why-requests')).toBeNull();
   });
 });

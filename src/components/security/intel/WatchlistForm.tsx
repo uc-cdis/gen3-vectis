@@ -8,7 +8,8 @@ import { IOC_LABEL, IOC_TYPES, MAX_VALUE_LENGTH } from '@/lib/vectis-kit/spec/in
 import { MAX_NOTE, MAX_WATCHLIST, parseWatchlistLines } from './watchlist';
 import type { MRT_ColumnDef } from 'mantine-react-table-open';
 import { SimpleTable } from '@/lib/vectis-kit/entity-card/blocks';
-import { safeText } from '@/lib/safe-text';
+import { escapeHidden, safeText } from '@/lib/safe-text';
+import { ExpandableText } from '@/lib/vectis-kit/ui/ExpandableText';
 
 const TYPE_OPTIONS = IOC_TYPES.map((t) => ({ value: t, label: IOC_LABEL[t] }));
 
@@ -90,12 +91,15 @@ interface Row { value: string; reason: string }
 
 /** What the service accepted and rejected, with the reason for each rejection, and where the bundle was written. */
 export const WatchlistResult = ({ result }: { result: WatchlistResponse }) => {
-  const rows = useMemo<Row[]>(() => Object.entries(result.rejected).map(([value, reason]) => ({ value: safeText(value, 120), reason: safeText(reason, 200) })), [result.rejected]);
-  const columns = useMemo<MRT_ColumnDef<Row>[]>(() => [{ accessorKey: 'value', header: 'Rejected value' }, { accessorKey: 'reason', header: 'Reason' }], []);
+  const rows = useMemo<Row[]>(() => Object.entries(result.rejected).map(([value, reason]) => ({ value: escapeHidden(value), reason: escapeHidden(typeof reason === 'string' ? reason : safeText(reason, 2000)) })), [result.rejected]);
+  const columns = useMemo<MRT_ColumnDef<Row>[]>(() => [
+    { accessorKey: 'value', header: 'Rejected value', Cell: ({ row }) => <ExpandableText value={row.original.value} previewChars={120} mono size="sm" label="rejected value" /> },
+    { accessorKey: 'reason', header: 'Reason', Cell: ({ row }) => <ExpandableText value={row.original.reason} previewChars={200} size="sm" label="reason" /> },
+  ], []);
   return (
     <Stack gap="xs" data-testid="watchlist-result" aria-live="polite">
       <Alert color={result.accepted > 0 ? 'teal' : 'yellow'} variant="light">
-        {result.accepted} accepted, {rows.length} rejected. Bundle: <Code>{safeText(result.bundle_key, 300)}</Code>
+        {result.accepted} accepted, {rows.length} rejected. Bundle: <Code><ExpandableText value={typeof result.bundle_key === 'string' ? result.bundle_key : ''} previewChars={300} mono size="xs" label="bundle key" /></Code>
       </Alert>
       {rows.length ? <SimpleTable columns={columns} data={rows} caption="Rejected watchlist entries" pageSize={10} /> : <Text size="sm" c="dimmed">Nothing was rejected.</Text>}
     </Stack>

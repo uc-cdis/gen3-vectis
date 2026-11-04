@@ -47,6 +47,46 @@ describe('OverviewTab', () => {
     expect(seen.find((c) => c.name === 'timeline')?.body).toMatchObject({ index_name: 'all_events' });
   });
 
+  it.each([
+    [/^Audit events: /, 'audit_event'],
+    [/^Web requests: /, 'http_activity'],
+    [/^Events, all sources: /, 'all_events'],
+  ])('opens the index a tile counted, not the Data tab default (%s)', async (name, index) => {
+    renderSecurity(<OverviewTab />);
+    const tiles = await screen.findByRole('region', { name: 'Key figures' });
+    await userEvent.click(await within(tiles).findByRole('button', { name }));
+    await waitFor(() => expect(getMockQuery().hunt_index).toBe(index));
+    expect(getMockQuery().tab).toBe('data');
+  });
+
+  it('asks for the all-events figures apart, so the other tiles do not wait for them', async () => {
+    const base = createFixtureApi(0);
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    const api = {
+      mode: 'fixtures' as const,
+      call: (async (name: string, input: unknown) => {
+        if (name === 'overviewEvents') await held;
+        return (base.call as (n: string, i: unknown) => unknown)(name, input);
+      }) as typeof base.call,
+    };
+    renderSecurity(<OverviewTab />, { api });
+    const tiles = await screen.findByRole('region', { name: 'Key figures' });
+    expect(await within(tiles).findByRole('button', { name: /^Web requests: 88,412/ })).toBeInTheDocument();
+    expect(within(tiles).getByRole('button', { name: /^Events, all sources: loading/ })).toBeInTheDocument();
+    expect(within(tiles).getByTestId('tile-loading')).toBeInTheDocument();
+    release();
+    expect(await within(tiles).findByRole('button', { name: /^Events, all sources: 88,532/ })).toBeInTheDocument();
+  });
+
+  it('says the all-events count is unmeasured, never zero, when that request fails', async () => {
+    const api = apiWith({ overviewEvents: rejectWith(500, 'overviewEvents') });
+    renderSecurity(<OverviewTab />, { api });
+    const tiles = await screen.findByRole('region', { name: 'Key figures' });
+    expect(await within(tiles).findByRole('button', { name: /^Events, all sources: unmeasured/ })).toBeInTheDocument();
+    expect(within(tiles).getByRole('button', { name: /^Web requests: 88,412/ })).toBeInTheDocument();
+  });
+
   it('renders telemetry as Unmeasured and real totals as numbers', async () => {
     renderSecurity(<OverviewTab />);
     const tiles = await screen.findByRole('region', { name: 'Key figures' });
@@ -109,14 +149,13 @@ describe('OverviewTab', () => {
 
   it('top lists: address values are entity links, others are plain text, bars have a table alternative', async () => {
     renderSecurity(<OverviewTab />);
-    const ipPanel = (await screen.findByRole('heading', { name: 'Source IPs' })).closest('.mantine-Paper-root') as HTMLElement;
-    const table = within(ipPanel).getByRole('table', { name: 'Source IPs, table' });
+    const table = await screen.findByRole('table', { name: 'Source IPs, table' });
     await userEvent.click(within(table).getByRole('button', { name: '198.51.100.200' }));
     await waitFor(() => expect(getMockQuery().entity).toBe('ip:198.51.100.200'));
     const rules = screen.getByRole('table', { name: 'Rules, table' });
     expect(within(rules).getByText('secret-harvesting')).toBeInTheDocument();
     expect(within(rules).queryByRole('button')).toBeNull();
-    const sources = screen.getByRole('table', { name: 'Event sources, table' });
+    const sources = await screen.findByRole('table', { name: 'Event sources, table' });
     expect(within(sources).queryByRole('button')).toBeNull();
     expect(screen.getByRole('figure', { name: /Countries: US 40,100/ })).toBeInTheDocument();
     const bar = charts.find((c) => (c.option as { series?: { type: string }[] }).series?.[0]?.type === 'bar')!;

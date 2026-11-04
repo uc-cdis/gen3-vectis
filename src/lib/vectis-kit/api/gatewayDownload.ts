@@ -55,7 +55,10 @@ export async function downloadViaGateway(
   }
   for (let i = 0; i < POLL_TRIES; i += 1) {
     await wait(POLL_MS);
-    const poll = await fetchImpl(`${GEN3_GUPPY_API}/jobs/${encodeURIComponent(started.job_id)}`, { credentials: 'same-origin', headers: await csrfHeader(fetchImpl) })
+    // encodeURIComponent throws on a lone surrogate: a bad id is an error message, never an exception out of the page
+    let jobId: string;
+    try { jobId = encodeURIComponent(started.job_id); } catch { throw new GatewayError(502, 'The export job id is not valid.'); }
+    const poll = await fetchImpl(`${GEN3_GUPPY_API}/jobs/${jobId}`, { credentials: 'same-origin', headers: await csrfHeader(fetchImpl) })
       .catch(() => { throw new GatewayError(0, 'The data service could not be reached.'); });
     if (!poll.ok) throw new GatewayError(poll.status, `Could not check the export (${poll.status}).`);
     const j = (await poll.json().catch(() => ({}))) as { status?: string; download_url?: string };

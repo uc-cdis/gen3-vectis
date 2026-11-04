@@ -48,6 +48,7 @@ const nextConfig = {
     NEXT_PUBLIC_GEN3_VERSION: packageJson.version,
   },
   reactStrictMode: true,
+  poweredByHeader: false,
   pageExtensions: ['mdx', 'md', 'jsx', 'js', 'tsx', 'ts'],
   basePath: basePath,
   // @perspective-dev/viewer ships two TypeScript source files that its grid and chart plugins import at run time;
@@ -172,6 +173,27 @@ const nextConfig = {
             key: 'X-Frame-Options',
             value: 'SAMEORIGIN',
           },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+          // HSTS only makes sense once the site is actually served over HTTPS; skip it in dev, where it's http.
+          ...(isDev
+            ? []
+            : [
+                {
+                  key: 'Strict-Transport-Security',
+                  value: 'max-age=63072000; includeSubDomains',
+                },
+              ]),
         ],
       },
       {

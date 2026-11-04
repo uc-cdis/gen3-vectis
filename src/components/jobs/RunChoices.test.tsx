@@ -18,8 +18,7 @@ describe('naming a run and running it as a group', () => {
     const submitJob = vi.fn(async () => ({ id: 'fanout.fx9', warnings: [] }));
     renderJobs(<RunDialog job={fan} repo="o/r" sha={'a'.repeat(40)} onClose={() => undefined} onSubmitted={vi.fn()} />, apiWith({ submitJob, groups: async () => ['soc', 'platform'] }));
     await userEvent.type(screen.getByLabelText(/Name this run/), '  Friday WAF review ');
-    await userEvent.click((await screen.findAllByLabelText('Run as'))[0]);
-    await userEvent.click(await screen.findByText('Group: soc'));
+    await userEvent.click(await screen.findByLabelText('Group: soc'));
     expect(screen.getByText(/Everyone in the soc group will see this run/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Run job' }));
     await waitFor(() => expect(submitJob).toHaveBeenCalled());
@@ -28,7 +27,7 @@ describe('naming a run and running it as a group', () => {
   it('sends neither when left alone, and shows no group choice when the person is in no group', async () => {
     const submitJob = vi.fn(async () => ({ id: 'fanout.fx9', warnings: [] }));
     renderJobs(<RunDialog job={fan} repo="o/r" sha={'a'.repeat(40)} onClose={() => undefined} onSubmitted={vi.fn()} />, apiWith({ submitJob, groups: async () => [] }));
-    expect(screen.queryAllByLabelText('Run as')).toHaveLength(0);
+    expect(screen.queryByLabelText('Just me (private)')).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Run job' }));
     await waitFor(() => expect(submitJob).toHaveBeenCalled());
     const sent = (submitJob.mock.calls[0] as unknown[])[0] as Record<string, unknown>;

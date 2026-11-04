@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { seedFromGraphNode, validNodeId, validateEntityInput } from './entityKeys';
+import { entityTypeOfGraphKind, seedFromGraphNode, validNodeId, validateEntityInput } from './entityKeys';
 
 describe('validNodeId', () => {
   it('passes a legal node id through unchanged', () => {
@@ -23,8 +23,35 @@ describe('seedFromGraphNode', () => {
     expect(seedFromGraphNode({ id: 'tenant1:IpAddress:198.51.100.10', label: 'IpAddress' })).toEqual({ type: 'ip', value: '198.51.100.10' });
   });
   it('returns null for nodes that are not entities or whose id disagrees with the label', () => {
-    expect(seedFromGraphNode({ id: 'tenant1:Endpoint:/ntseq', label: 'Endpoint' })).toBeNull();
+    expect(seedFromGraphNode({ id: 'tenant1:RequestSignature:/ntseq', label: 'RequestSignature' })).toBeNull();
     expect(seedFromGraphNode({ id: 'tenant1:Asn:AS1', label: 'IpAddress' })).toBeNull();
+  });
+  it.each([
+    ['Domain', 'example.test', 'domain'],
+    ['Hash', 'd41d8cd98f00b204e9800998ecf8427e', 'hash'],
+    ['Host', 'web-1.example.test', 'host'],
+    ['Principal', 'alice', 'user'],
+    ['Principal', 'arn:aws:iam::111122223333:role/x', 'arn'],
+  ])('opens a real %s node as an entity (%s)', (label, value, type) => {
+    expect(seedFromGraphNode({ id: `tenant1:${label}:${value}`, label })).toEqual({ type, value });
+  });
+  it.each(['JA4Fingerprint', 'RequestSignature', 'LogSource', 'Country', 'Asn', 'Finding', 'UserAgent', 'Account', 'Indicator', 'Technique',
+    'FileHash', 'UriPath', 'Url', 'EmailAddress', 'User', 'Arn', 'constructor'])('does not open a %s node as an entity', (label) => {
+    expect(seedFromGraphNode({ id: `tenant1:${label}:x`, label })).toBeNull();
+  });
+  it('never opens a masked identity as an entity', () => {
+    expect(seedFromGraphNode({ id: 'Principal:masked-0123456789abcdef', label: 'Principal' })).toBeNull();
+  });
+});
+
+describe('entityTypeOfGraphKind', () => {
+  it('maps only the kinds the portal has as entities', () => {
+    expect(entityTypeOfGraphKind('IpAddress', '203.0.113.50')).toBe('ip');
+    expect(entityTypeOfGraphKind('Host', 'h')).toBe('host');
+    expect(entityTypeOfGraphKind('Principal', 'arn:aws:iam::111122223333:user/u')).toBe('arn');
+    expect(entityTypeOfGraphKind('Principal', 'u')).toBe('user');
+    expect(entityTypeOfGraphKind('Endpoint', 'h')).toBeNull();
+    expect(entityTypeOfGraphKind('toString', 'x')).toBeNull();
   });
 });
 

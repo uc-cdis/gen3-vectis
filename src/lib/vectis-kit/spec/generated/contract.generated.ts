@@ -37,10 +37,24 @@ export interface SiemContract {
   FindSimilarRequest?: FindSimilarRequest;
   FindSimilarResponse?: FindSimilarResponse;
   GeoInfo?: GeoInfo;
+  GraphAskEdge?: GraphAskEdge;
+  GraphAskEvents?: GraphAskEvents;
+  GraphAskNode?: GraphAskNode;
+  GraphAskRequest?: GraphAskRequest;
+  GraphAskResponse?: GraphAskResponse;
+  GraphAskStep?: GraphAskStep;
+  GraphCoveragePath?: GraphCoveragePath;
+  GraphCoverageResponse?: GraphCoverageResponse;
+  GraphCoverageStep?: GraphCoverageStep;
   GraphEdge?: GraphEdge;
+  GraphMatchRequest?: GraphMatchRequest;
+  GraphMatchResponse?: GraphMatchResponse;
   GraphNode?: GraphNode;
+  GraphPathInfo?: GraphPathInfo;
+  GraphPathsResponse?: GraphPathsResponse;
   GraphTraverseRequest?: GraphTraverseRequest;
   GraphTraverseResponse?: GraphTraverseResponse;
+  HealthAttention?: HealthAttention;
   HealthQueue?: HealthQueue;
   HealthResponse?: HealthResponse;
   HealthSource?: HealthSource;
@@ -48,12 +62,14 @@ export interface SiemContract {
   HuntCreate?: HuntCreate;
   HuntList?: HuntList;
   HuntPatch?: HuntPatch;
+  HuntQuery?: HuntQuery;
   IndexCatalog?: IndexCatalog;
   IndicatorMatch?: IndicatorMatch;
   IndicatorResolveRequest?: IndicatorResolveRequest;
   IndicatorResolveResponse?: IndicatorResolveResponse;
   Neighbor?: Neighbor;
   OriginBucket?: OriginBucket;
+  OverviewEventsResponse?: OverviewEventsResponse;
   OverviewRequest?: OverviewRequest;
   OverviewResponse?: OverviewResponse;
   OverviewTotals?: OverviewTotals;
@@ -63,6 +79,7 @@ export interface SiemContract {
   QuarantineRequest?: QuarantineRequest;
   QuarantineResponse?: QuarantineResponse;
   QuerySpec?: QuerySpec;
+  RelatedAlert?: RelatedAlert;
   RowsRequest?: RowsRequest;
   RowsResponse?: RowsResponse;
   SavedView?: SavedView;
@@ -85,11 +102,13 @@ export interface SiemContract {
   WatchlistEntry?: WatchlistEntry;
   WatchlistRequest?: WatchlistRequest;
   WatchlistResponse?: WatchlistResponse;
+  WhyActor?: WhyActor;
   WhyBaseline?: WhyBaseline;
   WhyEvidence?: WhyEvidence;
   WhyGraph?: WhyGraph;
   WhyIndicator?: WhyIndicator;
   WhyNovelty?: WhyNovelty;
+  WhyRequest?: WhyRequest;
   WhyResponse?: WhyResponse;
   WhyRule?: WhyRule;
   WhySequence?: WhySequence;
@@ -186,7 +205,7 @@ export interface AggregateRow {
   values: (string | null)[];
 }
 /**
- * The AI analyst slot. The producer is behind the AI gateway and arrives later; the UI renders every state.
+ * The AI analyst slot; the UI renders every state.
  *
  * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "AiSummaryResponse".
@@ -324,6 +343,10 @@ export interface AlertGroup {
   severity_score: number;
   signature_id: string;
   signature_label?: string | null;
+  /**
+   * @maxItems 20
+   */
+  src_ips?: string[];
   status?: "new" | "triaged" | "investigating" | "resolved" | "noise";
   /**
    * @maxItems 50
@@ -337,7 +360,7 @@ export interface AlertGroup {
    */
   top_sources?: EntitySeed[] | null;
   /**
-   * @maxItems 10
+   * @maxItems 16
    */
   why?: string[];
 }
@@ -620,8 +643,9 @@ export interface GeoInfo {
   country?: string | null;
 }
 /**
- * An intel indicator that matched. ``value`` is the matched IP, domain, URL, hash or address read from the indicator's
- * pattern; every other field is None when the intel node does not record it (never inferred).
+ * An intel indicator that matched; ``value`` is read from the indicator's pattern.
+ *
+ * Every other field is None when the intel node does not record it (never inferred).
  *
  * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "IndicatorMatch".
@@ -827,7 +851,210 @@ export interface StructuralMatch {
    */
   entities: Bucket[];
   feature: "ja4" | "user_agent" | "asn" | "path_signature";
+  /**
+   * The readable name the graph records for a hashed value
+   */
+  label?: string | null;
   value: string;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphAskEdge".
+ */
+export interface GraphAskEdge {
+  count: number;
+  dst_id: string;
+  src_id: string;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphAskEvents".
+ */
+export interface GraphAskEvents {
+  /**
+   * The column that holds the walked entity
+   */
+  field: string;
+  /**
+   * The events index to read
+   */
+  index_name: string;
+  /**
+   * The entities' identities to match
+   *
+   * @maxItems 100
+   */
+  values: string[];
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphAskNode".
+ */
+export interface GraphAskNode {
+  /**
+   * Events behind the edges that reach it, summed over the window
+   */
+  count: number;
+  id: string;
+  label: string;
+  name?: string | null;
+  /**
+   * How many entities reach this one by the step's relation (rarest order)
+   */
+  reach?: number | null;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphAskRequest".
+ */
+export interface GraphAskRequest {
+  /**
+   * strongest: the entities with the most events; rarest: the ones the fewest others reach (a hunt)
+   */
+  order?: "strongest" | "rarest";
+  path_id: string;
+  per_step?: number;
+  start_id: string;
+  /**
+   * Edges considered; the server default (7 days) applies when omitted
+   */
+  window?: TimeWindow | null;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphAskResponse".
+ */
+export interface GraphAskResponse {
+  /**
+   * The question goes on in the event store: open the events of the last entities in Hunt
+   */
+  continues_in_events: boolean;
+  path_id: string;
+  start_id: string;
+  steps: GraphAskStep[];
+  title: string;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphAskStep".
+ */
+export interface GraphAskStep {
+  /**
+   * The edges, as stored, that join the previous step's entities to these
+   */
+  edges: GraphAskEdge[];
+  /**
+   * Set on a step that lives in the event store: the events to read next
+   */
+  events?: GraphAskEvents | null;
+  from_label: string;
+  index: number;
+  reached: GraphAskNode[];
+  relation: string;
+  to_label: string;
+  /**
+   * Entities reached before the per-step cap
+   */
+  total: number;
+  /**
+   * True when edges or entities were left out, by the per-entity or the per-step cap
+   */
+  truncated: boolean;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphCoveragePath".
+ */
+export interface GraphCoveragePath {
+  /**
+   * The question goes on in the event store after its graph steps
+   */
+  ends_in_events: boolean;
+  /**
+   * Index of the first step with no edges
+   */
+  first_missing?: number | null;
+  id: string;
+  scenario: string;
+  start: string;
+  /**
+   * answerable: every graph step has edges; missing: a step has none; events: starts in the events
+   */
+  state: "answerable" | "missing" | "events";
+  steps: GraphCoverageStep[];
+  title: string;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphCoverageStep".
+ */
+export interface GraphCoverageStep {
+  /**
+   * Edges of this relation in the window; none for a step in the event store
+   */
+  edges?: number | null;
+  layer: "graph" | "events";
+  relation: string;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphCoverageResponse".
+ */
+export interface GraphCoverageResponse {
+  answerable: number;
+  days: number;
+  events: number;
+  missing: number;
+  paths: GraphCoveragePath[];
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphMatchRequest".
+ */
+export interface GraphMatchRequest {
+  /**
+   * Only questions starting from this kind of entity
+   */
+  start?: string | null;
+  /**
+   * A question in the analyst's own words
+   */
+  text: string;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphMatchResponse".
+ */
+export interface GraphMatchResponse {
+  /**
+   * Best match first; empty when no question shares a word
+   */
+  matches: GraphPathInfo[];
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphPathInfo".
+ */
+export interface GraphPathInfo {
+  id: string;
+  /**
+   * False when the first step lives in the event store: ask cannot walk it
+   */
+  in_graph: boolean;
+  scenario: string;
+  /**
+   * The kind of entity the question starts from
+   */
+  start: string;
+  steps: number;
+  title: string;
+}
+/**
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "GraphPathsResponse".
+ */
+export interface GraphPathsResponse {
+  paths: GraphPathInfo[];
 }
 /**
  * This interface was referenced by `SiemContract`'s JSON-Schema
@@ -841,6 +1068,18 @@ export interface GraphTraverseRequest {
    * Edges considered; the server default (7 days) applies when omitted
    */
   window?: TimeWindow | null;
+}
+/**
+ * One thing that needs a person, worked out from the rest of the response.
+ *
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "HealthAttention".
+ */
+export interface HealthAttention {
+  area: "source" | "queue" | "alarm" | "quarantine";
+  detail?: string;
+  severity: "warning" | "critical";
+  title: string;
 }
 /**
  * This interface was referenced by `SiemContract`'s JSON-Schema
@@ -860,6 +1099,10 @@ export interface HealthQueue {
  */
 export interface HealthResponse {
   as_of: string;
+  /**
+   * @maxItems 50
+   */
+  attention?: HealthAttention[];
   /**
    * @maxItems 20
    */
@@ -920,8 +1163,7 @@ export interface Hunt {
   verdict: "open" | "proven" | "disproven" | "inconclusive";
 }
 /**
- * One view of the data. It renders as Python, curl, GraphQL, a DRS manifest or a notebook, so it is the
- * single description of 'what the analyst is looking at'. Validated against the dictionary server-side.
+ * One view of the data: the single description of what the analyst is looking at, validated server-side.
  *
  * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "QuerySpec".
@@ -979,6 +1221,21 @@ export interface HuntPatch {
   verdict?: ("open" | "proven" | "disproven" | "inconclusive") | null;
 }
 /**
+ * The query that lists an alert's events in Hunt; every field is checked as untrusted stored data.
+ *
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "HuntQuery".
+ */
+export interface HuntQuery {
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  filters: FilterClause[];
+  index_name: string;
+  window: TimeWindow;
+}
+/**
  * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "IndicatorResolveRequest".
  */
@@ -1018,8 +1275,9 @@ export interface Neighbor {
   title: string;
 }
 /**
- * One place a sampled request came from: the account (or source system), the feed that logged it, the deployment label
- * and the host it was addressed to. ``None`` means the record did not say.
+ * One place a sampled request came from: account (or source system), logging feed, deployment label and host.
+ *
+ * ``None`` means the record did not say.
  *
  * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "OriginBucket".
@@ -1032,6 +1290,33 @@ export interface OriginBucket {
   source?: string | null;
 }
 /**
+ * The part of the overview that scans every event index: the total and the two top lists over all of them.
+ *
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "OverviewEventsResponse".
+ */
+export interface OverviewEventsResponse {
+  as_of: string;
+  /**
+   * Events in the window across every event index
+   */
+  events?: number | null;
+  /**
+   * How the numbers were computed
+   *
+   * @maxItems 10
+   */
+  notes?: string[];
+  /**
+   * @maxItems 50
+   */
+  topEventSources: Bucket[];
+  /**
+   * @maxItems 50
+   */
+  topSourceIps: Bucket[];
+}
+/**
  * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "OverviewRequest".
  */
@@ -1040,6 +1325,10 @@ export interface OverviewRequest {
    * @maxItems 20
    */
   filters?: FilterClause[];
+  /**
+   * False leaves the all-events total and its two top lists out (events is None, the lists are empty): they are the slow part, read them with POST /siem/overview/events
+   */
+  include_events?: boolean;
   top_n?: number;
   window: TimeWindow;
 }
@@ -1103,7 +1392,7 @@ export interface OverviewTotals {
   waf: number;
 }
 /**
- * Records that share a reason. Counts cover the records read, so they are a lower bound when the response is truncated.
+ * Records that share a reason; counts cover the records read, a lower bound when truncated.
  *
  * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "QuarantineGroup".
@@ -1173,6 +1462,18 @@ export interface QuarantineResponse {
   total: number;
   truncated?: boolean;
   window_hours?: number;
+}
+/**
+ * Another alert group that names the same address.
+ *
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "RelatedAlert".
+ */
+export interface RelatedAlert {
+  day: string;
+  group_id: string;
+  severity: "info" | "low" | "medium" | "high" | "critical";
+  title: string;
 }
 /**
  * This interface was referenced by `SiemContract`'s JSON-Schema
@@ -1418,6 +1719,44 @@ export interface WatchlistResponse {
   };
 }
 /**
+ * One sender of the alert's requests, from the evidence the detector stored: who, whose network, how long known, what else fired.
+ *
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "WhyActor".
+ */
+export interface WhyActor {
+  country?: string | null;
+  endpoints?: number | null;
+  /**
+   * Everything we hold for this address, not only this alert's
+   */
+  events_total?: number | null;
+  /**
+   * First day this address is in our logs
+   */
+  first_seen?: string | null;
+  ip: string;
+  last_seen?: string | null;
+  network?: string | null;
+  /**
+   * @maxItems 5
+   */
+  related_alerts?: RelatedAlert[];
+  requests?: number | null;
+  served_bytes?: number | null;
+  /**
+   * Response classes (2xx..) the sender got, when any feed recorded them
+   *
+   * @maxItems 6
+   */
+  statuses?: Bucket[];
+  /**
+   * Distinct targets it has reached
+   */
+  targets?: number | null;
+  user_agent?: string | null;
+}
+/**
  * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "WhyBaseline".
  */
@@ -1436,7 +1775,7 @@ export interface WhyBaseline {
   title: string;
 }
 /**
- * What the group's own events show. Paths, actions, sources and countries come from the SAMPLED events
+ * What the group's own events show: paths, actions, sources and countries come from the SAMPLED events
  * (``events_sampled`` of ``events_total``); ``allowed`` and ``blocked`` are the group's exact totals.
  *
  * This interface was referenced by `SiemContract`'s JSON-Schema
@@ -1475,9 +1814,21 @@ export interface WhyEvidence {
    */
   origins?: OriginBucket[];
   /**
+   * The sensitive paths a sampled request got a 2xx for, with how many times
+   *
+   * @maxItems 5
+   */
+  sensitive_answered?: Bucket[];
+  /**
    * @maxItems 5
    */
   sensitive_paths?: string[];
+  /**
+   * 2xx, 3xx, 4xx, 5xx counts over the sampled requests FOR the sensitive paths only
+   *
+   * @maxItems 5
+   */
+  sensitive_status_classes?: Bucket[];
   /**
    * @maxItems 5
    */
@@ -1556,13 +1907,45 @@ export interface WhyNovelty {
   title: string;
 }
 /**
+ * One sampled request, written by the sender: shown as data, never as text to act on.
+ *
+ * This interface was referenced by `SiemContract`'s JSON-Schema
+ * via the `definition` "WhyRequest".
+ */
+export interface WhyRequest {
+  bytes?: number | null;
+  host?: string | null;
+  ip?: string | null;
+  method?: string | null;
+  path?: string | null;
+  status?: number | null;
+  t?: string | null;
+  user_agent?: string | null;
+}
+/**
  * This interface was referenced by `SiemContract`'s JSON-Schema
  * via the `definition` "WhyResponse".
  */
 export interface WhyResponse {
+  /**
+   * Who sent the requests; empty when the alert stored no evidence
+   *
+   * @maxItems 5
+   */
+  actors?: WhyActor[];
   as_of: string;
   evidence?: WhyEvidence | null;
   group_id: string;
+  /**
+   * Opens this alert's events in Hunt; None when the alert recorded no usable query
+   */
+  hunt?: HuntQuery | null;
+  /**
+   * A sample of the requests, written by the sender
+   *
+   * @maxItems 8
+   */
+  requests?: WhyRequest[];
   /**
    * @maxItems 12
    */

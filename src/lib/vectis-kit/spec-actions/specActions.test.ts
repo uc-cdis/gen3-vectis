@@ -13,6 +13,8 @@ const WINDOW = { start: '2026-10-08T18:00:00Z', end: '2026-10-09T18:00:00Z' };
 const dir = mkdtempSync(path.join(tmpdir(), 'spec-actions-'));
 const MARKER = path.join(dir, 'pwned');
 
+const U = (...cps: number[]): string => String.fromCodePoint(...cps);
+
 /** Text built to break out of every kind of string literal. */
 const HOSTILE = [
   `"; import os; os.system("touch ${MARKER}"); x="`,
@@ -27,6 +29,13 @@ const HOSTILE = [
   '\u2028\u2029\u0000\u001b[31m',
   '</script><img src=x onerror=alert(1)>',
   '{{7*7}} %s {0} f"{x}"',
+  // Invisible and reordering characters ("Trojan Source"): built from code points so this file shows what it holds.
+  `admin${U(0x202e)}"; os.system("id") #${U(0x2066)}`,
+  `tag${U(0xe0069, 0xe0067, 0xe006e, 0xe006f, 0xe0072, 0xe0065)}end`,
+  `zero${U(0x200b, 0x200d, 0xfeff, 0x2060, 0x00ad, 0x180e)}width`,
+  `ctl${U(0x007f, 0x0085, 0x009f, 0xe000, 0xffff)}x`,
+  `lone${String.fromCharCode(0xd83d)}surrogate${String.fromCharCode(0xde00)}`,
+  `plain emoji ${U(0x1f600)} and caf${U(0xe9)} stay readable`,
 ];
 
 const specWith = (filters: FilterClause[], extra: Partial<QuerySpec> = {}): QuerySpec => ({
@@ -38,14 +47,35 @@ const hostileSpec = specWith([
 ].slice(0, 20));
 
 describe('escape', () => {
-  it('quoted never contains a raw newline, quote break-out or separator', () => {
+  it('quoted never contains a raw newline, quote break-out, separator or hidden character', () => {
     for (const h of HOSTILE) {
-      const q = quoted(h);
-      expect(q.startsWith('"') && q.endsWith('"')).toBe(true);
-      // eslint-disable-next-line no-control-regex
-      expect(q).not.toMatch(/[\n\r\u2028\u2029\u0000]/);
-      expect(JSON.parse(q.replace(/\\u(2028|2029|007f|0085)/g, (_, h2) => String.fromCharCode(parseInt(h2, 16))))).toBe(h);
+      for (const target of ['python', 'json'] as const) {
+        const q = quoted(h, target);
+        expect(q.startsWith('"') && q.endsWith('"')).toBe(true);
+        // eslint-disable-next-line no-control-regex
+        expect(q).not.toMatch(/[\n\r\u2028\u2029\u0000]/);
+        expect(q).not.toMatch(/[\p{C}\u2028\u2029]/u);
+      }
+      expect(JSON.parse(quoted(h, 'json'))).toBe(h);
     }
+  });
+  it('quoted writes hidden characters as visible escapes: \\uXXXX, and \\UXXXXXXXX for astral ones in Python only', () => {
+    const tag = U(0xe0069);
+    expect(quoted(`a${tag}b`)).toBe('"a\\U000e0069b"');
+    expect(quoted(`a${tag}b`, 'json')).toBe('"a\\udb40\\udc69b"');
+    expect(quoted(`x${U(0x202e)}y${U(0x200b)}${U(0xad)}${U(0x2028)}`)).toBe('"x\\u202ey\\u200b\\u00ad\\u2028"');
+    expect(quoted(`${U(0x1f600)}caf${U(0xe9)}`)).toBe(`"${U(0x1f600)}caf${U(0xe9)}"`);
+  });
+  it('a string with hidden characters reads back identical in Python', () => {
+    if (spawnSync('python3', ['--version']).status !== 0) return;
+    const r = spawnSync('python3', ['-c', 'import sys, json, ast\nprint(json.dumps([[ord(c) for c in ast.literal_eval(l)] for l in json.load(sys.stdin)]))'], { input: JSON.stringify(HOSTILE.map((h) => quoted(h))), encoding: 'utf8' });
+    expect(r.status).toBe(0);
+    expect(JSON.parse(r.stdout) as number[][]).toEqual(HOSTILE.map((h) => Array.from(h).map((c) => c.codePointAt(0))));
+  });
+  it('GraphQL variables and the curl body carry no raw hidden character either', () => {
+    const hidden = /[\p{Cf}\p{Co}\p{Cn}\p{Cs}\u2028\u2029\u007f-\u009f]/u;
+    expect(toCurl(hostileSpec, { timeField: 'event_time' })).not.toMatch(hidden);
+    expect(toGraphql(hostileSpec, 'event_time').variables).not.toMatch(hidden);
   });
   it('pythonLiteral uses Python spellings and refuses non-finite numbers', () => {
     expect(pythonLiteral({ a: [true, false, null, 1.5] })).toBe('{\n    "a": [\n        True,\n        False,\n        None,\n        1.5,\n    ],\n}');

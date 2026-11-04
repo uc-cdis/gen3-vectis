@@ -8,8 +8,8 @@ import { stripReadOnly, validateTaskSubmission } from './validate';
 const ok = { executors: [{ image: 'python:3.9-slim', command: ['echo', 'hi'] }] };
 
 describe('sanitizeText', () => {
-  it('removes control, escape, bidi and zero-width characters but keeps newlines', () => {
-    expect(sanitizeText('a\u001b[31mb\u0000c‮d​e\nf\tg')).toBe('a[31mbcde\nf\tg');
+  it('shows control, escape, bidi and zero-width characters as visible <U+XXXX> tokens and keeps newlines and tabs', () => {
+    expect(sanitizeText('a\u001b[31mb\u0000c‮d​e\nf\tg')).toBe('a<U+001B>[31mb<U+0000>c<U+202E>d<U+200B>e\nf\tg');
   });
   it('caps length and reports truncation', () => {
     const r = sanitizeLogText('x'.repeat(100), 10);
@@ -27,7 +27,7 @@ describe('normalizeTask', () => {
     const t = normalizeTask({ id: 'abc', state: 'EXPLODED', creation_time: 'yesterday', logs: [{ start_time: '2025-01-01T00:00:00Z', logs: [{ exit_code: 'x', stdout: 's\u0007' }] }] })!;
     expect(t.state).toBe('UNKNOWN'); expect(t.creation_time).toBeNull();
     expect(t.logs[0].start_time).toBe('2025-01-01T00:00:00Z');
-    expect(t.logs[0].logs[0].exit_code).toBeNull(); expect(t.logs[0].logs[0].stdout).toBe('s');
+    expect(t.logs[0].logs[0].exit_code).toBeNull(); expect(t.logs[0].logs[0].stdout).toBe('s<U+0007>');
   });
   it('rejects tasks without a safe id', () => {
     for (const id of [undefined, '', '../x', 'a/b', 'a:cancel', 'x'.repeat(129), 5]) expect(normalizeTask({ id })).toBeNull();

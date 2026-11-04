@@ -36,7 +36,7 @@ describe('live client', () => {
   const reply = (status: number, body: unknown) => vi.fn(async () => new Response(JSON.stringify(body), { status }));
   it('maps errors to JobsApiError with sanitized text', async () => {
     const api = createLiveApi(reply(403, { error: 'Forbidden‮' }) as unknown as typeof fetch);
-    await expect(api.submitJob({ job: 'x', params: {} })).rejects.toMatchObject({ status: 403, message: 'Forbidden' });
+    await expect(api.submitJob({ job: 'x', params: {} })).rejects.toMatchObject({ status: 403, message: 'Forbidden<U+202E>' });
   });
   it('reports an unreachable service as status 0 and rejects unsafe ids before calling', async () => {
     const f = vi.fn(async () => { throw new TypeError('network'); });

@@ -74,7 +74,7 @@ const BulkBar = ({ ids, onClear }: { ids: string[]; onClear: () => void }) => {
       {result ? (
         <Alert color={failed.length ? 'orange' : 'green'} title={failed.length ? 'Some alerts were not updated' : 'Updated'} role="status">
           {result.updated.length} updated{failed.length ? `, ${failed.length} failed.` : '.'}
-          {failed.length ? <ul>{failed.slice(0, 10).map(([id, why]) => <li key={id}><code>{id}</code>: {why}</li>)}</ul> : null}
+          {failed.length ? <ul>{failed.slice(0, 10).map(([id, why], i) => <li key={`${id}#${i}`}><code>{id}</code>: {why}</li>)}</ul> : null}
         </Alert>
       ) : null}
       <ResolveReasonModal

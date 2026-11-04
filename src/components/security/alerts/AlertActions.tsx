@@ -11,6 +11,8 @@ import ResolveReasonModal from './ResolveReasonModal';
 import type { IocType } from '@/lib/vectis-kit/spec/indicator';
 import { LIMITS, validateAssignee, validateComment, validateConfidence, validateIndicator, validateNote } from './validate';
 import { IOC_LABEL, IOC_TYPES } from '@/lib/vectis-kit/spec/indicator';
+import { safeText } from '@/lib/safe-text';
+import { DEFAULT_SPAN, writeContextLink } from '../hunt/contextModel';
 
 // 'noise' is set by Mark as noise. 'resolved' closes a group, so it opens a dialog for the disposition and reason the service requires.
 const SETTABLE: TriageStatus[] = ['new', 'triaged', 'investigating', 'resolved'];
@@ -44,6 +46,9 @@ const AlertActions = ({ group }: { group: AlertGroup }) => {
   const cases = useSiemQuery('cases', {});
   const act = useAction();
   const id = group.group_id;
+  // Find similar also opens the investigation on the alert's main source, from when the alert began, so the graph questions are one click away.
+  const source = group.top_sources?.[0];
+  const investigation = source ? writeContextLink({}, { seed: source, at: new Date(Date.parse(group.first_seen)).toISOString(), span: DEFAULT_SPAN, scope: 'actor' }) : {};
   const params = { id };
 
   const [status, setStatus] = useState<string | null>(null);
@@ -91,8 +96,8 @@ const AlertActions = ({ group }: { group: AlertGroup }) => {
       {(group.top_sources ?? []).length > 0 ? (
         <Group gap="xs" wrap="wrap" aria-label="Investigate">
           <Text size="xs" c="dimmed">Investigate</Text>
-          {(group.top_sources ?? []).slice(0, 3).map((src) => (
-            <Button key={`${src.type}:${src.value}`} size="compact-xs" variant="default" ff="monospace" onClick={() => openEntity(src)}>{src.value.slice(0, 60)}</Button>
+          {(group.top_sources ?? []).slice(0, 3).map((src, i) => (
+            <Button key={`${src.type}:${src.value}#${i}`} size="compact-xs" variant="default" ff="monospace" title={safeText(src.value, 4096)} onClick={() => openEntity(src)}>{safeText(src.value, 60)}</Button>
           ))}
         </Group>
       ) : null}
@@ -103,10 +108,10 @@ const AlertActions = ({ group }: { group: AlertGroup }) => {
           setCaseId(rec.case_id);
         }, 'Case created.')}>Create case</Button>
         {shownCase ? <Button size="xs" variant="light" data-testid="case-id" onClick={() => goTab('cases', { case: shownCase })}>Open case {shownCase}</Button> : null}
-        <Button size="xs" variant="default" onClick={() => goTab('hunt', { similar: id })}>Find similar</Button>
+        <Button size="xs" variant="default" onClick={() => goTab('hunt', { similar: id, ...investigation })}>Find similar</Button>
         {shownCase === null && (cases.data?.cases ?? []).some((c) => c.status !== 'closed' && c.status !== 'resolved') ? (
           <Group gap={4} wrap="nowrap">
-            <Select size="xs" w={200} aria-label="Add to an existing case" placeholder="Add to existing case" data={(cases.data?.cases ?? []).filter((c) => c.status !== 'closed' && c.status !== 'resolved').map((c) => ({ value: c.case_id, label: c.title.slice(0, 60) }))} value={existing} onChange={setExisting} />
+            <Select size="xs" w={200} aria-label="Add to an existing case" placeholder="Add to existing case" data={(cases.data?.cases ?? []).filter((c) => c.status !== 'closed' && c.status !== 'resolved').map((c) => ({ value: c.case_id, label: safeText(c.title, 256) }))} value={existing} onChange={setExisting} />
             <Button size="xs" variant="default" disabled={!existing || act.busy} onClick={() => existing && void act.run(async () => { await patch({ params, body: { case_id: existing } }, ['alerts', 'alertGet', 'cases']); setCaseId(existing); }, 'Added to the case.')}>Add</Button>
           </Group>
         ) : null}

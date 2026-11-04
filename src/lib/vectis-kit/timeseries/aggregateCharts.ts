@@ -67,7 +67,8 @@ const SEMANTIC: Record<string, string> = {
 
 /** Same colour for the same value everywhere: outcomes and severities use fixed colours, the rest hash into the palette. */
 export function colorFor(value: string): string {
-  const known = SEMANTIC[value.trim().toLowerCase()];
+  const key = value.trim().toLowerCase();
+  const known = Object.hasOwn(SEMANTIC, key) ? SEMANTIC[key] : undefined; // a value is log text: "constructor" is not a colour
   if (known) return known;
   let h = 0;
   for (let i = 0; i < value.length; i += 1) h = (h * 31 + value.charCodeAt(i)) >>> 0;

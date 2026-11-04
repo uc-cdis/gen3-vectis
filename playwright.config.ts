@@ -26,7 +26,7 @@ export default defineConfig({
     reuseExistingServer: false,
     // The Gen3 app shell asks its API base for /_status and /user at start-up. Point that base at this same server so the
     // tests can answer those two calls themselves (e2e/support.ts); no commons service is needed or contacted.
-    env: { NEXT_PUBLIC_GEN3_API: `http://localhost:${PORT}` },
+    env: { NEXT_PUBLIC_GEN3_API: `http://localhost:${PORT}`, DEV_PAGES_NO_LOGIN: '1' },
     timeout: 300_000,
     stdout: 'pipe',
     stderr: 'pipe',

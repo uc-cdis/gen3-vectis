@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef } from 'react';
-import { SimpleGrid, Stack, Anchor, Badge, Group, Text, Paper, UnstyledButton, Table } from '@mantine/core';
+import { SimpleGrid, Stack, Anchor, Badge, Group, Text, Paper, UnstyledButton, Table, Skeleton } from '@mantine/core';
 import { PanelErrorBoundary, ReactECharts } from '@gen3/frontend';
 import type { ReactEChartsProps } from '@gen3/frontend';
 import { useSiemQuery } from '@/lib/vectis-kit/api/hooks';
@@ -18,17 +18,19 @@ import { neutraliseBraces } from '@/lib/safe-text';
 
 const OverviewTab = () => {
   const { window } = useSecurity();
-  const overview = useSiemQuery('overview', { body: { window, top_n: 10 } });
+  // The total over every event index and its two top lists are the slow part: asked apart, so the rest shows at once.
+  const overview = useSiemQuery('overview', { body: { window, top_n: 10, include_events: false } });
+  const everything = useSiemQuery('overviewEvents', { body: { window, top_n: 10 } });
   return (
     <Stack gap="md" data-testid="overview-tab">
       <PanelErrorBoundary><NeedsYouStrip /></PanelErrorBoundary>
-      <PanelErrorBoundary><KpiTiles query={overview} /></PanelErrorBoundary>
+      <PanelErrorBoundary><KpiTiles query={overview} everything={everything} /></PanelErrorBoundary>
       <PanelErrorBoundary><TrendPanel window={window} /></PanelErrorBoundary>
       {/* The KPI tiles above own the error state for this query; here we only avoid a second copy of it. */}
       {overview.data ? (
         <SimpleGrid cols={{ base: 1, md: 2, xl: 4 }}>
-          <TopList title="Source IPs" buckets={overview.data.topSourceIps} valueLabel="Events" linkAddresses />
-          <TopList title="Event sources" buckets={overview.data.topEventSources} valueLabel="Events" linkAddresses />
+          <TopListAwaiting title="Source IPs" query={everything} pick={(d) => d.topSourceIps} linkAddresses />
+          <TopListAwaiting title="Event sources" query={everything} pick={(d) => d.topEventSources} linkAddresses />
           <TopList title="Rules" buckets={overview.data.topRules} valueLabel="Events" />
           <TopList title="Countries" buckets={overview.data.topCountries} valueLabel="Events" />
         </SimpleGrid>
@@ -81,31 +83,34 @@ const CasesSummary = () => {
 };
 
 const NO_DATA = 'No data has been ingested for this source. This is not zero.';
-const TILES: { key: keyof OverviewTotals; label: string; hint?: string; unmeasured: string; tab: TabId; opens: string }[] = [
-  { key: 'events', label: 'Events, all sources', hint: 'Web, API, sign-in, network and detections', unmeasured: NO_DATA, tab: 'data', opens: 'Data' },
-  { key: 'waf', label: 'Web requests', hint: 'WAF, reverse proxy and F5 logs. A request two feeds both log counts twice.', unmeasured: NO_DATA, tab: 'data', opens: 'Data' },
-  { key: 'audit', label: 'Audit events', unmeasured: NO_DATA, tab: 'data', opens: 'Data' },
+// `link` names the index a count came from, so the tile opens the rows it counted, not whichever index the Data tab starts on.
+const TILES: { key: keyof OverviewTotals; label: string; hint?: string; unmeasured: string; tab: TabId; opens: string; link?: Record<string, string> }[] = [
+  { key: 'events', label: 'Events, all sources', hint: 'Web, API, sign-in, network and detections', unmeasured: NO_DATA, tab: 'data', opens: 'Data', link: { hunt_index: 'all_events' } },
+  { key: 'waf', label: 'Web requests', hint: 'WAF, reverse proxy and F5 logs. A request two feeds both log counts twice.', unmeasured: NO_DATA, tab: 'data', opens: 'Data', link: { hunt_index: 'http_activity' } },
+  { key: 'audit', label: 'Audit events', hint: 'Cloud API calls. Sign-ins and sessions are under Views.', unmeasured: NO_DATA, tab: 'data', opens: 'Data', link: { hunt_index: 'audit_event' } },
   { key: 'threat', label: 'Indicators loaded', hint: 'Current intel indicators, not windowed', unmeasured: 'The indicator table could not be read. This is not zero.', tab: 'intel', opens: 'Intel' },
   { key: 'ioc_alerts', label: 'Alerts matching indicators', hint: 'Alert groups in this window', unmeasured: 'Alert groups could not be counted. This is not zero.', tab: 'intel', opens: 'Intel' },
   { key: 'telemetry', label: 'Telemetry events', unmeasured: 'No telemetry index exists yet. This is not zero.', tab: 'data', opens: 'Data' },
 ];
 
 /** Totals for the selected window, from the overview rollup. Telemetry is null until its index exists. */
-const KpiTiles = ({ query }: { query: ReturnType<typeof useSiemQuery<'overview'>> }) => {
+const KpiTiles = ({ query, everything }: { query: ReturnType<typeof useSiemQuery<'overview'>>; everything: ReturnType<typeof useSiemQuery<'overviewEvents'>> }) => {
   const { goTab } = useSecurity();
   return (
     <QueryBoundary query={query} rows={2}>
       {({ totals }) => (
         <SimpleGrid cols={{ base: 2, md: 3, lg: 6 }} component="section" aria-label="Key figures">
           {TILES.map((t) => {
-            const v = totals[t.key];
+            // The all-events total arrives on its own request; until it does the tile waits, and a failure is unmeasured.
+            const waiting = t.key === 'events' && !everything.data && !everything.error;
+            const v = t.key === 'events' ? everything.data?.events : totals[t.key];
             const measured = v !== null && v !== undefined;
             return (
-              <UnstyledButton key={t.key} onClick={() => goTab(t.tab)} aria-label={`${t.label}: ${measured ? formatNumber(v) : 'unmeasured'}. Open ${t.opens}`}>
+              <UnstyledButton key={t.key} onClick={() => goTab(t.tab, t.link)} aria-label={`${t.label}: ${waiting ? 'loading' : measured ? formatNumber(v) : 'unmeasured'}. Open ${t.opens}`}>
                 <Paper withBorder p="md" radius="md" h="100%">
                   <Stack gap={2}>
                     <Text size="xs" c="dimmed" tt="uppercase">{t.label}</Text>
-                    <Text fw={600} fz={28} component="div">{measured ? formatNumber(v) : <Unmeasured reason={t.unmeasured} />}</Text>
+                    <Text fw={600} fz={28} component="div">{waiting ? <Skeleton height={34} width="60%" radius="sm" data-testid="tile-loading" /> : measured ? formatNumber(v) : <Unmeasured reason={t.unmeasured} />}</Text>
                     {t.hint ? <Text size="xs" c="dimmed">{t.hint}</Text> : null}
                   </Stack>
                 </Paper>
@@ -192,6 +197,12 @@ const TopAlerts = ({ window }: { window: TimeWindow }) => {
  * A ranked list as horizontal bars with the same numbers in a table. Values that are addresses render through
  * <EntityLink> (in the table, and by clicking the bar); everything else is plain text.
  */
+/** A top list that comes from the all-events request: a placeholder until it arrives, then the list. */
+const TopListAwaiting = ({ title, query, pick, linkAddresses }: { title: string; query: ReturnType<typeof useSiemQuery<'overviewEvents'>>; pick: (d: NonNullable<typeof query.data>) => readonly Bucket[]; linkAddresses?: boolean }) => {
+  if (query.data) return <TopList title={title} buckets={pick(query.data)} valueLabel="Events" linkAddresses={linkAddresses} />;
+  return <Panel title={title}>{query.error ? <Unmeasured reason="Counting every event index failed. This is not zero." /> : <LoadingState rows={3} />}</Panel>;
+};
+
 const TopList = ({ title, buckets, valueLabel, linkAddresses }: { title: string; buckets: readonly Bucket[]; valueLabel: string; linkAddresses?: boolean }) => {
   const { openEntity } = useSecurity();
   const option = useMemo(() => buildBarOption(buckets, valueLabel), [buckets, valueLabel]);
@@ -214,8 +225,8 @@ const TopList = ({ title, buckets, valueLabel, linkAddresses }: { title: string;
             <Table withTableBorder aria-label={`${title}, table`}>
               <Table.Thead><Table.Tr><Table.Th>{title}</Table.Th><Table.Th ta="right">{valueLabel}</Table.Th></Table.Tr></Table.Thead>
               <Table.Tbody>
-                {shown.map((b) => (
-                  <Table.Tr key={b.key}>
+                {shown.map((b, i) => (
+                  <Table.Tr key={`${b.key}#${i}`}>
                     <Table.Td>{linkAddresses && isIpAddress(b.key) ? <EntityLink type="ip" value={b.key} /> : b.key}</Table.Td>
                     <Table.Td ta="right">{formatNumber(b.count)}</Table.Td>
                   </Table.Tr>

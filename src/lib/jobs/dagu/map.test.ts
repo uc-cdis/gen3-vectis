@@ -62,7 +62,7 @@ describe('text helpers', () => {
 describe('the neutral Run re-validates what the server sends (defence in depth)', () => {
   it('keeps the new step fields and drops hostile ones', () => {
     const r = normalizeRun({ id: 'a.b', backend: 'dagu', name: 'a', state: 'running', steps: [{ name: 's‮1', depends_on: ['x', 5, 'y'], state: 'nonsense', error: 'e', image: 'http', command: [], exit_code: 2.5, stdout: '', stderr: '' }], params: { a: '1', b: { c: 1 } } });
-    expect(r?.steps[0]).toMatchObject({ name: 's1', depends_on: ['x', 'y'], state: null, error: 'e', exit_code: null });
+    expect(r?.steps[0]).toMatchObject({ name: 's<U+202E>1', depends_on: ['x', 'y'], state: null, error: 'e', exit_code: null });
     expect(r?.params).toEqual({ a: '1' });
     expect(normalizeRun({ id: 'a.b', steps: [{ state: 'failed' }] })?.steps[0].state).toBe('failed');
   });

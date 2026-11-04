@@ -4,6 +4,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ApiError } from '@/lib/vectis-kit/api';
 import { FIXTURES } from '@/lib/vectis-kit/api/fixtureApi';
+import type { WhyResponse } from '@/lib/vectis-kit/spec';
 import { getMockQuery } from '@/test/nextRouterMock';
 import { apiWith } from '../alerts/testUtils';
 import { renderSecurity } from '../testing/render';
@@ -264,10 +265,62 @@ describe('AlertDrawer', () => {
       expect(errs.some((e) => /Server exploded/.test(e.textContent ?? ''))).toBe(true);
     });
 
+    it('offers the graph questions from the alert itself, as a Finding in the entity graph', async () => {
+      mount('g-env-200');
+      const panel = (await screen.findByRole('heading', { name: 'Ask the graph about this alert' })).closest('div')!.parentElement!;
+      expect(await within(panel).findByText(/No question starts from a Finding/)).toBeInTheDocument();
+    });
+
     it('find similar goes to Hunt with the alert id', async () => {
       mount('g-env-200');
       await userEvent.click(await screen.findByRole('button', { name: 'Find similar' }));
       await waitFor(() => expect(getMockQuery()).toMatchObject({ tab: 'hunt', similar: 'g-env-200' }));
+    });
+
+    it('find similar also opens the investigation on the alert\'s main source, from when the alert started', async () => {
+      mount('g-env-200');
+      await userEvent.click(await screen.findByRole('button', { name: 'Find similar' }));
+      await waitFor(() => expect(getMockQuery()).toMatchObject({ tab: 'hunt', similar: 'g-env-200', inv_type: 'ip', inv_value: '198.51.100.200', inv_span: '5', inv_scope: 'actor' }));
+      expect(getMockQuery().inv_at).toMatch(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/);
+    });
+
+    it('find similar on an alert with no known source goes to Hunt without an investigation', async () => {
+      mount('g-env-blocked');
+      await userEvent.click(await screen.findByRole('button', { name: 'Find similar' }));
+      await waitFor(() => expect(getMockQuery()).toMatchObject({ tab: 'hunt', similar: 'g-env-blocked' }));
+      expect(getMockQuery().inv_type).toBeUndefined();
+    });
+  });
+
+  describe('opening the events behind the alert', () => {
+    const IN = { field: 'src_ip', op: 'in', value: ['192.0.2.10', '198.51.100.7'] };
+    const hunt = { index_name: 'http_activity', window: { start: '2026-10-09T09:45:00Z', end: '2026-10-09T10:15:00Z' }, filters: [IN] };
+    const whyWith = (h: unknown) => () => ({ ...(FIXTURES['why.g-env-200'] as WhyResponse), hunt: h });
+
+    it('opens Hunt with the stored index, window and filters pre-applied', async () => {
+      mount('g-env-200', { alertWhy: whyWith(hunt) });
+      await userEvent.click(await screen.findByRole('button', { name: 'Open the matching events' }));
+      await waitFor(() => expect(getMockQuery()).toMatchObject({ tab: 'hunt', hunt_index: 'http_activity', hunt_from: '2026-10-09T09:45:00.000Z', hunt_to: '2026-10-09T10:15:00.000Z' }));
+      expect(JSON.parse(String(getMockQuery().hunt_filters))).toEqual([IN]);
+      expect(screen.getByTestId('open-matching-events')).toHaveTextContent('src_ip in 2 values');
+    });
+
+    it('lists and downloads all events by opening the Data tab with the same query', async () => {
+      mount('g-env-200', { alertWhy: whyWith(hunt) });
+      await userEvent.click(await screen.findByRole('button', { name: 'List and download all events' }));
+      await waitFor(() => expect(getMockQuery()).toMatchObject({ tab: 'data', hunt_index: 'http_activity', hunt_from: '2026-10-09T09:45:00.000Z', hunt_to: '2026-10-09T10:15:00.000Z' }));
+      expect(JSON.parse(String(getMockQuery().hunt_filters))).toEqual([IN]);
+    });
+
+    it.each([
+      ['no stored query', null],
+      ['an index Hunt does not cover', { ...hunt, index_name: 'authentication' }],
+      ['a malformed filter', { ...hunt, filters: [{ field: 'src_ip', op: 'regex', value: 'x' }] }],
+    ])('offers no link for %s', async (_name, h) => {
+      mount('g-env-200', { alertWhy: whyWith(h) });
+      await screen.findByRole('table', { name: 'Key facts' });
+      expect(screen.queryByRole('button', { name: 'Open the matching events' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'List and download all events' })).toBeNull();
     });
   });
 });

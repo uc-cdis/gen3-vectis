@@ -54,15 +54,21 @@ export function tooltipHtml(params: { dataType?: unknown; data?: unknown; name?:
   return `<b>${escapeHtml(safeText(d.kind, 60))}</b><br/>${escapeHtml(safeText(d.title, 100))}<br/>${escapeHtml(safeText(d.fullId, 120))}`;
 }
 
+const MANY_NODES = 60;
+const MANY_EDGES = 40;
+
 /**
  * Convert nodes and edges to an ECharts `graph` series (force layout, draggable, roam), driven by the lens.
  * Pure. Duplicate ids are removed, the node count is capped, edges to missing nodes are dropped, every
  * string that reaches the chart is truncated and neutralised, and node kinds differ by shape as well as colour.
  */
 export function buildGraphOption(input: GraphData, opts: BuildOptions = {}): GraphOptionResult {
-  const { lens, highlight, selectedId, positions, layout = 'force', dashedEdgeTypes, edgeLabels = true, legend = true, repulsion = 220, edgeLength = [60, 140] } = opts;
+  const { lens, highlight, selectedId, positions, layout = 'force', dashedEdgeTypes, edgeLabels: edgeLabelsOpt, legend = true, repulsion = 220, edgeLength = [60, 140] } = opts;
   const merged = mergeGraph({ nodes: [], edges: [] }, input, opts.cap ?? MAX_GRAPH_NODES);
   const { nodes, edges } = merged;
+  // A big graph is unreadable with every name and relation drawn on top of each other: past these sizes labels show on hover, selection and highlight only.
+  const edgeLabels = edgeLabelsOpt ?? edges.length <= MANY_EDGES;
+  const crowded = nodes.length > MANY_NODES;
 
   const categories: string[] = [];
   for (const n of nodes) if (!categories.includes(n.label)) categories.push(n.label);
@@ -93,7 +99,7 @@ export function buildGraphOption(input: GraphData, opts: BuildOptions = {}): Gra
         borderColor: hit || selected ? '#111111' : '#ffffff',
         borderWidth: hit || selected ? 3 : 1,
       },
-      label: { show: !dimming || hit, formatter: labelText(title) },
+      label: { show: crowded ? hit || selected : !dimming || hit, formatter: labelText(title) },
       ...(pos ? { x: pos[0], y: pos[1] } : {}),
       // read back by the tooltip formatter and the click handler; text only
       kind: n.label,
@@ -131,7 +137,7 @@ export function buildGraphOption(input: GraphData, opts: BuildOptions = {}): Gra
         force: { repulsion, edgeLength, gravity: 0.08, layoutAnimation: true },
         label: { show: true, position: layout === 'circular' ? 'right' : 'bottom', fontSize: 11 },
         edgeLabel: { show: edgeLabels, fontSize: 10 },
-        emphasis: { focus: 'adjacency', lineStyle: { width: 3 } },
+        emphasis: { focus: 'adjacency', lineStyle: { width: 3 }, label: { show: true } },
         data,
         links,
       },

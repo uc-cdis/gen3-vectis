@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Select, SimpleGrid, TextInput } from '@mantine/core';
+import { Radio, SimpleGrid, Stack, TextInput } from '@mantine/core';
 import { useJobsQuery } from '@/lib/jobs/api/hooks';
 
 const ME = 'me';
@@ -28,13 +28,17 @@ const RunChoices = ({ title, group, onTitle, onGroup, disabled }: { title: strin
         autoComplete="off" data-param="run-title"
       />
       {list.length ? (
-        <Select
+        <Radio.Group
           label="Run as"
           description={group ? `Everyone in the ${group} group will see this run and its results.` : 'Only you will see this run.'}
-          data={[{ value: ME, label: 'Just me (private)' }, ...list.map((g) => ({ value: g, label: `Group: ${g}` }))]}
-          value={group || ME} onChange={(v) => onGroup(!v || v === ME ? '' : v)} allowDeselect={false} disabled={disabled}
+          value={group || ME} onChange={(v) => onGroup(!v || v === ME ? '' : v)}
           data-param="run-as"
-        />
+        >
+          <Stack gap={6} mt={6}>
+            <Radio value={ME} label="Just me (private)" disabled={disabled} />
+            {list.map((g) => <Radio key={g} value={g} label={`Group: ${g}`} disabled={disabled} />)}
+          </Stack>
+        </Radio.Group>
       ) : null}
     </SimpleGrid>
   );

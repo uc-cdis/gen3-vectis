@@ -71,8 +71,11 @@ const HuntCard = ({ hunt, onOpen, reload }: { hunt: Hunt; onOpen: (h: Hunt) => v
   );
 };
 
-/** Saved hunts: title, hypothesis and a verdict. Edits are conditional on the etag; a 412 is shown, never overwritten. */
-export const SavedHunts = ({ currentSpec, onOpen }: { currentSpec: QuerySpec; onOpen: (h: Hunt) => void }) => {
+/**
+ * Saved hunts: title, hypothesis and a verdict. Edits are conditional on the etag; a 412 is shown, never overwritten.
+ * With `currentSpec` there is a form to save the current query as a hunt; with `onOpen` the saved hunts are listed. Either alone is fine.
+ */
+export const SavedHunts = ({ currentSpec, onOpen }: { currentSpec?: QuerySpec; onOpen?: (h: Hunt) => void }) => {
   const q = useSiemQuery('hunts', {});
   const create = useSiemMutation('huntCreate');
   const [title, setTitle] = useState('');
@@ -86,7 +89,7 @@ export const SavedHunts = ({ currentSpec, onOpen }: { currentSpec: QuerySpec; on
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
-    if (validateTitle(title) || hypothesisError) return;
+    if (!currentSpec || validateTitle(title) || hypothesisError) return;
     setBusy(true);
     setError(null);
     try {
@@ -103,7 +106,7 @@ export const SavedHunts = ({ currentSpec, onOpen }: { currentSpec: QuerySpec; on
   return (
     <Panel title="Saved hunts">
       <Stack gap="md">
-        <form noValidate onSubmit={(e) => void submit(e)} aria-label="Save the current view as a hunt">
+        {currentSpec ? <form noValidate onSubmit={(e) => void submit(e)} aria-label="Save the current view as a hunt">
           <Stack gap="xs">
             <TextInput size="xs" label="Title" withAsterisk maxLength={256} value={title} onChange={(e) => setTitle(e.currentTarget.value)} error={titleError} />
             <Textarea size="xs" label="Hypothesis" rows={3} resize="vertical" value={hypothesis} onChange={(e) => setHypothesis(e.currentTarget.value)} error={hypothesisError} />
@@ -112,15 +115,15 @@ export const SavedHunts = ({ currentSpec, onOpen }: { currentSpec: QuerySpec; on
               <Text size="xs" c="dimmed">Saves {currentSpec.index_name} and the current time window.</Text>
             </Group>
           </Stack>
-        </form>
+        </form> : null}
         {error ? <ErrorState error={error} /> : null}
-        <QueryBoundary query={q} isEmpty={(d) => d.hunts.length === 0} empty={<EmptyState title="No saved hunts yet" hint="Save the current view with a hypothesis to start one." />} rows={2}>
+        {onOpen ? <QueryBoundary query={q} isEmpty={(d) => d.hunts.length === 0} empty={<EmptyState title="No saved hunts yet" hint="Save the current view with a hypothesis to start one." />} rows={2}>
           {(d) => (
             <Stack gap="md" component="ul" m={0} p={0}>
               {d.hunts.map((h) => <HuntCard key={`${h.hunt_id}:${h.etag}:${h.updated_at}`} hunt={h} onOpen={onOpen} reload={q.refresh} />)}
             </Stack>
           )}
-        </QueryBoundary>
+        </QueryBoundary> : null}
       </Stack>
     </Panel>
   );

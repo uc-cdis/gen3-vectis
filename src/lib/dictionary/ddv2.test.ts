@@ -249,3 +249,27 @@ describe('graph vocabulary edge cases', () => {
     expect(p.map((q) => q.pii)).toEqual([true, false]);
   });
 });
+
+describe('the relations and their status in the published dictionary', () => {
+  const relations = [{ from: 'ipAddress', to: 'httpActivity', label: 'from_ip' }];
+  const relationStatus = { from_ip: { status: 'derived', phase: 'P3', reason: 'Implemented per event today by the sent edge; replaced by aggregated edges.' } };
+
+  it('are ignored by the reader: the page shows the same dictionary with or without them', () => {
+    const without = ok(tiny());
+    const withThem = ok(tiny({ relations, relationStatus }));
+    expect(withThem.entities).toEqual(without.entities);
+    expect(withThem.propertyCount).toBe(without.propertyCount);
+  });
+
+  it('do not make the document fail the size limit at their real size (about 15 KB on top of the entities)', () => {
+    const many = Array.from({ length: 92 }, (_, i) => ({ from: `a${i}`, to: `b${i}`, label: `rel_${i}` }));
+    const status = Object.fromEntries(Array.from({ length: 26 }, (_, i) => [`rel_${i}`, { status: 'planned', phase: 'P1', reason: 'x'.repeat(220) }]));
+    const text = JSON.stringify(tiny({ relations: many, relationStatus: status }));
+    expect(text.length).toBeLessThan(LIMITS.bytes / 100);
+    expect(parseDictionaryText(text).ok).toBe(true);
+  });
+
+  it('cannot smuggle a prototype key in through their names', () => {
+    expect(parseDictionary(JSON.parse('{"version":"v1","schema":"s","entities":{"t":{"properties":{}}},"__proto__":{"x":1}}')).ok).toBe(false);
+  });
+});

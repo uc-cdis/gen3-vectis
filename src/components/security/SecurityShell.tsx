@@ -12,16 +12,16 @@ import EntityDrawer from './drawers/EntityDrawer';
 import AlertsTab from './tabs/AlertsTab';
 import CasesTab from './tabs/CasesTab';
 import CoverageTab from './tabs/CoverageTab';
-import DataTab from './tabs/DataTab';
-import EntitiesTab from './tabs/EntitiesTab';
+import ExploreTab from './tabs/ExploreTab';
 import HealthTab from './tabs/HealthTab';
 import HuntTab from './tabs/HuntTab';
 import IntelTab from './tabs/IntelTab';
 import OverviewTab from './tabs/OverviewTab';
+import ViewsTab from './tabs/ViewsTab';
 
 const TAB_COMPONENTS: Record<TabId, React.ComponentType> = {
-  overview: OverviewTab, alerts: AlertsTab, cases: CasesTab, hunt: HuntTab, data: DataTab,
-  entities: EntitiesTab, intel: IntelTab, coverage: CoverageTab, health: HealthTab,
+  overview: OverviewTab, alerts: AlertsTab, cases: CasesTab, hunt: HuntTab, views: ViewsTab, data: ExploreTab,
+  intel: IntelTab, coverage: CoverageTab, health: HealthTab,
 };
 
 const ModeBanner = () => {

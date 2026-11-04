@@ -4,20 +4,6 @@ export { proxy } from './proxy-impl';
 
 export const config = {
   matcher: [
-  "/DataLibrary",
-  "/Workspace",
-  "/Workspaces",
-  "/WorkspaceRequestAccess",
-  "/Profile",
-  "/Security",
-  "/Alerts",
-  "/Cases",
-  "/Investigate",
-  "/Detection",
-  "/Jobs",
-  "/Jobs/submit",
-  "/Query",
-  "/Analysis",
-  "/DataDictionary"
+  "/((?!_next/static|_next/image|_next/data|Login|api|403|404|no-workspace-access|favicon.ico|.*\\.ico$|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.json$).*)"
 ],
 };

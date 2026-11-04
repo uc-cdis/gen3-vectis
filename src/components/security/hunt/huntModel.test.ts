@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FIXTURES } from '@/lib/vectis-kit/api/fixtureApi';
-import type { CatalogResponse, QuerySpec } from '@/lib/vectis-kit/spec';
-import { applySpec, defaultColumns, groupableColumns, parseRange, readDeepLink, specFromView, EMPTY_VIEW, validateAlertId, validateEntityValue, validateHypothesis, validateTitle, writeDeepLink } from './huntModel';
+import type { CatalogResponse, FilterClause, QuerySpec } from '@/lib/vectis-kit/spec';
+import { applySpec, defaultColumns, filtersForIndex, groupableColumns, huntLinkFor, linkForQuery, parseFilters, parseRange, readDeepLink, specFromView, EMPTY_VIEW, validateAlertId, validateEntityValue, validateHypothesis, validateTitle, writeDeepLink } from './huntModel';
 
 const catalog = FIXTURES['catalog.response'] as CatalogResponse;
 const http = catalog.indexes.find((i) => i.index_name === 'http_activity')!;
@@ -42,9 +42,75 @@ describe('windows and deep links', () => {
   it('reads and writes the link without touching other query keys, and ignores bad values', () => {
     const q = writeDeepLink({ tab: 'hunt', range: '24h' }, { index: 'api_activity', grain: '1h', range: { start: '2026-10-09T10:00:00.000Z', end: '2026-10-09T11:00:00.000Z' } });
     expect(q).toMatchObject({ tab: 'hunt', range: '24h', hunt_index: 'api_activity', hunt_grain: '1h' });
-    expect(readDeepLink(q)).toEqual({ index: 'api_activity', grain: '1h', range: { start: '2026-10-09T10:00:00.000Z', end: '2026-10-09T11:00:00.000Z' } });
-    expect(readDeepLink({ hunt_index: 'authentication', hunt_grain: '2d', hunt_from: 'x', hunt_to: 'y' })).toEqual({ index: null, grain: null, range: null });
+    expect(readDeepLink(q)).toEqual({ index: 'api_activity', grain: '1h', range: { start: '2026-10-09T10:00:00.000Z', end: '2026-10-09T11:00:00.000Z' }, filters: [] });
+    expect(readDeepLink({ hunt_index: 'authentication', hunt_grain: '2d', hunt_from: 'x', hunt_to: 'y' })).toEqual({ index: null, grain: null, range: null, filters: [] });
     expect(writeDeepLink(q, { range: null })).not.toHaveProperty('hunt_from');
+  });
+});
+
+const IN: FilterClause = { field: 'src_ip', op: 'in', value: ['192.0.2.10', '198.51.100.7'] };
+const many = (n: number) => Array.from({ length: n }, (_, i) => `192.0.2.${i}`);
+
+describe('filters in the deep link', () => {
+  it('round-trips valid filters through the URL', () => {
+    const q = writeDeepLink({ tab: 'hunt' }, { filters: [IN, { field: 'status_code', op: 'gte', value: 400 }] });
+    expect(readDeepLink(q).filters).toEqual([IN, { field: 'status_code', op: 'gte', value: 400 }]);
+    expect(writeDeepLink(q, { filters: null })).not.toHaveProperty('hunt_filters');
+    expect(writeDeepLink(q, { filters: [] })).not.toHaveProperty('hunt_filters');
+  });
+
+  it.each([
+    ['not JSON', '{nope'],
+    ['not a list', JSON.stringify({ field: 'src_ip', op: 'eq', value: 'x' })],
+    ['empty list', '[]'],
+    ['unknown op', JSON.stringify([{ field: 'src_ip', op: 'regex', value: '.*' }])],
+    ['bad field name', JSON.stringify([{ field: 'Src IP', op: 'eq', value: 'x' }])],
+    ['field with a newline', JSON.stringify([{ field: 'src_ip\n', op: 'eq', value: 'x' }])],
+    ['extra key', JSON.stringify([{ ...IN, sql: '1' }])],
+    ['in with a scalar', JSON.stringify([{ field: 'src_ip', op: 'in', value: 'x' }])],
+    ['in with no values', JSON.stringify([{ field: 'src_ip', op: 'in', value: [] }])],
+    ['in with too many values', JSON.stringify([{ field: 'src_ip', op: 'in', value: many(101) }])],
+    ['eq with a list', JSON.stringify([{ field: 'src_ip', op: 'eq', value: ['x'] }])],
+    ['object value', JSON.stringify([{ field: 'src_ip', op: 'eq', value: { a: 1 } }])],
+    ['null value', JSON.stringify([{ field: 'src_ip', op: 'eq', value: null }])],
+    ['value too long', JSON.stringify([{ field: 'path', op: 'contains', value: 'x'.repeat(513) }])],
+    ['hidden character in a value', JSON.stringify([{ field: 'path', op: 'contains', value: 'a\u202eb' }])],
+    ['too many clauses', JSON.stringify(Array.from({ length: 21 }, () => IN))],
+    ['one bad clause among good ones', JSON.stringify([IN, { field: 'src_ip', op: 'regex', value: 'x' }])],
+  ])('ignores the whole filter set when it is malformed: %s', (_name, raw) => {
+    expect(readDeepLink({ hunt_filters: raw }).filters).toEqual([]);
+  });
+
+  it('ignores a filter parameter that is far too long without parsing it', () => {
+    expect(readDeepLink({ hunt_filters: JSON.stringify([{ field: 'path', op: 'eq', value: 'x'.repeat(40_000) }]) }).filters).toEqual([]);
+  });
+
+  it('parseFilters keeps only the contract fields', () => {
+    expect(parseFilters([IN])).toEqual([IN]);
+    expect(parseFilters('x')).toBeNull();
+  });
+
+  it('applies filters only when the index has every column they name', () => {
+    expect(filtersForIndex([IN], http)).toEqual([IN]);
+    expect(filtersForIndex([IN, { field: 'no_such_column', op: 'eq', value: 'x' }], http)).toEqual([]);
+  });
+});
+
+describe('the link from an alert', () => {
+  const hunt = { index_name: 'http_activity', window: { start: '2026-10-09T09:45:00Z', end: '2026-10-09T10:15:00Z' }, filters: [IN] };
+
+  it('carries index, window and filters, and reads back as the same query', () => {
+    const link = huntLinkFor(hunt as never)!;
+    expect(link).toMatchObject({ hunt_index: 'http_activity', hunt_from: '2026-10-09T09:45:00.000Z', hunt_to: '2026-10-09T10:15:00.000Z' });
+    expect(readDeepLink(link)).toMatchObject({ index: 'http_activity', filters: [IN], range: { start: '2026-10-09T09:45:00.000Z', end: '2026-10-09T10:15:00.000Z' } });
+  });
+
+  it.each([
+    ['an index Hunt does not cover', { ...hunt, index_name: 'authentication' }],
+    ['a window that is reversed', { ...hunt, window: { start: hunt.window.end, end: hunt.window.start } }],
+    ['a filter that is malformed', { ...hunt, filters: [{ field: 'src_ip', op: 'regex', value: 'x' }] }],
+  ])('gives no link for %s', (_name, bad) => {
+    expect(huntLinkFor(bad as never)).toBeNull();
   });
 });
 
@@ -88,5 +154,14 @@ describe('All events', () => {
   });
   it('can be chosen from a deep link', () => {
     expect(readDeepLink({ hunt_index: 'all_events' }).index).toBe('all_events');
+  });
+});
+
+describe('linkForQuery', () => {
+  it('writes the link the Data tab and Hunt both read, leaving out a missing range and empty filters', () => {
+    const range = { start: '2026-10-09T10:00:00.000Z', end: '2026-10-09T11:00:00.000Z' };
+    const f = [{ field: 'src_ip', op: 'eq', value: '192.0.2.10' }] as const;
+    expect(readDeepLink(linkForQuery({ index: 'api_activity', range, filters: f }))).toMatchObject({ index: 'api_activity', range, filters: f });
+    expect(linkForQuery({ index: 'api_activity', range: null, filters: [] })).toEqual({ hunt_index: 'api_activity' });
   });
 });

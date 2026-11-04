@@ -5,8 +5,9 @@ import { useSiemQuery } from '@/lib/vectis-kit/api/hooks';
 import { formatTime, formatNumber, relativeTime } from '@/lib/vectis-kit/ui/format';
 import { EmptyState, Panel, QueryBoundary, Unmeasured } from '@/lib/vectis-kit/ui/primitives';
 import { QuarantineSection } from '../health/QuarantinePanel';
+import { QuestionCoverage } from '../health/QuestionCoverage';
 import type { MRT_ColumnDef } from 'mantine-react-table-open';
-import type { HealthSource, HealthQueue } from '@/lib/vectis-kit/spec';
+import type { HealthSource, HealthQueue, HealthAttention } from '@/lib/vectis-kit/spec';
 import { HealthTable } from '../health/HealthTable';
 
 /** Polling is silent: the page only says when it was last updated. */
@@ -33,6 +34,7 @@ const HealthTab = () => {
         <QueryBoundary query={query} isEmpty={(d) => d.sources.length === 0 && d.queues.length === 0} empty={<EmptyState title="No pipeline data reported yet" />}>
           {(d) => (
             <Stack gap="sm">
+              <NeedsAttention items={d.attention ?? []} />
               {d.notes?.filter((n) => n !== 'no queues configured').length ? <Text size="xs" c="dimmed" aria-label="Notes from the service">{d.notes.filter((n) => n !== 'no queues configured').join(' ')}</Text> : null}
               <Panel
                 dense title="Sources"
@@ -53,6 +55,9 @@ const HealthTab = () => {
               <Panel dense title="Quarantine">
                 <QuarantineSection count={d.quarantine_count} olderCount={d.quarantine_older_count} />
               </Panel>
+              <Panel dense title="What the graph can answer">
+                <QuestionCoverage />
+              </Panel>
             </Stack>
           )}
         </QueryBoundary>
@@ -62,8 +67,26 @@ const HealthTab = () => {
 };
 export default HealthTab;
 
+/** One verdict at the top: something is unhealthy and what, or nothing needs a person. */
+const NeedsAttention = ({ items }: { items: HealthAttention[] }) => {
+  if (items.length === 0) return <Alert color="green" variant="light" title="Nothing needs attention" data-testid="health-attention-clear" />;
+  const critical = items.some((i) => i.severity === 'critical');
+  return (
+    <Alert color={critical ? 'red' : 'yellow'} variant="light" title={critical ? 'The pipeline is unhealthy' : 'The pipeline needs a look'} data-testid="health-attention">
+      <Stack gap={4} component="ul" m={0} p={0} style={{ listStyle: 'none' }}>
+        {items.map((i, n) => (
+          <li key={`${i.area}-${i.title}-${n}`}>
+            <Text size="sm" fw={600} component="span">{i.title}</Text>
+            {i.detail ? <Text size="sm" component="span"> {i.detail}</Text> : null}
+          </li>
+        ))}
+      </Stack>
+    </Alert>
+  );
+};
+
 const NO_EXPECTATION = 'No freshness expectation configured for this source. Set SIEM_SOURCE_EXPECTATIONS.';
-const NOT_MEASURABLE = 'Freshness cannot be evaluated for this source from the rollups.';
+const NOT_MEASURABLE = 'Freshness cannot be evaluated for this source.';
 
 /** null means freshness is not evaluated: that is UNMEASURED, never OK. The reason is said in one short line. */
 const SourceStatus = ({ stale, reason }: { stale: boolean | null | undefined; reason?: HealthSource['stale_reason'] }) =>
@@ -115,8 +138,8 @@ export const QueuesTable = ({ queues }: { queues: HealthQueue[] }) => {
   ], []);
   return (
     <Stack gap="xs">
-      {failing.map((q) => (
-        <Alert key={q.name} color="red" title="Messages are failing" role="alert">
+      {failing.map((q, i) => (
+        <Alert key={`${q.name}#${i}`} color="red" title="Messages are failing" role="alert">
           <Text size="sm">
             The failures queue <Text span ff="monospace">{q.name}</Text> holds {formatNumber(q.depth)} {q.depth === 1 ? 'message' : 'messages'}. These are events the pipeline
             could not process. They are not lost, but nothing will read them until an operator investigates.

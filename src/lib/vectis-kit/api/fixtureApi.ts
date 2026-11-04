@@ -50,6 +50,7 @@ export function createFixtureApi(delayMs = 120, options: FixtureOptions = {}): S
   const handlers: { [K in RouteName]: (input: CallInput<K>) => ApiMap[K][1] } = {
     catalog: () => fx('catalog.response'),
     overview: () => fx('overview.response'),
+    overviewEvents: () => fx('overview.events.response'),
     timeline: (i) => {
       const t = fx<C.TimelineResponse>('timeline.response');
       return { ...t, grain: i.body?.grain ?? t.grain };
@@ -129,6 +130,14 @@ export function createFixtureApi(delayMs = 120, options: FixtureOptions = {}): S
       if (!w) throw new ApiError(404, 'No explanation for this alert.', 'alertWhy');
       return cloneDeep(rebase(w as C.WhyResponse, delta));
     },
+    // The basic explanation is the full one without what needs the event tables: no evidence summary, no verdict.
+    alertWhyBasic: (i) => {
+      const id = i.params?.id as string;
+      const w = FIXTURES[`why.${id}`];
+      if (!w) throw new ApiError(404, 'No explanation for this alert.', 'alertWhyBasic');
+      const { evidence: _evidence, verdict: _verdict, ...rest } = cloneDeep(rebase(w as C.WhyResponse, delta));
+      return rest;
+    },
     alertPatch: (i) => {
       const g = alerts.groups.find((x) => x.group_id === i.params?.id);
       if (!g) throw new ApiError(404, 'Alert not found.', 'alertPatch');
@@ -172,6 +181,10 @@ export function createFixtureApi(delayMs = 120, options: FixtureOptions = {}): S
     },
     decision: (i) => ({ group_id: i.body!.group_id, disposition: i.body!.disposition, recorded_by: 'you', recorded_at: new Date().toISOString() }),
     graph: () => fx('graph.response'),
+    graphPaths: () => fx('graph.paths'),
+    graphCoverage: () => fx('graph.coverage'),
+    graphMatch: (i) => ({ matches: fx<C.GraphMatchResponse>('graph.match').matches.filter((m) => !i.body!.start || m.start === i.body!.start) }),
+    graphAsk: (i) => ({ ...fx<C.GraphAskResponse>('graph.ask'), path_id: i.body!.path_id, start_id: i.body!.start_id }),
     similar: () => fx('similar.response'),
     findSimilar: () => fx('find-similar.response'),
     entityProfile: (i) => ({ ...fx<C.EntityProfileResponse>('entity.profile'), type: i.body!.type, value: i.body!.value, key: `${i.body!.type}:${i.body!.value}` }),

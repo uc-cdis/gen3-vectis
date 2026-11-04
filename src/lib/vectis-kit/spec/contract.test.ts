@@ -6,11 +6,12 @@ import { FIXTURES } from '../api/fixtureApi';
 
 // fixture name (or prefix) -> contract model it must satisfy
 const MODEL: Array<[RegExp, string]> = [
-  [/^alerts\.response$/, 'AlertsResponse'], [/^overview\.response$/, 'OverviewResponse'],
+  [/^alerts\.response$/, 'AlertsResponse'], [/^overview\.response$/, 'OverviewResponse'], [/^overview\.events\.response$/, 'OverviewEventsResponse'],
   [/^timeline\.response$/, 'TimelineResponse'], [/^triage\.response$/, 'TriageResponse'],
   [/^cases\.list$/, 'CaseList'], [/^catalog\.response$/, 'CatalogResponse'], [/^rows\.response$/, 'RowsResponse'],
   [/^facets\.response$/, 'FacetsResponse'], [/^aggregate\.response$/, 'AggregateResponse'], [/^entity\.profile$/, 'EntityProfileResponse'],
-  [/^graph\.response$/, 'GraphTraverseResponse'], [/^similar\.response$/, 'SimilarResponse'],
+  [/^graph\.response$/, 'GraphTraverseResponse'], [/^graph\.paths$/, 'GraphPathsResponse'], [/^graph\.ask$/, 'GraphAskResponse'], [/^graph\.match$/, 'GraphMatchResponse'], [/^graph\.coverage$/, 'GraphCoverageResponse'],
+  [/^similar\.response$/, 'SimilarResponse'],
   [/^find-similar\.response$/, 'FindSimilarResponse'], [/^health\./, 'HealthResponse'],
   [/^quarantine\./, 'QuarantineResponse'], [/^indicators\.resolve$/, 'IndicatorResolveResponse'], [/^coverage\.response$/, 'CoverageResponse'],
   [/^views\.list$/, 'SavedViewList'], [/^hunts\.list$/, 'HuntList'], [/^ai\./, 'AiSummaryResponse'],

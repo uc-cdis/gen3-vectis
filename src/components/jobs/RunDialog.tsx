@@ -58,7 +58,7 @@ export function submitMessage(e: unknown): string {
 const ParamField = ({ p, value, error, onChange, onBlur }: { p: JobParam; value: string | boolean; error: string | null; onChange: (v: string | boolean) => void; onBlur: () => void }) => {
   const common = { label: p.label, description: p.description, required: p.required, error, onBlur, 'data-param': p.name } as const;
   if (p.type === 'boolean') return <Switch label={p.label} description={p.description} checked={value === true} onChange={(e) => onChange(e.currentTarget.checked)} />;
-  if (p.type === 'enum') return <Select {...common} data={p.values ?? []} value={typeof value === 'string' && value ? value : null} onChange={(v) => onChange(v ?? '')} allowDeselect={!p.required} />;
+  if (p.type === 'enum') return <Select {...common} comboboxProps={{ zIndex: 10000 }} data={p.values ?? []} value={typeof value === 'string' && value ? value : null} onChange={(v) => onChange(v ?? '')} allowDeselect={!p.required} />;
   if (p.type === 'secret') {
     return (
       <PasswordInput

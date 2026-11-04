@@ -1,7 +1,7 @@
 import React from 'react';
 import { Anchor, Badge, Group, List, SimpleGrid, Stack, Table, Text, Timeline } from '@mantine/core';
 import type {
-  EntityType, FeatureDiff, IndicatorMatch, SequenceStage, WhyBaseline, WhyEvidence, WhyGraph, WhyIndicator, WhyNovelty, WhyRule, WhySequence,
+  EntityType, FeatureDiff, IndicatorMatch, SequenceStage, WhyActor, WhyBaseline, WhyEvidence, WhyGraph, WhyIndicator, WhyNovelty, WhyRequest, WhyRule, WhySequence,
 } from '../spec';
 import { SEVERITY_COLOR, SEVERITY_LABEL } from '../spec';
 import { Unmeasured } from '@/lib/vectis-kit/ui/primitives';
@@ -92,8 +92,8 @@ export function SequenceSection({ s, ctx }: { s: WhySequence; ctx: SectionContex
       </Group>
       {stages.length === 0 ? <Text size="sm" c="dimmed">No stages were recorded.</Text> : (
         <Timeline active={stages.length} bulletSize={18} lineWidth={2} aria-label="Sequence timeline" component="ol">
-          {stages.map((st) => (
-            <Timeline.Item key={`${st.at}-${st.group_id ?? st.title}`} color={STAGE_COLOR[st.stage]} title={<><Badge size="xs" radius="sm" color={STAGE_COLOR[st.stage]} mr={6}>{STAGE_LABEL[st.stage]}</Badge>{st.title}</>}>
+          {stages.map((st, i) => (
+            <Timeline.Item key={`${st.at}-${st.group_id ?? st.title}#${i}`} color={STAGE_COLOR[st.stage]} title={<><Badge size="xs" radius="sm" color={STAGE_COLOR[st.stage]} mr={6}>{STAGE_LABEL[st.stage]}</Badge>{st.title}</>}>
               <Text size="xs" c="dimmed" component="time" dateTime={st.at} title={formatTime(st.at)}>{formatTime(st.at)} ({relativeTime(st.at)})</Text>
               <Group gap={8}>
                 {st.rule_id ? <Text size="xs" ff="monospace">{st.rule_id}</Text> : null}
@@ -113,8 +113,8 @@ const DiffTable = ({ rows }: { rows: FeatureDiff[] }) => (
   <Table withRowBorders fz="xs" aria-label="Differing features">
     <Table.Thead><Table.Tr><Table.Th>Feature</Table.Th><Table.Th>This alert</Table.Th><Table.Th>Nearest</Table.Th></Table.Tr></Table.Thead>
     <Table.Tbody>
-      {rows.map((r) => (
-        <Table.Tr key={r.feature}>
+      {rows.map((r, i) => (
+        <Table.Tr key={`${r.feature}#${i}`}>
           <Table.Td>{r.feature}</Table.Td>
           <Table.Td>{r.this ? <Text span ff="monospace" size="xs">{r.this}</Text> : <Text span size="xs" c="dimmed">not present</Text>}</Table.Td>
           <Table.Td>{r.nearest ? <Text span ff="monospace" size="xs">{r.nearest}</Text> : <Text span size="xs" c="dimmed">not present</Text>}</Table.Td>
@@ -171,7 +171,7 @@ function IndicatorCard({ m, ctx }: { m: IndicatorMatch; ctx: SectionContext }) {
           <Fact label="Confidence">{m.confidence == null ? NOT_RECORDED : <Text span size="sm">{`${m.confidence}/100`}</Text>}</Fact>
           <Fact label="Valid from">{m.valid_from ? dateOnly(m.valid_from) : NOT_RECORDED}</Fact>
           <Fact label="Valid until">{m.valid_until ? dateOnly(m.valid_until) : <Text span size="sm" c="dimmed">No end date recorded</Text>}</Fact>
-          {(m.indicator_types ?? []).length ? <Fact label="Indicator type">{(m.indicator_types ?? []).map((t) => <Badge key={t} mr={4} variant="light" color="gray" radius="sm">{t}</Badge>)}</Fact> : null}
+          {(m.indicator_types ?? []).length ? <Fact label="Indicator type">{(m.indicator_types ?? []).map((t, i) => <Badge key={`${t}#${i}`} mr={4} variant="light" color="gray" radius="sm">{t}</Badge>)}</Fact> : null}
           {m.description ? <Fact label="Feed note">{text(m.description)}</Fact> : null}
           {m.indicator_id ? <Fact label="Indicator id">{mono(m.indicator_id)}</Fact> : null}
         </Table.Tbody>
@@ -186,7 +186,7 @@ export function IndicatorSection({ s, ctx }: { s: WhyIndicator; ctx: SectionCont
   if (matches.length === 0) return <Text size="sm" c="dimmed">No indicators matched.</Text>;
   return (
     <Stack gap="md" aria-label="Matched indicators">
-      {matches.map((m) => <IndicatorCard key={`${m.indicator_id ?? ''}:${m.type}:${m.value}`} m={m} ctx={ctx} />)}
+      {matches.map((m, i) => <IndicatorCard key={`${m.indicator_id ?? ''}:${m.type}:${m.value}#${i}`} m={m} ctx={ctx} />)}
     </Stack>
   );
 }
@@ -205,8 +205,8 @@ function OriginTable({ origins }: { origins: NonNullable<WhyEvidence['origins']>
           <Table.Tr><Table.Th>Account</Table.Th><Table.Th>Environment</Table.Th><Table.Th>Feed</Table.Th><Table.Th>Host</Table.Th><Table.Th ta="right">Requests</Table.Th></Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {origins.map((o) => (
-            <Table.Tr key={`${o.account ?? ''}|${o.source ?? ''}|${o.environment ?? ''}|${o.host ?? ''}`}>
+          {origins.map((o, i) => (
+            <Table.Tr key={`${o.account ?? ''}|${o.source ?? ''}|${o.environment ?? ''}|${o.host ?? ''}#${i}`}>
               <Table.Td style={{ overflowWrap: 'anywhere' }}>{o.account ? accountText(o.account, names) : <Text span size="sm" c="dimmed" fs="italic">not recorded</Text>}</Table.Td>
               <Table.Td>{o.environment ?? '—'}</Table.Td>
               <Table.Td>{o.source ?? '—'}</Table.Td>
@@ -239,8 +239,8 @@ export function EvidenceSection({ e }: { e: WhyEvidence }) {
           {paths.length ? (
             <Table withRowBorders fz="sm" aria-label="Requested paths">
               <Table.Tbody>
-                {paths.map((p) => (
-                  <Table.Tr key={p.key}><Table.Td style={{ overflowWrap: 'anywhere' }}><Text span ff="monospace" size="sm">{p.key}</Text></Table.Td><Table.Td ta="right" w={60}>{formatNumber(p.count)}</Table.Td></Table.Tr>
+                {paths.map((p, i) => (
+                  <Table.Tr key={`${p.key}#${i}`}><Table.Td style={{ overflowWrap: 'anywhere' }}><Text span ff="monospace" size="sm">{p.key}</Text></Table.Td><Table.Td ta="right" w={60}>{formatNumber(p.count)}</Table.Td></Table.Tr>
                 ))}
               </Table.Tbody>
             </Table>
@@ -251,9 +251,9 @@ export function EvidenceSection({ e }: { e: WhyEvidence }) {
           {actions.length ? (
             <Table withRowBorders fz="sm" aria-label="Actions taken">
               <Table.Tbody>
-                {actions.map((a) => (
-                  <Table.Tr key={`${a.action}:${a.rule_id ?? ''}`}>
-                    <Table.Td><Badge variant="light" color={ACTION_COLOR[a.action] ?? 'gray'} radius="sm" size="sm">{a.action}</Badge></Table.Td>
+                {actions.map((a, i) => (
+                  <Table.Tr key={`${a.action}:${a.rule_id ?? ''}#${i}`}>
+                    <Table.Td><Badge variant="light" color={Object.hasOwn(ACTION_COLOR, a.action) ? ACTION_COLOR[a.action] : 'gray'} radius="sm" size="sm">{a.action}</Badge></Table.Td>
                     <Table.Td style={{ overflowWrap: 'anywhere' }}><Text span ff="monospace" size="sm">{a.rule_id ?? 'no rule recorded'}</Text></Table.Td>
                     <Table.Td ta="right" w={60}>{formatNumber(a.count)}</Table.Td>
                   </Table.Tr>
@@ -276,6 +276,76 @@ export function EvidenceSection({ e }: { e: WhyEvidence }) {
   );
 }
 
+/** Who sent the requests: the address, whose network it is on, how long we have known it, what it asked for, and what else fired on it. */
+export function ActorsSection({ actors, ctx }: { actors: readonly WhyActor[]; ctx: SectionContext }) {
+  return (
+    <Stack gap="md" data-testid="actors">
+      {actors.map((a, i) => (
+        <Stack key={`${a.ip}#${i}`} gap={4} data-testid="actor">
+          <Group gap="xs" wrap="wrap">
+            {ctx.renderEntity('ip', a.ip)}
+            {a.country ? <Badge variant="light" color="gray" radius="sm" size="sm">{a.country}</Badge> : null}
+            {a.network ? <Text size="sm" data-testid="actor-network">{a.network}</Text> : <Text size="xs" c="dimmed">network not recorded</Text>}
+          </Group>
+          <Text size="sm" data-testid="actor-activity">
+            {a.requests != null ? `${formatNumber(a.requests)} request${a.requests === 1 ? '' : 's'}` : 'Requests not counted'}
+            {a.endpoints != null ? ` to ${formatNumber(a.endpoints)} path${a.endpoints === 1 ? '' : 's'}` : ''}
+            {(a.statuses ?? []).length ? `; responses ${(a.statuses ?? []).map((b) => `${b.key}: ${formatNumber(b.count)}`).join(', ')}` : '; no response status recorded'}
+            {a.served_bytes ? `; ${formatBytes(a.served_bytes)} served` : ''}
+          </Text>
+          {a.user_agent ? <Text size="xs" c="dimmed" ff="monospace" style={{ overflowWrap: 'anywhere' }}>{a.user_agent}</Text> : null}
+          {a.first_seen && a.last_seen ? (
+            <Text size="sm" data-testid="actor-history">
+              In our logs {a.first_seen === a.last_seen ? `on ${a.first_seen}` : `${a.first_seen} to ${a.last_seen}`}
+              {a.events_total != null ? `: ${formatNumber(a.events_total)} events` : ''}
+              {a.targets != null ? ` to ${formatNumber(a.targets)} distinct targets` : ''}.
+            </Text>
+          ) : null}
+          {(a.related_alerts ?? []).length ? (
+            <div data-testid="actor-related">
+              <Text size="xs" c="dimmed" fw={600}>Other alerts on this address</Text>
+              <List size="sm" spacing={2} listStyleType="none" ml={0}>
+                {(a.related_alerts ?? []).map((r) => (
+                  <List.Item key={r.group_id}>
+                    <Group gap="xs" wrap="nowrap">
+                      <Badge variant="light" color={SEVERITY_COLOR[r.severity]} radius="sm" size="xs">{SEVERITY_LABEL[r.severity]}</Badge>
+                      {ctx.onOpenAlert ? <Anchor component="button" type="button" size="sm" ta="left" onClick={() => ctx.onOpenAlert?.(r.group_id)}>{r.title}</Anchor> : <Text span size="sm">{r.title}</Text>}
+                      <Text span size="xs" c="dimmed">{r.day}</Text>
+                    </Group>
+                  </List.Item>
+                ))}
+              </List>
+            </div>
+          ) : null}
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
+
+/** A sample of the requests, as data: every part was written by the sender. */
+export function RequestsSection({ requests }: { requests: readonly WhyRequest[] }) {
+  return (
+    <Stack gap={4} data-testid="requests">
+      <Text size="xs" c="dimmed">Written by the sender, shown as data. A blank status means the source records none (the WAF does not).</Text>
+      <Table withRowBorders fz="xs" aria-label="Sampled requests">
+        <Table.Thead><Table.Tr><Table.Th>Time</Table.Th><Table.Th>Request</Table.Th><Table.Th>Status</Table.Th><Table.Th ta="right">Bytes</Table.Th><Table.Th>Host</Table.Th></Table.Tr></Table.Thead>
+        <Table.Tbody>
+          {requests.map((r, i) => (
+            <Table.Tr key={`${r.t ?? ''}#${i}`}>
+              <Table.Td>{r.t ? formatTime(r.t) : '—'}</Table.Td>
+              <Table.Td style={{ overflowWrap: 'anywhere' }}><Text span ff="monospace" size="xs">{`${r.method ?? ''} ${r.path ?? ''}`.trim() || '—'}</Text>{r.user_agent ? <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>{r.user_agent}</Text> : null}</Table.Td>
+              <Table.Td>{r.status ?? '—'}</Table.Td>
+              <Table.Td ta="right">{r.bytes != null ? formatBytes(r.bytes) : '—'}</Table.Td>
+              <Table.Td style={{ overflowWrap: 'anywhere' }}><Text span ff="monospace" size="xs">{r.host ?? '—'}</Text></Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+    </Stack>
+  );
+}
+
 const TECHNIQUE_ID = /^T\d{4}(\.\d{3})?$/;
 
 export function GraphSection({ s }: { s: WhyGraph }) {
@@ -285,15 +355,15 @@ export function GraphSection({ s }: { s: WhyGraph }) {
     <Stack gap="xs">
       {techniques.length ? (
         <Group gap={6} role="group" aria-label="Techniques">
-          {techniques.map((t) => (TECHNIQUE_ID.test(t)
-            ? <Badge key={t} variant="light" radius="sm" component="a" href={`https://attack.mitre.org/techniques/${t.replace('.', '/')}/`} target="_blank" rel="noopener noreferrer" style={{ cursor: 'pointer' }}>{t}</Badge>
-            : <Badge key={t} variant="light" radius="sm">{t}</Badge>))}
+          {techniques.map((t, i) => (TECHNIQUE_ID.test(t)
+            ? <Badge key={`${t}#${i}`} variant="light" radius="sm" component="a" href={`https://attack.mitre.org/techniques/${t.replace('.', '/')}/`} target="_blank" rel="noopener noreferrer" style={{ cursor: 'pointer' }}>{t}</Badge>
+            : <Badge key={`${t}#${i}`} variant="light" radius="sm">{t}</Badge>))}
         </Group>
       ) : null}
       {!s.measured ? <NotMeasured what="The shared-neighbour analysis" /> : shared.length === 0 ? <Text size="sm" c="dimmed">Nothing is shared with other entities.</Text> : (
         <List spacing={4} size="sm" aria-label="Shared neighbours">
-          {shared.map((n) => (
-            <List.Item key={n.id}>
+          {shared.map((n, i) => (
+            <List.Item key={`${n.id}#${i}`}>
               <Text span ff="monospace" size="sm">{n.label}</Text> <Text span size="sm" c="dimmed">{n.relation}</Text> <Text span size="sm">({formatNumber(n.count)} shared)</Text>
             </List.Item>
           ))}

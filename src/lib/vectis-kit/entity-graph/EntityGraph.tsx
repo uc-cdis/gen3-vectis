@@ -42,7 +42,7 @@ interface ChartWithModel { getModel?: () => { getSeriesByIndex?: (i: number) => 
 
 /** Read the positions the force layout has settled on so a merged graph can start from them. */
 function readPositions(chart: unknown): Pos {
-  const out: Pos = {};
+  const out = Object.create(null) as Record<string, readonly [number, number]>; // keyed by node id (log text): no prototype
   try {
     const data = (chart as ChartWithModel | undefined)?.getModel?.()?.getSeriesByIndex?.(0)?.getData();
     if (!data) return out;

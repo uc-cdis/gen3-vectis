@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { getMockQuery } from '@/test/nextRouterMock';
 import { renderSecurity } from '@/components/security/testing/render';
 import { ApiError } from '@/lib/vectis-kit/api';
 import type { SiemApi } from '@/lib/vectis-kit/api/client';
@@ -162,7 +163,18 @@ describe('DataTab', () => {
     await userEvent.click(screen.getByRole('tab', { name: /Views/ }));
     await userEvent.click(await screen.findByRole('button', { name: /Blocked only/ }));
     await waitFor(() => expect(screen.getByTestId('filter-chip')).toHaveTextContent('WAF action is BLOCK'));
-    await waitFor(() => expect(seen.at(-1)?.body).toMatchObject({ index_name: 'http_activity', columns: ['src_ip', 'source', 'rule_action'] }));
+    await waitFor(() => expect(seen.at(-1)?.body).toMatchObject({ index_name: 'http_activity', columns: ['src_ip', 'source', 'rule_action', 'event_time'] })); // the time (and the id, where the index has one) ride along so a row can be opened in full
+  });
+
+  it('opened from the Views tab (?view=), applies that view once', async () => {
+    const view = {
+      id: 'v1', title: 'Blocked only', kind: 'data', scope: 'shared',
+      spec: { index_name: 'http_activity', window: { start: '2026-10-08T00:00:00Z', end: '2026-10-09T00:00:00Z' }, columns: ['src_ip', 'rule_action'], filters: [{ field: 'rule_action', op: 'eq', value: 'BLOCK' }] },
+    };
+    const api = wrap((name) => (name === 'views' ? Promise.resolve({ views: [view] }) : undefined));
+    renderSecurity(<DataTab />, { url: '/Security?tab=data&view=v1', api });
+    await waitFor(() => expect(screen.getByTestId('filter-chip')).toHaveTextContent('WAF action is BLOCK'));
+    expect(getMockQuery().view).toBeUndefined();
   });
 
   it('refuses to run a query with more than 20 filters and says why', async () => {
@@ -293,5 +305,157 @@ describe('DataTab', () => {
       expect(rail.style.position).not.toBe('sticky');
       expect(screen.getByTestId('data-layout').style.flexWrap).toBe('wrap');
     });
+  });
+});
+
+describe('DataTab: a link from an alert or Hunt', () => {
+  const FROM = '2026-10-09T10:00:00.000Z';
+  const TO = '2026-10-09T11:00:00.000Z';
+  const IN = { field: 'src_ip', op: 'in', value: ['192.0.2.10', '198.51.100.7'] };
+  const url = (extra: Record<string, string>) => `/Security?tab=data&${new URLSearchParams({ hunt_index: 'http_activity', hunt_from: FROM, hunt_to: TO, ...extra }).toString()}`;
+  type Seen = { body: { index_name: string; window: { start: string; end: string }; filters: unknown[] } };
+  const spy = () => {
+    const seen: Seen[] = [];
+    const api = wrap((name, input) => { if (name === 'rows') seen.push(input as never); return undefined; });
+    return { seen, api };
+  };
+
+  it('runs the linked index, window and filters, shows them as clearable badges, and lets each be cleared', async () => {
+    const { seen, api } = spy();
+    renderSecurity(<DataTab />, { url: url({ hunt_filters: JSON.stringify([IN]) }), api });
+    await waitFor(() => screen.getByTestId('grid-mock'));
+    expect(seen.at(-1)!.body).toMatchObject({ index_name: 'http_activity', window: { start: FROM, end: TO }, filters: [IN] });
+    expect(screen.getByTestId('link-filters')).toHaveTextContent('src_ip in 2 values');
+    expect(screen.getByTestId('link-range')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear the linked filters' }));
+    await waitFor(() => expect(seen.at(-1)!.body.filters).toEqual([]));
+    expect(screen.queryByTestId('link-filters')).toBeNull();
+    expect(seen.at(-1)!.body.window).toEqual({ start: FROM, end: TO });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear the time window and use the console range' }));
+    await waitFor(() => expect(seen.at(-1)!.body.window.start).not.toBe(FROM));
+    expect(screen.queryByTestId('link-range')).toBeNull();
+  });
+
+  it('keeps the linked filters when the analyst adds one in the rail, and sends both', async () => {
+    const { seen, api } = spy();
+    renderSecurity(<DataTab />, { url: url({ hunt_filters: JSON.stringify([IN]) }), api });
+    await waitFor(() => screen.getByTestId('grid-mock'));
+    await userEvent.click(screen.getByRole('checkbox', { name: /^BLOCK/ }));
+    await waitFor(() => expect(seen.at(-1)!.body.filters).toEqual([IN, { field: 'rule_action', op: 'eq', value: 'BLOCK' }]));
+  });
+
+  it.each([
+    ['a malformed filter', JSON.stringify([{ field: 'src_ip', op: 'regex', value: '.*' }])],
+    ['a column the index does not have', JSON.stringify([{ field: 'no_such_column', op: 'eq', value: 'x' }])],
+    ['filters that are not JSON', '{not json'],
+    ['a filter that carries a control character', JSON.stringify([{ field: 'path', op: 'eq', value: 'a\u0000b' }])],
+    ['a filter that carries a hidden bidi character', JSON.stringify([{ field: 'path', op: 'contains', value: 'a\u202Eb' }])],
+  ])('never runs %s', async (_name, raw) => {
+    const { seen, api } = spy();
+    renderSecurity(<DataTab />, { url: url({ hunt_filters: raw }), api });
+    await waitFor(() => screen.getByTestId('grid-mock'));
+    expect(seen.at(-1)!.body.filters).toEqual([]);
+    expect(screen.queryByTestId('link-filters')).toBeNull();
+  });
+
+  it('ignores an unreadable window and an unknown index, using the console range', async () => {
+    const { seen, api } = spy();
+    renderSecurity(<DataTab />, { url: `/Security?tab=data&hunt_index=no_such_index&hunt_from=x&hunt_to=y&hunt_filters=${encodeURIComponent(JSON.stringify([IN]))}`, api });
+    await waitFor(() => screen.getByTestId('grid-mock'));
+    expect(seen.at(-1)!.body.window.start).not.toBe(FROM);
+    expect(seen.at(-1)!.body.filters).toEqual([]);
+    expect(screen.queryByTestId('link-applied')).toBeNull();
+  });
+
+  it('changing the index drops the linked window and filters, which belong to the old index', async () => {
+    const { seen, api } = spy();
+    renderSecurity(<DataTab />, { url: url({ hunt_filters: JSON.stringify([IN]) }), api });
+    await waitFor(() => screen.getByTestId('grid-mock'));
+    await userEvent.click(screen.getAllByLabelText('Index').find((e) => e.tagName === 'INPUT')!);
+    const other = (await screen.findAllByRole('option', { hidden: true })).find((o) => !/HTTP activity/.test(o.textContent ?? ''))!;
+    await userEvent.click(other);
+    await waitFor(() => expect(screen.queryByTestId('link-applied')).toBeNull());
+    expect(seen.at(-1)!.body.filters).toEqual([]);
+  });
+});
+
+// ---- the analyst's view survives a refresh, and a link can name any index
+
+describe('DataTab: working state in the URL', () => {
+  const NEW_INDEXES = [
+    ['audit_event', 'Audit events (cloud API calls)'],
+    ['authentication', 'Sign-ins, sessions and role assumption'],
+  ] as const;
+  const seen: { name: string; body?: Record<string, unknown> }[] = [];
+  const apiWithIndexes = (): SiemApi => {
+    const base = createFixtureApi(0);
+    return {
+      mode: 'fixtures',
+      call: ((name: string, input: { body?: Record<string, unknown> }) => {
+        seen.push({ name, body: input?.body });
+        if (name === 'catalog') {
+          return (base.call('catalog', input as never) as unknown as Promise<{ indexes: Record<string, unknown>[] }>).then((c) => {
+            const api = c.indexes.find((i) => i.index_name === 'api_activity') as Record<string, unknown>;
+            return { ...c, indexes: [...c.indexes, ...NEW_INDEXES.map(([index_name, label]) => ({ ...api, index_name, label }))] };
+          });
+        }
+        return (base.call as (n: string, i: unknown) => unknown)(name, input);
+      }) as SiemApi['call'],
+    };
+  };
+  const lastRows = () => [...seen].reverse().find((c) => c.name === 'rows')?.body as Record<string, unknown> | undefined;
+  const SRC = [{ field: 'src_ip', op: 'eq', value: '198.51.100.7' }];
+
+  it('opens any index a link names, not only the Hunt ones (an Overview tile for audit events)', async () => {
+    seen.length = 0;
+    renderSecurity(<DataTab />, { url: '/Security?tab=data&hunt_index=audit_event', api: apiWithIndexes() });
+    await waitFor(() => expect(lastRows()).toMatchObject({ index_name: 'audit_event' }));
+    expect(screen.getAllByLabelText('Index').some((e) => (e as HTMLInputElement).value === 'Audit events (cloud API calls)')).toBe(true);
+  });
+
+  it('writes the chosen index, columns, filters and sort into the URL as the analyst works', async () => {
+    seen.length = 0;
+    renderSecurity(<DataTab />, { url: '/Security?tab=data', api: apiWithIndexes() });
+    await waitFor(() => expect(screen.getByTestId('grid-mock')).toBeInTheDocument());
+    await userEvent.click(screen.getAllByLabelText('Index').find((e) => e.tagName === 'INPUT')!);
+    const signIns = (await screen.findAllByRole('option', { hidden: true })).find((o) => o.textContent === 'Sign-ins, sessions and role assumption')!;
+    await userEvent.click(signIns);
+    await waitFor(() => expect(getMockQuery().d_index).toBe('authentication'));
+    expect(getMockQuery().tab).toBe('data');
+  });
+
+  it('comes back to the same table after a refresh: index, columns, filters and sort', async () => {
+    seen.length = 0;
+    const url = `/Security?tab=data&d_index=authentication&d_cols=event_time,src_ip&d_sort=event_time:asc&d_filters=${encodeURIComponent(JSON.stringify(SRC))}`;
+    renderSecurity(<DataTab />, { url, api: apiWithIndexes() });
+    await waitFor(() => expect(lastRows()).toMatchObject({ index_name: 'authentication', sort: { field: 'event_time', dir: 'asc' }, filters: SRC }));
+    expect(lastRows()?.columns).toEqual(expect.arrayContaining(['event_time', 'src_ip']));
+    expect(getMockQuery().d_index).toBe('authentication');
+  });
+
+  it('a link from an alert, Hunt or a tile wins over what was remembered', async () => {
+    seen.length = 0;
+    renderSecurity(<DataTab />, { url: '/Security?tab=data&hunt_index=http_activity&d_index=authentication', api: apiWithIndexes() });
+    await waitFor(() => expect(lastRows()).toMatchObject({ index_name: 'http_activity' }));
+  });
+
+  it('ignores remembered parts it cannot use, never half applying them', async () => {
+    seen.length = 0;
+    const bad = `/Security?tab=data&d_index=no_such_index&d_cols=drop%20table&d_sort=event_time:sideways&d_filters=%7Bnot-json`;
+    renderSecurity(<DataTab />, { url: bad, api: apiWithIndexes() });
+    await waitFor(() => expect(lastRows()).toMatchObject({ index_name: 'http_activity' }));
+    expect(lastRows()?.filters).toEqual([]);
+    expect(lastRows()?.sort).toBeUndefined();
+  });
+
+  it('drops a remembered filter or column the index does not have', async () => {
+    seen.length = 0;
+    const url = `/Security?tab=data&d_index=authentication&d_cols=event_time,not_a_column&d_filters=${encodeURIComponent(JSON.stringify([{ field: 'not_a_column', op: 'eq', value: 'x' }]))}`;
+    renderSecurity(<DataTab />, { url, api: apiWithIndexes() });
+    await waitFor(() => expect(lastRows()).toMatchObject({ index_name: 'authentication' }));
+    expect(lastRows()?.columns).not.toContain('not_a_column');
+    expect(lastRows()?.filters).toEqual([]);
   });
 });

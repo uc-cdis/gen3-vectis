@@ -402,7 +402,7 @@ describe('untrusted responses', () => {
     answer({ dagRunDetails: { name: 'fanout', dagRunId: 'r1', status: 99, statusLabel: 'x‮y', labels: ownLabels(), startedAt: 'yesterday', finishedAt: '', nodes: [{ step: { name: 'a' }, status: 'ok' }] } });
     const r = await runner().get('fanout.r1', alice, { detail: 'summary' });
     expect(r.state).toBe('unknown');
-    expect(r.backend_state).toBe('xy');
+    expect(r.backend_state).toBe('x<U+202E>y');
     expect(r.started_at).toBeNull(); expect(r.ended_at).toBeNull();
     expect(r.steps[0]).toMatchObject({ state: 'unknown', exit_code: null, started_at: null });
   });

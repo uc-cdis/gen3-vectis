@@ -13,6 +13,7 @@ interface RouteDef {
 export const ROUTES = {
   catalog: { method: 'GET', path: 'catalog' },
   overview: { method: 'POST', path: 'overview' },
+  overviewEvents: { method: 'POST', path: 'overview/events' },
   timeline: { method: 'POST', path: 'timeline' },
   rows: { method: 'POST', path: 'rows' },
   facets: { method: 'POST', path: 'facets' },
@@ -20,6 +21,7 @@ export const ROUTES = {
   alerts: { method: 'POST', path: 'alerts' },
   alertGet: { method: 'GET', path: 'alerts/:id' },
   alertWhy: { method: 'GET', path: 'alerts/:id/why' },
+  alertWhyBasic: { method: 'GET', path: 'alerts/:id/why/basic' },
   alertPatch: { method: 'PATCH', path: 'alerts/:id' },
   alertBulk: { method: 'POST', path: 'alerts/bulk' },
   alertAiSummary: { method: 'GET', path: 'alerts/:id/ai-summary' },
@@ -30,6 +32,10 @@ export const ROUTES = {
   casePatch: { method: 'PATCH', path: 'cases/:id' },
   decision: { method: 'POST', path: 'decisions' },
   graph: { method: 'POST', path: 'graph/traverse' },
+  graphPaths: { method: 'GET', path: 'graph/paths' },
+  graphCoverage: { method: 'GET', path: 'graph/coverage' },
+  graphMatch: { method: 'POST', path: 'graph/match' },
+  graphAsk: { method: 'POST', path: 'graph/ask' },
   similar: { method: 'POST', path: 'similar' },
   findSimilar: { method: 'POST', path: 'find-similar' },
   entityProfile: { method: 'POST', path: 'entity/profile' },
@@ -53,6 +59,7 @@ type NoBody = undefined;
 export interface ApiMap {
   catalog: [NoBody, C.CatalogResponse];
   overview: [C.OverviewRequest, C.OverviewResponse];
+  overviewEvents: [C.OverviewRequest, C.OverviewEventsResponse];
   timeline: [C.TimelineRequest, C.TimelineResponse];
   rows: [C.RowsRequest, C.RowsResponse];
   facets: [C.FacetsRequest, C.FacetsResponse];
@@ -60,6 +67,7 @@ export interface ApiMap {
   alerts: [C.AlertsRequest, C.AlertsResponse];
   alertGet: [NoBody, C.AlertGroup];
   alertWhy: [NoBody, C.WhyResponse];
+  alertWhyBasic: [NoBody, C.WhyResponse];
   alertPatch: [C.AlertPatch, C.AlertGroup];
   alertBulk: [C.AlertBulkRequest, C.AlertBulkResponse];
   alertAiSummary: [NoBody, C.AiSummaryResponse];
@@ -70,6 +78,10 @@ export interface ApiMap {
   casePatch: [C.CasePatch, C.CaseRecord];
   decision: [C.DecisionRequest, C.DecisionResponse];
   graph: [C.GraphTraverseRequest, C.GraphTraverseResponse];
+  graphPaths: [NoBody, C.GraphPathsResponse];
+  graphCoverage: [NoBody, C.GraphCoverageResponse];
+  graphMatch: [C.GraphMatchRequest, C.GraphMatchResponse];
+  graphAsk: [C.GraphAskRequest, C.GraphAskResponse];
   similar: [C.SimilarRequest, C.SimilarResponse];
   findSimilar: [C.FindSimilarRequest, C.FindSimilarResponse];
   entityProfile: [C.EntityProfileRequest, C.EntityProfileResponse];

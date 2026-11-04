@@ -2,9 +2,9 @@
  * Pure model for the Hunt tab: the analyst's current view of the data, how it maps to and from a QuerySpec,
  * how it is carried in the URL, and the contract limits every user-typed value is checked against.
  */
-import type { CatalogResponse, FilterClause, IndexCatalog, IndexName, QuerySpec, SortSpec, TimeWindow } from '@/lib/vectis-kit/spec';
+import type { CatalogResponse, FilterClause, HuntQuery, IndexCatalog, IndexName, QuerySpec, SortSpec, TimeWindow } from '@/lib/vectis-kit/spec';
 import type { Grain, TimeRange } from '@/lib/vectis-kit/timeseries/rollupOption';
-import { hasControlChars } from '@/lib/safe-text';
+import { hasControlChars, hasParserUnsafeChars, safeText } from '@/lib/safe-text';
 
 const HUNT_INDEXES: readonly IndexName[] = ['http_activity', 'api_activity', 'network_activity', 'all_events'];
 
@@ -16,6 +16,9 @@ export const MAX_GROUP_BY = 3;
 export const MAX_ROWS = 100;
 const MAX_COLUMNS = 60;
 const MAX_FILTERS = 20;
+const MAX_IN_VALUES = 100;
+const MAX_FILTER_TEXT = 512;
+const MAX_FILTERS_PARAM_CHARS = 32_768;
 const MAX_WINDOW_MS = 92 * 86_400_000;
 
 // Same grammar as the backend (contract.py). JS `$` without the `m` flag matches only at the very end, so a
@@ -64,11 +67,47 @@ export function parseRange(from: unknown, to: unknown): TimeRange | null {
 
 // ------------------------------------------------------------------ URL (deep link)
 
-const LINK_KEYS = { index: 'hunt_index', from: 'hunt_from', to: 'hunt_to', grain: 'hunt_grain' } as const;
+const LINK_KEYS = { index: 'hunt_index', from: 'hunt_from', to: 'hunt_to', grain: 'hunt_grain', filters: 'hunt_filters' } as const;
 type Query = Record<string, string | string[] | undefined>;
 const first = (v: string | string[] | undefined): string | undefined => (Array.isArray(v) ? v[0] : v);
 
-interface DeepLink { index: IndexName | null; grain: Grain | null; range: TimeRange | null }
+const FILTER_OPS: readonly string[] = ['eq', 'neq', 'in', 'gte', 'lte', 'contains'];
+const isScalar = (v: unknown): v is string | number | boolean => typeof v === 'string' || typeof v === 'boolean' || (typeof v === 'number' && Number.isFinite(v));
+const isFilterText = (v: unknown): boolean => typeof v !== 'string' || (v.length <= MAX_FILTER_TEXT && !hasParserUnsafeChars(v));
+
+function isFilterClause(c: unknown): c is FilterClause {
+  if (typeof c !== 'object' || c === null || Array.isArray(c)) return false;
+  const { field, op, value, ...extra } = c as Record<string, unknown>;
+  if (Object.keys(extra).length > 0 || typeof field !== 'string' || !COLUMN_NAME.test(field)) return false;
+  if (typeof op !== 'string' || !FILTER_OPS.includes(op)) return false;
+  if (op === 'in') {
+    return Array.isArray(value) && value.length > 0 && value.length <= MAX_IN_VALUES && value.every((v) => typeof v !== 'boolean' && isScalar(v) && isFilterText(v));
+  }
+  return isScalar(value) && isFilterText(value);
+}
+
+/** The filters if every clause is well formed, else null. One bad clause drops the set: a quietly widened query would mislead. */
+export function parseFilters(raw: unknown): FilterClause[] | null {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_FILTERS) return null;
+  return raw.every(isFilterClause) ? (raw as FilterClause[]).map((c) => ({ field: c.field, op: c.op, value: c.value })) : null;
+}
+
+function readFilters(raw: string | undefined): FilterClause[] {
+  if (!raw || raw.length > MAX_FILTERS_PARAM_CHARS) return [];
+  try { return parseFilters(JSON.parse(raw)) ?? []; } catch { return []; }
+}
+
+/** Filters that name a column the index does not have cannot be run; the whole set is then ignored, never partly applied. */
+export const filtersForIndex = (filters: readonly FilterClause[], index: { columns: readonly { name: string }[] }): FilterClause[] =>
+  (filters.every((f) => index.columns.some((c) => c.name === f.field)) ? [...filters] : []);
+
+/** The index a link names, for a page that can open any index (the Data tab). Hunt reads `readDeepLink`, which keeps to the indexes it can run. */
+export function readLinkIndex(q: Query): IndexName | null {
+  const v = first(q[LINK_KEYS.index]);
+  return typeof v === 'string' && COLUMN_NAME.test(v) ? v : null;
+}
+
+export interface DeepLink { index: IndexName | null; grain: Grain | null; range: TimeRange | null; filters: FilterClause[] }
 export function readDeepLink(q: Query): DeepLink {
   const index = first(q[LINK_KEYS.index]);
   const grain = first(q[LINK_KEYS.grain]);
@@ -76,18 +115,35 @@ export function readDeepLink(q: Query): DeepLink {
     index: isHuntIndex(index) ? index : null,
     grain: isGrain(grain) ? grain : null,
     range: parseRange(first(q[LINK_KEYS.from]), first(q[LINK_KEYS.to])),
+    filters: readFilters(first(q[LINK_KEYS.filters])),
   };
 }
 /** Returns a new query with the given link fields replaced; `null` removes a field. Other query keys are kept. */
-export function writeDeepLink(q: Query, patch: { index?: IndexName | null; grain?: Grain | null; range?: TimeRange | null }): Record<string, string> {
+export function writeDeepLink(q: Query, patch: { index?: IndexName | null; grain?: Grain | null; range?: TimeRange | null; filters?: readonly FilterClause[] | null }): Record<string, string> {
   const next: Record<string, string> = {};
   for (const [k, v] of Object.entries(q)) { const s = first(v); if (s !== undefined && s !== '') next[k] = s; }
   const set = (key: string, value: string | null | undefined) => { if (value === null) delete next[key]; else if (value !== undefined) next[key] = value; };
   set(LINK_KEYS.index, patch.index);
   set(LINK_KEYS.grain, patch.grain);
   if (patch.range !== undefined) { set(LINK_KEYS.from, patch.range?.start ?? null); set(LINK_KEYS.to, patch.range?.end ?? null); }
+  if (patch.filters !== undefined) set(LINK_KEYS.filters, patch.filters && patch.filters.length > 0 ? JSON.stringify(patch.filters) : null);
   return next;
 }
+
+/** The Hunt link for an alert's stored query, or null when any part of it is not one the Hunt page can run. */
+export function huntLinkFor(hunt: HuntQuery): Record<string, string> | null {
+  const range = parseRange(hunt.window.start, hunt.window.end);
+  const filters = parseFilters(hunt.filters);
+  if (!isHuntIndex(hunt.index_name) || !range || !filters) return null;
+  return writeDeepLink({}, { index: hunt.index_name, range, filters });
+}
+
+/** The link that opens the Data tab (or Hunt) on a query; null parts are left out. */
+export const linkForQuery = (q: { index: IndexName; range: TimeRange | null; filters: readonly FilterClause[] }): Record<string, string> =>
+  writeDeepLink({}, { index: q.index, range: q.range, filters: q.filters });
+
+/** One line saying what a filter does, for display. */
+export const describeFilter = (f: FilterClause): string => `${f.field} ${f.op} ${Array.isArray(f.value) ? `${f.value.length} values` : safeText(f.value, 60)}`;
 
 // ------------------------------------------------------------------ catalog helpers
 

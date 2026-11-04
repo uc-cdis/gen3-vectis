@@ -153,7 +153,7 @@
     },
     "AiSummaryResponse": {
       "additionalProperties": false,
-      "description": "The AI analyst slot. The producer is behind the AI gateway and arrives later; the UI renders every state.",
+      "description": "The AI analyst slot; the UI renders every state.",
       "properties": {
         "detail": {
           "anyOf": [
@@ -562,6 +562,14 @@
           ],
           "default": null
         },
+        "src_ips": {
+          "items": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "type": "array"
+        },
         "status": {
           "default": "new",
           "enum": [
@@ -616,29 +624,29 @@
             "maxLength": 300,
             "type": "string"
           },
-          "maxItems": 10,
+          "maxItems": 16,
           "type": "array"
         }
       },
       "required": [
-        "allowed_count",
-        "blocked_count",
-        "control_worked",
-        "detector_tier",
-        "distinct_accounts",
-        "distinct_countries",
-        "distinct_src_ips",
-        "first_seen",
-        "group_date",
         "group_id",
-        "last_seen",
-        "occurrence_count",
+        "signature_id",
+        "group_date",
+        "tenant_id",
+        "detector_tier",
+        "title",
         "severity",
         "severity_score",
-        "signature_id",
-        "tenant_id",
+        "occurrence_count",
+        "first_seen",
+        "last_seen",
+        "distinct_src_ips",
+        "distinct_accounts",
+        "distinct_countries",
         "tenants_affected",
-        "title"
+        "allowed_count",
+        "blocked_count",
+        "control_worked"
       ],
       "title": "AlertGroup",
       "type": "object"
@@ -2196,6 +2204,386 @@
       "title": "GeoInfo",
       "type": "object"
     },
+    "GraphAskEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "dst_id": {
+          "maxLength": 256,
+          "pattern": "^[^\\x00-\\x20\\x7f]{1,256}$",
+          "type": "string"
+        },
+        "src_id": {
+          "maxLength": 256,
+          "pattern": "^[^\\x00-\\x20\\x7f]{1,256}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "src_id",
+        "dst_id",
+        "count"
+      ],
+      "title": "GraphAskEdge",
+      "type": "object"
+    },
+    "GraphAskEvents": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "description": "The column that holds the walked entity",
+          "maxLength": 64,
+          "type": "string"
+        },
+        "index_name": {
+          "description": "The events index to read",
+          "maxLength": 64,
+          "type": "string"
+        },
+        "values": {
+          "description": "The entities' identities to match",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "type": "array"
+        }
+      },
+      "required": [
+        "index_name",
+        "field",
+        "values"
+      ],
+      "title": "GraphAskEvents",
+      "type": "object"
+    },
+    "GraphAskNode": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "description": "Events behind the edges that reach it, summed over the window",
+          "type": "integer"
+        },
+        "id": {
+          "maxLength": 256,
+          "pattern": "^[^\\x00-\\x20\\x7f]{1,256}$",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reach": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How many entities reach this one by the step's relation (rarest order)"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "count"
+      ],
+      "title": "GraphAskNode",
+      "type": "object"
+    },
+    "GraphAskRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "order": {
+          "default": "strongest",
+          "description": "strongest: the entities with the most events; rarest: the ones the fewest others reach (a hunt)",
+          "enum": [
+            "strongest",
+            "rarest"
+          ],
+          "type": "string"
+        },
+        "path_id": {
+          "pattern": "^[A-Za-z0-9._-]{1,32}$",
+          "type": "string"
+        },
+        "per_step": {
+          "default": 100,
+          "maximum": 500,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "start_id": {
+          "maxLength": 256,
+          "pattern": "^[^\\x00-\\x20\\x7f]{1,256}$",
+          "type": "string"
+        },
+        "window": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Edges considered; the server default (7 days) applies when omitted"
+        }
+      },
+      "required": [
+        "path_id",
+        "start_id"
+      ],
+      "title": "GraphAskRequest",
+      "type": "object"
+    },
+    "GraphAskResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "continues_in_events": {
+          "description": "The question goes on in the event store: open the events of the last entities in Hunt",
+          "type": "boolean"
+        },
+        "path_id": {
+          "type": "string"
+        },
+        "start_id": {
+          "maxLength": 256,
+          "pattern": "^[^\\x00-\\x20\\x7f]{1,256}$",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/GraphAskStep"
+          },
+          "type": "array"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path_id",
+        "title",
+        "start_id",
+        "steps",
+        "continues_in_events"
+      ],
+      "title": "GraphAskResponse",
+      "type": "object"
+    },
+    "GraphAskStep": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {
+          "description": "The edges, as stored, that join the previous step's entities to these",
+          "items": {
+            "$ref": "#/$defs/GraphAskEdge"
+          },
+          "type": "array"
+        },
+        "events": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GraphAskEvents"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Set on a step that lives in the event store: the events to read next"
+        },
+        "from_label": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "index": {
+          "type": "integer"
+        },
+        "reached": {
+          "items": {
+            "$ref": "#/$defs/GraphAskNode"
+          },
+          "type": "array"
+        },
+        "relation": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "to_label": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "total": {
+          "description": "Entities reached before the per-step cap",
+          "type": "integer"
+        },
+        "truncated": {
+          "description": "True when edges or entities were left out, by the per-entity or the per-step cap",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "index",
+        "relation",
+        "from_label",
+        "to_label",
+        "reached",
+        "edges",
+        "total",
+        "truncated"
+      ],
+      "title": "GraphAskStep",
+      "type": "object"
+    },
+    "GraphCoveragePath": {
+      "additionalProperties": false,
+      "properties": {
+        "ends_in_events": {
+          "description": "The question goes on in the event store after its graph steps",
+          "type": "boolean"
+        },
+        "first_missing": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Index of the first step with no edges"
+        },
+        "id": {
+          "maxLength": 32,
+          "type": "string"
+        },
+        "scenario": {
+          "maxLength": 8,
+          "type": "string"
+        },
+        "start": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "state": {
+          "description": "answerable: every graph step has edges; missing: a step has none; events: starts in the events",
+          "enum": [
+            "answerable",
+            "missing",
+            "events"
+          ],
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/GraphCoverageStep"
+          },
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 256,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "scenario",
+        "title",
+        "start",
+        "state",
+        "ends_in_events",
+        "steps"
+      ],
+      "title": "GraphCoveragePath",
+      "type": "object"
+    },
+    "GraphCoverageResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "answerable": {
+          "type": "integer"
+        },
+        "days": {
+          "type": "integer"
+        },
+        "events": {
+          "type": "integer"
+        },
+        "missing": {
+          "type": "integer"
+        },
+        "paths": {
+          "items": {
+            "$ref": "#/$defs/GraphCoveragePath"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "days",
+        "answerable",
+        "missing",
+        "events",
+        "paths"
+      ],
+      "title": "GraphCoverageResponse",
+      "type": "object"
+    },
+    "GraphCoverageStep": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Edges of this relation in the window; none for a step in the event store"
+        },
+        "layer": {
+          "enum": [
+            "graph",
+            "events"
+          ],
+          "type": "string"
+        },
+        "relation": {
+          "maxLength": 64,
+          "type": "string"
+        }
+      },
+      "required": [
+        "relation",
+        "layer"
+      ],
+      "title": "GraphCoverageStep",
+      "type": "object"
+    },
     "GraphEdge": {
       "additionalProperties": false,
       "properties": {
@@ -2222,6 +2610,52 @@
       "title": "GraphEdge",
       "type": "object"
     },
+    "GraphMatchRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Only questions starting from this kind of entity"
+        },
+        "text": {
+          "description": "A question in the analyst's own words",
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "GraphMatchRequest",
+      "type": "object"
+    },
+    "GraphMatchResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "matches": {
+          "description": "Best match first; empty when no question shares a word",
+          "items": {
+            "$ref": "#/$defs/GraphPathInfo"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "matches"
+      ],
+      "title": "GraphMatchResponse",
+      "type": "object"
+    },
     "GraphNode": {
       "additionalProperties": false,
       "properties": {
@@ -2244,6 +2678,61 @@
         "label"
       ],
       "title": "GraphNode",
+      "type": "object"
+    },
+    "GraphPathInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 32,
+          "type": "string"
+        },
+        "in_graph": {
+          "description": "False when the first step lives in the event store: ask cannot walk it",
+          "type": "boolean"
+        },
+        "scenario": {
+          "maxLength": 8,
+          "type": "string"
+        },
+        "start": {
+          "description": "The kind of entity the question starts from",
+          "maxLength": 64,
+          "type": "string"
+        },
+        "steps": {
+          "type": "integer"
+        },
+        "title": {
+          "maxLength": 256,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "scenario",
+        "title",
+        "start",
+        "steps",
+        "in_graph"
+      ],
+      "title": "GraphPathInfo",
+      "type": "object"
+    },
+    "GraphPathsResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "paths": {
+          "items": {
+            "$ref": "#/$defs/GraphPathInfo"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "paths"
+      ],
+      "title": "GraphPathsResponse",
       "type": "object"
     },
     "GraphTraverseRequest": {
@@ -2311,6 +2800,44 @@
         "truncated"
       ],
       "title": "GraphTraverseResponse",
+      "type": "object"
+    },
+    "HealthAttention": {
+      "additionalProperties": false,
+      "description": "One thing that needs a person, worked out from the rest of the response.",
+      "properties": {
+        "area": {
+          "enum": [
+            "source",
+            "queue",
+            "alarm",
+            "quarantine"
+          ],
+          "type": "string"
+        },
+        "detail": {
+          "default": "",
+          "maxLength": 400,
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "warning",
+            "critical"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "type": "string"
+        }
+      },
+      "required": [
+        "severity",
+        "area",
+        "title"
+      ],
+      "title": "HealthAttention",
       "type": "object"
     },
     "HealthQueue": {
@@ -2391,6 +2918,13 @@
         "as_of": {
           "format": "date-time",
           "type": "string"
+        },
+        "attention": {
+          "items": {
+            "$ref": "#/$defs/HealthAttention"
+          },
+          "maxItems": 50,
+          "type": "array"
         },
         "notes": {
           "items": {
@@ -2718,6 +3252,35 @@
       "title": "HuntPatch",
       "type": "object"
     },
+    "HuntQuery": {
+      "additionalProperties": false,
+      "description": "The query that lists an alert's events in Hunt; every field is checked as untrusted stored data.",
+      "properties": {
+        "filters": {
+          "items": {
+            "$ref": "#/$defs/FilterClause"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "type": "array"
+        },
+        "index_name": {
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "type": "string"
+        },
+        "window": {
+          "$ref": "#/$defs/TimeWindow"
+        }
+      },
+      "required": [
+        "index_name",
+        "window",
+        "filters"
+      ],
+      "title": "HuntQuery",
+      "type": "object"
+    },
     "IndexCatalog": {
       "additionalProperties": false,
       "properties": {
@@ -2765,7 +3328,7 @@
     },
     "IndicatorMatch": {
       "additionalProperties": false,
-      "description": "An intel indicator that matched. ``value`` is the matched IP, domain, URL, hash or address read from the indicator's\npattern; every other field is None when the intel node does not record it (never inferred).",
+      "description": "An intel indicator that matched; ``value`` is read from the indicator's pattern.\n\nEvery other field is None when the intel node does not record it (never inferred).",
       "properties": {
         "confidence": {
           "anyOf": [
@@ -3008,7 +3571,7 @@
     },
     "OriginBucket": {
       "additionalProperties": false,
-      "description": "One place a sampled request came from: the account (or source system), the feed that logged it, the deployment label\nand the host it was addressed to. ``None`` means the record did not say.",
+      "description": "One place a sampled request came from: account (or source system), logging feed, deployment label and host.\n\n``None`` means the record did not say.",
       "properties": {
         "account": {
           "anyOf": [
@@ -3069,6 +3632,59 @@
       "title": "OriginBucket",
       "type": "object"
     },
+    "OverviewEventsResponse": {
+      "additionalProperties": false,
+      "description": "The part of the overview that scans every event index: the total and the two top lists over all of them.",
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "events": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Events in the window across every event index"
+        },
+        "notes": {
+          "description": "How the numbers were computed",
+          "items": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "topEventSources": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "topSourceIps": {
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 50,
+          "type": "array"
+        }
+      },
+      "required": [
+        "topSourceIps",
+        "topEventSources",
+        "as_of"
+      ],
+      "title": "OverviewEventsResponse",
+      "type": "object"
+    },
     "OverviewRequest": {
       "additionalProperties": false,
       "properties": {
@@ -3078,6 +3694,11 @@
           },
           "maxItems": 20,
           "type": "array"
+        },
+        "include_events": {
+          "default": true,
+          "description": "False leaves the all-events total and its two top lists out (events is None, the lists are empty): they are the slow part, read them with POST /siem/overview/events",
+          "type": "boolean"
         },
         "top_n": {
           "default": 10,
@@ -3262,7 +3883,7 @@
     },
     "QuarantineGroup": {
       "additionalProperties": false,
-      "description": "Records that share a reason. Counts cover the records read, so they are a lower bound when the response is truncated.",
+      "description": "Records that share a reason; counts cover the records read, a lower bound when truncated.",
       "properties": {
         "count": {
           "minimum": 1,
@@ -3477,7 +4098,7 @@
     },
     "QuerySpec": {
       "additionalProperties": false,
-      "description": "One view of the data. It renders as Python, curl, GraphQL, a DRS manifest or a notebook, so it is the\nsingle description of 'what the analyst is looking at'. Validated against the dictionary server-side.",
+      "description": "One view of the data: the single description of what the analyst is looking at, validated server-side.",
       "properties": {
         "columns": {
           "items": {
@@ -3553,6 +4174,42 @@
         "index_name"
       ],
       "title": "QuerySpec",
+      "type": "object"
+    },
+    "RelatedAlert": {
+      "additionalProperties": false,
+      "description": "Another alert group that names the same address.",
+      "properties": {
+        "day": {
+          "maxLength": 10,
+          "type": "string"
+        },
+        "group_id": {
+          "maxLength": 128,
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 256,
+          "type": "string"
+        }
+      },
+      "required": [
+        "group_id",
+        "title",
+        "severity",
+        "day"
+      ],
+      "title": "RelatedAlert",
       "type": "object"
     },
     "RowsRequest": {
@@ -3898,10 +4555,10 @@
         }
       },
       "required": [
-        "distance",
         "group_id",
-        "severity",
-        "title"
+        "distance",
+        "title",
+        "severity"
       ],
       "title": "SimilarHit",
       "type": "object"
@@ -3989,6 +4646,19 @@
             "path_signature"
           ],
           "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The readable name the graph records for a hashed value"
         },
         "value": {
           "maxLength": 512,
@@ -4508,6 +5178,159 @@
       "title": "WatchlistResponse",
       "type": "object"
     },
+    "WhyActor": {
+      "additionalProperties": false,
+      "description": "One sender of the alert's requests, from the evidence the detector stored: who, whose network, how long known, what else fired.",
+      "properties": {
+        "country": {
+          "anyOf": [
+            {
+              "maxLength": 8,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "endpoints": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "events_total": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Everything we hold for this address, not only this alert's"
+        },
+        "first_seen": {
+          "anyOf": [
+            {
+              "maxLength": 10,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "First day this address is in our logs"
+        },
+        "ip": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "last_seen": {
+          "anyOf": [
+            {
+              "maxLength": 10,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "network": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "related_alerts": {
+          "items": {
+            "$ref": "#/$defs/RelatedAlert"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "requests": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "served_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "statuses": {
+          "description": "Response classes (2xx..) the sender got, when any feed recorded them",
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "targets": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Distinct targets it has reached"
+        },
+        "user_agent": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "ip"
+      ],
+      "title": "WhyActor",
+      "type": "object"
+    },
     "WhyBaseline": {
       "additionalProperties": false,
       "properties": {
@@ -4607,7 +5430,7 @@
     },
     "WhyEvidence": {
       "additionalProperties": false,
-      "description": "What the group's own events show. Paths, actions, sources and countries come from the SAMPLED events\n(``events_sampled`` of ``events_total``); ``allowed`` and ``blocked`` are the group's exact totals.",
+      "description": "What the group's own events show: paths, actions, sources and countries come from the SAMPLED events\n(``events_sampled`` of ``events_total``); ``allowed`` and ``blocked`` are the group's exact totals.",
       "properties": {
         "actions": {
           "items": {
@@ -4735,10 +5558,26 @@
           "maxItems": 10,
           "type": "array"
         },
+        "sensitive_answered": {
+          "description": "The sensitive paths a sampled request got a 2xx for, with how many times",
+          "items": {
+            "$ref": "#/$defs/Bucket"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
         "sensitive_paths": {
           "items": {
             "maxLength": 120,
             "type": "string"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "sensitive_status_classes": {
+          "description": "2xx, 3xx, 4xx, 5xx counts over the sampled requests FOR the sensitive paths only",
+          "items": {
+            "$ref": "#/$defs/Bucket"
           },
           "maxItems": 5,
           "type": "array"
@@ -4771,10 +5610,10 @@
         }
       },
       "required": [
-        "bytes_recorded",
-        "events_sampled",
         "events_total",
-        "status_recorded"
+        "events_sampled",
+        "status_recorded",
+        "bytes_recorded"
       ],
       "title": "WhyEvidence",
       "type": "object"
@@ -4923,9 +5762,120 @@
       "title": "WhyNovelty",
       "type": "object"
     },
+    "WhyRequest": {
+      "additionalProperties": false,
+      "description": "One sampled request, written by the sender: shown as data, never as text to act on.",
+      "properties": {
+        "bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "host": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ip": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "method": {
+          "anyOf": [
+            {
+              "maxLength": 16,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "path": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "t": {
+          "anyOf": [
+            {
+              "maxLength": 32,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "user_agent": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "WhyRequest",
+      "type": "object"
+    },
     "WhyResponse": {
       "additionalProperties": false,
       "properties": {
+        "actors": {
+          "description": "Who sent the requests; empty when the alert stored no evidence",
+          "items": {
+            "$ref": "#/$defs/WhyActor"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
         "as_of": {
           "format": "date-time",
           "type": "string"
@@ -4945,6 +5895,26 @@
           "maxLength": 128,
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
           "type": "string"
+        },
+        "hunt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HuntQuery"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Opens this alert's events in Hunt; None when the alert recorded no usable query"
+        },
+        "requests": {
+          "description": "A sample of the requests, written by the sender",
+          "items": {
+            "$ref": "#/$defs/WhyRequest"
+          },
+          "maxItems": 8,
+          "type": "array"
         },
         "sections": {
           "items": {
@@ -4986,7 +5956,7 @@
         "verdict": {
           "anyOf": [
             {
-              "maxLength": 1200,
+              "maxLength": 2000,
               "type": "string"
             },
             {
@@ -5250,17 +6220,59 @@
     "GeoInfo": {
       "$ref": "#/$defs/GeoInfo"
     },
+    "GraphAskEdge": {
+      "$ref": "#/$defs/GraphAskEdge"
+    },
+    "GraphAskEvents": {
+      "$ref": "#/$defs/GraphAskEvents"
+    },
+    "GraphAskNode": {
+      "$ref": "#/$defs/GraphAskNode"
+    },
+    "GraphAskRequest": {
+      "$ref": "#/$defs/GraphAskRequest"
+    },
+    "GraphAskResponse": {
+      "$ref": "#/$defs/GraphAskResponse"
+    },
+    "GraphAskStep": {
+      "$ref": "#/$defs/GraphAskStep"
+    },
+    "GraphCoveragePath": {
+      "$ref": "#/$defs/GraphCoveragePath"
+    },
+    "GraphCoverageResponse": {
+      "$ref": "#/$defs/GraphCoverageResponse"
+    },
+    "GraphCoverageStep": {
+      "$ref": "#/$defs/GraphCoverageStep"
+    },
     "GraphEdge": {
       "$ref": "#/$defs/GraphEdge"
     },
+    "GraphMatchRequest": {
+      "$ref": "#/$defs/GraphMatchRequest"
+    },
+    "GraphMatchResponse": {
+      "$ref": "#/$defs/GraphMatchResponse"
+    },
     "GraphNode": {
       "$ref": "#/$defs/GraphNode"
+    },
+    "GraphPathInfo": {
+      "$ref": "#/$defs/GraphPathInfo"
+    },
+    "GraphPathsResponse": {
+      "$ref": "#/$defs/GraphPathsResponse"
     },
     "GraphTraverseRequest": {
       "$ref": "#/$defs/GraphTraverseRequest"
     },
     "GraphTraverseResponse": {
       "$ref": "#/$defs/GraphTraverseResponse"
+    },
+    "HealthAttention": {
+      "$ref": "#/$defs/HealthAttention"
     },
     "HealthQueue": {
       "$ref": "#/$defs/HealthQueue"
@@ -5283,6 +6295,9 @@
     "HuntPatch": {
       "$ref": "#/$defs/HuntPatch"
     },
+    "HuntQuery": {
+      "$ref": "#/$defs/HuntQuery"
+    },
     "IndexCatalog": {
       "$ref": "#/$defs/IndexCatalog"
     },
@@ -5300,6 +6315,9 @@
     },
     "OriginBucket": {
       "$ref": "#/$defs/OriginBucket"
+    },
+    "OverviewEventsResponse": {
+      "$ref": "#/$defs/OverviewEventsResponse"
     },
     "OverviewRequest": {
       "$ref": "#/$defs/OverviewRequest"
@@ -5327,6 +6345,9 @@
     },
     "QuerySpec": {
       "$ref": "#/$defs/QuerySpec"
+    },
+    "RelatedAlert": {
+      "$ref": "#/$defs/RelatedAlert"
     },
     "RowsRequest": {
       "$ref": "#/$defs/RowsRequest"
@@ -5394,6 +6415,9 @@
     "WatchlistResponse": {
       "$ref": "#/$defs/WatchlistResponse"
     },
+    "WhyActor": {
+      "$ref": "#/$defs/WhyActor"
+    },
     "WhyBaseline": {
       "$ref": "#/$defs/WhyBaseline"
     },
@@ -5408,6 +6432,9 @@
     },
     "WhyNovelty": {
       "$ref": "#/$defs/WhyNovelty"
+    },
+    "WhyRequest": {
+      "$ref": "#/$defs/WhyRequest"
     },
     "WhyResponse": {
       "$ref": "#/$defs/WhyResponse"

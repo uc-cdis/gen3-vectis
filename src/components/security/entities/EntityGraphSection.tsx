@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Button, Group, Select, Stack, Text } from '@mantine/core';
+import { Alert, Button, Group, Modal, Select, Stack, Text } from '@mantine/core';
+import { IconArrowsMaximize } from '@tabler/icons-react';
 import { useSiemMutation, useSiemQuery } from '@/lib/vectis-kit/api/hooks';
 import { ApiError } from '@/lib/vectis-kit/api';
 import type { EntitySeed, GraphEdge, GraphNode, GraphTraverseResponse } from '@/lib/vectis-kit/spec';
@@ -12,6 +13,7 @@ import type { Lens } from '@/lib/vectis-kit/entity-graph/lens';
 import { useSecurity } from '../context';
 import { EmptyState, ErrorState, QueryBoundary, Unmeasured } from '@/lib/vectis-kit/ui/primitives';
 import { seedFromGraphNode, validNodeId } from './entityKeys';
+import { ExpandableText } from '@/lib/vectis-kit/ui/ExpandableText';
 
 const HOPS = Array.from({ length: MAX_GRAPH_HOPS }, (_, i) => ({ value: String(i + 1), label: `${i + 1} hop${i ? 's' : ''}` }));
 const LIMITS = [50, 100, 200, 500].map((n) => ({ value: String(n), label: `up to ${n} nodes` }));
@@ -28,11 +30,13 @@ type Selection = { kind: 'node'; node: GraphNode } | { kind: 'edge'; edge: Graph
 export const EntityGraphSection = ({ seed, graphId }: { seed: EntitySeed; graphId: string | null | undefined }) => {
   const { openEntity } = useSecurity();
   const startId = validNodeId(graphId);
-  const [hops, setHops] = useState('2');
-  const [limit, setLimit] = useState('200');
+  // One hop is what this entity did and hit; a second hop adds every other address that touched the same things.
+  const [hops, setHops] = useState('1');
+  const [limit, setLimit] = useState('100');
   const [selection, setSelection] = useState<Selection>(null);
   const [expansion, setExpansion] = useState<{ key: string; extras: GraphTraverseResponse[] }>({ key: '', extras: [] });
   const [expanding, setExpanding] = useState(false);
+  const [enlarged, setEnlarged] = useState(false);
   const [expandError, setExpandError] = useState<ApiError | null>(null);
   const expand = useSiemMutation('graph');
 
@@ -68,27 +72,39 @@ export const EntityGraphSection = ({ seed, graphId }: { seed: EntitySeed; graphI
     return n ? nodeTitleText(n, securityLens) : safeText(id, 80);
   };
 
+  const graphView = (height: number, big: boolean) => merged ? (
+    <EntityGraph
+      nodes={merged.nodes}
+      edges={merged.edges}
+      lens={securityLens}
+      truncated={merged.truncated}
+      selectedId={selection?.kind === 'node' ? selection.node.id : null}
+      label={`Graph neighbourhood of ${safeText(seed.value, 80)}`}
+      height={height}
+      {...(big ? { repulsion: 420, edgeLength: [90, 220] as [number, number] } : {})}
+      onNodeClick={(node) => setSelection({ kind: 'node', node })}
+      onEdgeClick={(edge) => setSelection({ kind: 'edge', edge })}
+      onExpand={(node) => { setSelection({ kind: 'node', node }); void onExpand(node); }}
+    />
+  ) : null;
+
   return (
     <Stack gap="sm" data-testid="entity-graph-section">
       <Group gap="sm" align="flex-end">
         <Select label="Depth" size="xs" w={120} data={HOPS} value={hops} onChange={(v) => v && setHops(v)} allowDeselect={false} />
         <Select label="Size" size="xs" w={160} data={LIMITS} value={limit} onChange={(v) => v && setLimit(v)} allowDeselect={false} />
-        <Text size="xs" c="dimmed">At most {MAX_GRAPH_HOPS} hops and {MAX_GRAPH_NODES} nodes. Expanding a node adds its direct neighbours.</Text>
+        <Text size="xs" c="dimmed">1 hop shows what it did and hit. 2 hops adds the other addresses that did the same things. Expanding a node adds its direct neighbours.</Text>
       </Group>
       <QueryBoundary query={base} isEmpty={(d) => d.nodes.length === 0} empty={<EmptyState title="No graph neighbours found for this entity" />}>
         {() => merged ? (
           <>
-            <EntityGraph
-              nodes={merged.nodes}
-              edges={merged.edges}
-              lens={securityLens}
-              truncated={merged.truncated}
-              selectedId={selection?.kind === 'node' ? selection.node.id : null}
-              label={`Graph neighbourhood of ${safeText(seed.value, 80)}`}
-              onNodeClick={(node) => setSelection({ kind: 'node', node })}
-              onEdgeClick={(edge) => setSelection({ kind: 'edge', edge })}
-              onExpand={(node) => { setSelection({ kind: 'node', node }); void onExpand(node); }}
-            />
+            <Group justify="flex-end" mb={-4}>
+              <Button size="compact-xs" variant="default" leftSection={<IconArrowsMaximize size={14} />} onClick={() => setEnlarged(true)}>Enlarge</Button>
+            </Group>
+            {graphView(460, false)}
+            <Modal opened={enlarged} onClose={() => setEnlarged(false)} fullScreen title={`Graph neighbourhood of ${safeText(seed.value, 80)}`}>
+              {enlarged ? graphView(Math.max(480, Math.round(window.innerHeight * 0.78)), true) : null}
+            </Modal>
             {expandError ? <ErrorState error={expandError} /> : null}
             {expanding ? <Text size="sm" c="dimmed" aria-live="polite">Expanding...</Text> : null}
             {selection?.kind === 'node' ? (
@@ -96,7 +112,7 @@ export const EntityGraphSection = ({ seed, graphId }: { seed: EntitySeed; graphI
                 <Stack gap="xs">
                   <FactList facts={[
                     { label: 'Id', value: <CopyValue value={selection.node.id} what="node id" /> },
-                    ...Object.entries(selection.node.properties ?? {}).slice(0, 12).map(([k, v]) => ({ label: safeText(k, 40), value: safeText(v, 160) })),
+                    ...Object.entries(selection.node.properties ?? {}).slice(0, 12).map(([k, v]) => ({ label: safeText(k, 40), value: <ExpandableText value={safeText(v, Number.MAX_SAFE_INTEGER)} previewChars={160} size="sm" label={`property ${safeText(k, 40)}`} /> })),
                   ]} />
                   <Group gap="xs">
                     <Button size="compact-xs" variant="default" loading={expanding} onClick={() => void onExpand(selection.node)}>Expand neighbours</Button>
@@ -124,15 +140,24 @@ export const EntityGraphSection = ({ seed, graphId }: { seed: EntitySeed; graphI
   );
 };
 
-/** How the security graph's node kinds look. Kinds not listed still get a stable colour and shape from their name. */
+/**
+ * How the security graph's node kinds look. The keys are the real kinds of the dictionary's graph contract
+ * (vectis_dictionary/commons/vectisprod/graph_contract.json, `labels`). The gateway sends each node's display text in
+ * `properties.name`; if it is missing the lens defaults and then the id are used (see `nodeTitle`). Kinds not listed
+ * still get a stable colour and shape from their name and the same title rule.
+ */
 export const securityLens: Lens = {
   labels: {
-    IpAddress: { color: '#0173B2', symbol: 'circle' },
-    Asn: { color: '#029E73', symbol: 'diamond' },
-    UserAgent: { color: '#CC78BC', symbol: 'rect', titleProperty: 'value' },
-    Ja4: { color: '#CA9161', symbol: 'triangle' },
-    Endpoint: { color: '#56B4E9', symbol: 'roundRect', titleProperty: 'path' },
-    Indicator: { color: '#D55E00', symbol: 'pin' },
-    Technique: { color: '#7A7A7A', symbol: 'rect' },
+    IpAddress: { color: '#0173B2', symbol: 'circle', titleProperty: 'name' },
+    Asn: { color: '#029E73', symbol: 'diamond', titleProperty: 'name' },
+    UserAgent: { color: '#CC78BC', symbol: 'rect', titleProperty: 'name' },
+    JA4Fingerprint: { color: '#CA9161', symbol: 'triangle', titleProperty: 'name' },
+    RequestSignature: { color: '#56B4E9', symbol: 'roundRect', titleProperty: 'name' },
+    LogSource: { titleProperty: 'name' },
+    Country: { titleProperty: 'name' },
+    Finding: { titleProperty: 'name' },
+    Host: { titleProperty: 'name' },
+    Indicator: { color: '#D55E00', symbol: 'pin', titleProperty: 'name' },
+    Technique: { color: '#7A7A7A', symbol: 'rect', titleProperty: 'name' },
   },
 };

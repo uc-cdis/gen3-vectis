@@ -36,6 +36,28 @@ const rowOf = (name: string) => {
   return within(table).getByText(name).closest('tr') as HTMLElement;
 };
 
+describe('Pipeline health: what needs attention', () => {
+  const attention = [
+    { severity: 'critical', area: 'alarm', title: 'Alarm: gen3-prod-vectis-pipeline-IocJobFailed', detail: 'In ALARM since 2026-11-01 15:00 UTC.' },
+    { severity: 'warning', area: 'source', title: 'f5 has gone quiet', detail: 'Last event 20 min ago; expected at least every 10 min.' },
+  ] as const;
+
+  it('leads with one verdict and names each thing, an alarm first', async () => {
+    mount(wrap({ health: withHealth((h) => ({ ...h, attention: [...attention] })) }));
+    const box = await screen.findByTestId('health-attention');
+    expect(within(box).getByText('The pipeline is unhealthy')).toBeInTheDocument();
+    expect(within(box).getByText('Alarm: gen3-prod-vectis-pipeline-IocJobFailed')).toBeInTheDocument();
+    expect(within(box).getByText('f5 has gone quiet')).toBeInTheDocument();
+    expect(screen.queryByTestId('health-attention-clear')).toBeNull();
+  });
+
+  it('says nothing needs attention when the service lists nothing', async () => {
+    mount(wrap({ health: withHealth((h) => ({ ...h, attention: [] })) }));
+    expect(await screen.findByTestId('health-attention-clear')).toHaveTextContent('Nothing needs attention');
+    expect(screen.queryByTestId('health-attention')).toBeNull();
+  });
+});
+
 describe('Pipeline health: sources', () => {
   it('labels stale as STALE and unconfigured sources as UNMEASURED, never OK', async () => {
     mount();

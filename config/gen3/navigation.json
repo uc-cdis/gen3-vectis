@@ -45,6 +45,12 @@
         "tooltip": "Threat intel and watchlist, what the detectors cover, and whether the data feeding them is healthy."
       },
       {
+        "icon": "gen3:exploration",
+        "href": "/Health",
+        "name": "Health",
+        "tooltip": "For administrators: whether each log source is arriving, the queues, and the records the pipeline could not process."
+      },
+      {
         "icon": "gen3:analysis",
         "href": "/Analysis",
         "name": "Apps",
